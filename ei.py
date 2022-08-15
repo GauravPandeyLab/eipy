@@ -133,7 +133,7 @@ class EnsembleIntegration:
         print("\nTraining meta models \n")
 
         for fold_id in range(self.k_outer):
-            for model_name, model in meta_models.items():
+            for model_name, model in self.meta_models.items():
 
                 print("\nTraining {model_name:} on outer fold {fold_id:} \n".format(model_name=model_name,
                                                                                     fold_id=fold_id))
@@ -170,9 +170,9 @@ class EnsembleIntegration:
         f_score, _, _ = fmax_score(y_test, y_pred)
         self.trained_base_predictors[
             f"model_{model_name:}_bag_{bag_id:}".format(model_name=model_name, bag_id=bag_id)] = model
-        print(self.trained_base_predictors)
-        return {"model_name": model_name, "bag_id": bag_id, "fold_id": fold_id, "fmax_score": f_score, "model": model,
-                "y_pred": y_pred, "labels": y_test}
+        results_dict = {"model_name": model_name, "bag_id": bag_id, "fold_id": fold_id, "fmax_score": f_score,
+                        "model": model, "y_pred": y_pred, "labels": y_test}
+        return results_dict
 
     def combine_data_inner(self, list_of_dicts):
         # dictionary to store predictions
@@ -184,7 +184,7 @@ class EnsembleIntegration:
                     list(d["y_pred"] for d in list_of_dicts if d["model_name"] == model_name and d["bag_id"] == bag_id))
                 combined_predictions[model_name, bag_id] = model_predictions
         labels = np.concatenate(list(d["labels"] for d in list_of_dicts if
-                                     d["model_name"] == list(base_predictors.keys())[0] and d["bag_id"] == 0))
+                                     d["model_name"] == list(self.base_predictors.keys())[0] and d["bag_id"] == 0))
         combined_predictions["labels", None] = labels
         combined_predictions = pd.DataFrame(combined_predictions)
         return combined_predictions
@@ -203,7 +203,7 @@ class EnsembleIntegration:
                     predictions[model_name, bag_id] = model_predictions[0][0]
                     self.trained_base_predictors[(model_name, bag_id)] = model_predictions[0][1]
             labels = [d["labels"] for d in list_of_dicts if
-                      d["fold_id"] == fold_id and d["model_name"] == list(base_predictors.keys())[0] and d[
+                      d["fold_id"] == fold_id and d["model_name"] == list(self.base_predictors.keys())[0] and d[
                           "bag_id"] == 0]
             predictions["labels", None] = labels[0]
             combined_predictions.append(pd.DataFrame(predictions))
@@ -232,7 +232,7 @@ class EnsembleIntegration:
         # dictionaries for meta train/test data for each outer fold
         meta_training_data = []
         # define joblib Parallel function
-        parallel = Parallel(n_jobs=self.n_jobs, verbose=5)
+        parallel = Parallel(n_jobs=self.n_jobs, verbose=10)
         for outer_fold_id, (train_index_outer, test_index_outer) in enumerate(self.cv_outer.split(X, y)):
             print("\n Generating meta-training data for fold {outer_fold_id:} \n".format(outer_fold_id=outer_fold_id))
 
@@ -244,8 +244,8 @@ class EnsembleIntegration:
                                                             y=y_train_inner,
                                                             model_params=model_params,
                                                             fold_params=inner_fold_params,
-                                                            bag_state=bag_state) \
-                              for model_params in self.base_predictors.items() \
+                                                            bag_state=bag_state)
+                              for model_params in self.base_predictors.items()
                               for inner_fold_params in enumerate(self.cv_inner.split(X_train_inner, y_train_inner)) \
                               for bag_state in enumerate(self.random_numbers_for_bags))
             combined_predictions = self.combine_data_inner(output)
@@ -271,7 +271,7 @@ class EnsembleIntegration:
         """
 
         # define joblib Parallel function
-        parallel = Parallel(n_jobs=self.n_jobs, verbose=5)
+        parallel = Parallel(n_jobs=self.n_jobs, verbose=10)
 
         print("\n Training base predictors on outer training sets \n")
 
@@ -280,9 +280,9 @@ class EnsembleIntegration:
                                                         y=y,
                                                         model_params=model_params,
                                                         fold_params=outer_fold_params,
-                                                        bag_state=bag_state) \
-                          for model_params in self.base_predictors.items() \
-                          for outer_fold_params in enumerate(self.cv_outer.split(X, y)) \
+                                                        bag_state=bag_state)
+                          for model_params in self.base_predictors.items()
+                          for outer_fold_params in enumerate(self.cv_outer.split(X, y))
                           for bag_state in enumerate(self.random_numbers_for_bags))
         meta_test_data = self.combine_data_outer(output)
         return meta_test_data
