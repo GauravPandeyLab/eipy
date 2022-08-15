@@ -6,42 +6,19 @@ Created on Wed Aug  3 11:30:30 2022
 @author: jamie
 """
 
-import tensorflow as tf
-import tensorflow.keras as keras
 import pandas as pd
 import numpy as np
-import matplotlib.pyplot as plt
-import sklearn
 import random
-from itertools import chain
-from imblearn.under_sampling import RandomUnderSampler
-from sklearn.base import BaseEstimator
-from sklearn.multioutput import MultiOutputClassifier, MultiOutputRegressor
-from sklearn.linear_model import LogisticRegression, LinearRegression
+from sklearn.utils._testing import ignore_warnings
+from sklearn.exceptions import ConvergenceWarning
 from sklearn.metrics import precision_recall_curve
-from matrix_factorization import MatrixFactorization
-from sklearn.model_selection import StratifiedKFold, KFold
-from sklearn.ensemble import StackingClassifier
-from sklearn.model_selection import train_test_split
+from sklearn.model_selection import StratifiedKFold
 from sklearn.preprocessing import RobustScaler
 from joblib import Parallel, delayed
 from imblearn.under_sampling import RandomUnderSampler
 from sklearn.calibration import CalibratedClassifierCV
-
-from sklearn.ensemble import AdaBoostClassifier, GradientBoostingClassifier, RandomForestClassifier
-from sklearn.tree import DecisionTreeClassifier
-from sklearn.neighbors import KNeighborsClassifier
-from sklearn.linear_model import LogisticRegression
-from sklearn.naive_bayes import GaussianNB
-from sklearn.svm import LinearSVC
-from sklearn.neural_network import MLPClassifier
-from xgboost import XGBClassifier
-
 import warnings
 warnings.filterwarnings("ignore", category=DeprecationWarning)
-
-from sklearn.utils._testing import ignore_warnings
-from sklearn.exceptions import ConvergenceWarning
 
 def fmax_score(y_true, y_pred, beta=1, display=False):
     # beta = 0 for precision, beta -> infinity for recall, beta=1 for harmonic mean
