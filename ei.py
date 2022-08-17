@@ -131,6 +131,8 @@ class EnsembleIntegration:
     def train_meta(self):
 
         print("\nTraining meta models \n")
+        
+        fmax_scores = []
 
         for fold_id in range(self.k_outer):
             for model_name, model in self.meta_models.items():
@@ -146,7 +148,8 @@ class EnsembleIntegration:
                     X_test = X_test.groupby(level=0, axis=1).mean()
                 model.fit(X_train, y_train)
                 y_pred = model.predict(X_test)
-                fmax_score(y_test, y_pred, display=True)
+                fmax_scores.append(fmax_score(y_test, y_pred, display=True))
+        return fmax_scores
 
     @ignore_warnings(category=ConvergenceWarning)
     def train_base(self, X, y):
