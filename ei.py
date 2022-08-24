@@ -77,6 +77,10 @@ def retrieve_X_y(data):
     return X, y
 
 
+def save_base(list_of_dataframes):
+
+
+
 class EnsembleIntegration:
     """
     Algorithms to properly test a variety of ensemble methods.
@@ -108,14 +112,14 @@ class EnsembleIntegration:
 
         set_seed(random_state)
 
-        self.base_predictors = base_predictors  # predictors to be ensembled
-        self.meta_models = meta_models  # meta algorithms to compare
-        self.k_outer = k_outer  # number of folds in outer k-fold cv
-        self.k_inner = k_inner  # number of folds in inner k-fold cv
-        self.n_bags = n_bags  # number of undersampling bags
-        self.bagging_strategy = bagging_strategy  #
-        self.n_jobs = n_jobs  # number of concurrent workers. Set as -1 to maximize
-        self.random_state = random_state  # set random state for reproducability
+        self.base_predictors = base_predictors
+        self.meta_models = meta_models
+        self.k_outer = k_outer
+        self.k_inner = k_inner
+        self.n_bags = n_bags
+        self.bagging_strategy = bagging_strategy
+        self.n_jobs = n_jobs
+        self.random_state = random_state
 
         self.trained_meta_models = {}
         self.trained_base_predictors = {}
@@ -213,22 +217,22 @@ class EnsembleIntegration:
         return combined_predictions
 
     def train_base_inner(self, X, y):
-        '''  
-        Perform a round of (inner) k-fold cross validation on each outer 
+        """
+        Perform a round of (inner) k-fold cross validation on each outer
         training set for generation of training data for the meta-algorithm
-        
+
         Parameters
         ----------
         X : array of shape (n_samples, n_features)
             Dataset.
         y : array of shape (n_samples,)
             Labels.
-    
+
         Returns
         -------
-        meta_training_data : List of length k_outer containing Pandas dataframes 
+        meta_training_data : List of length k_outer containing Pandas dataframes
         of shape (n_outer_training_samples, n_base_predictors * n_bags)
-        '''
+        """
 
         print("\n Training base predictors on inner training sets \n")
 
