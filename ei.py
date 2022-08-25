@@ -10,18 +10,18 @@ Created on Wed Aug  3 11:30:30 2022
 import pandas as pd
 import numpy as np
 import random
+import pickle
+import os
 from sklearn.utils._testing import ignore_warnings
 from sklearn.exceptions import ConvergenceWarning
 from sklearn.metrics import precision_recall_curve
 from sklearn.model_selection import StratifiedKFold
-from sklearn.preprocessing import RobustScaler
 from joblib import Parallel, delayed
 from imblearn.under_sampling import RandomUnderSampler
 from sklearn.calibration import CalibratedClassifierCV
 import warnings
 
 warnings.filterwarnings("ignore", category=DeprecationWarning)
-
 
 def fmax_score(y_true, y_pred, beta=1, display=False):
     # beta = 0 for precision, beta -> infinity for recall, beta=1 for harmonic mean
@@ -77,13 +77,9 @@ def retrieve_X_y(data):
     return X, y
 
 
-def save_base(list_of_dataframes):
-
-
-
 class EnsembleIntegration:
     """
-    Algorithms to properly test a variety of ensemble methods.
+    Algorithms to test a variety of ensemble methods.
 
     Parameters
     ----------
@@ -101,14 +97,15 @@ class EnsembleIntegration:
     """
 
     def __init__(self,
-                 base_predictors,
-                 meta_models,
-                 k_outer,
-                 k_inner,
-                 n_bags,
+                 base_predictors=None,
+                 meta_models=None,
+                 k_outer=None,
+                 k_inner=None,
+                 n_bags=None,
                  bagging_strategy="mean",
                  n_jobs=-1,
-                 random_state=None):
+                 random_state=None,
+                 name="project"):
 
         set_seed(random_state)
 
@@ -120,14 +117,20 @@ class EnsembleIntegration:
         self.bagging_strategy = bagging_strategy
         self.n_jobs = n_jobs
         self.random_state = random_state
+        self.name = name
 
         self.trained_meta_models = {}
         self.trained_base_predictors = {}
-        self.cv_outer = StratifiedKFold(n_splits=self.k_outer, shuffle=True,
-                                        random_state=random_integers(n_integers=1)[0])
-        self.cv_inner = StratifiedKFold(n_splits=self.k_inner, shuffle=True,
-                                        random_state=random_integers(n_integers=1)[0])
-        self.random_numbers_for_bags = random_integers(n_integers=n_bags)
+        
+        if k_outer is not None:
+            self.cv_outer = StratifiedKFold(n_splits=self.k_outer, shuffle=True,
+                                            random_state=random_integers(n_integers=1)[0])
+        if k_inner is not None:
+            self.cv_inner = StratifiedKFold(n_splits=self.k_inner, shuffle=True,
+                                            random_state=random_integers(n_integers=1)[0])
+        if n_bags is not None:
+            self.random_numbers_for_bags = random_integers(n_integers=n_bags)
+            
         self.meta_training_data = None
         self.meta_test_data = None
 
@@ -160,62 +163,7 @@ class EnsembleIntegration:
         self.meta_training_data = self.train_base_inner(X, y)
         self.meta_test_data = self.train_base_outer(X, y)
         return self
-
-    @ignore_warnings(category=ConvergenceWarning)
-    def train_base_fold(self, X, y, model_params, fold_params, bag_state):
-        model_name, model = model_params
-        fold_id, (train_index, test_index) = fold_params
-        bag_id, bag_random_state = bag_state
-        # use cross validation to calculate probability outputs
-        if not hasattr(model, "predict_proba"):
-            model = CalibratedClassifierCV(model)
-        X_train, X_test = X[train_index], X[test_index]
-        y_train, y_test = y[train_index], y[test_index]
-        X_bag, y_bag = undersample(X_train, y_train, random_state=bag_random_state)
-        model.fit(X_bag, y_bag)
-        y_pred = model.predict_proba(X_test)[:, 1]
-        f_score, _, _ = fmax_score(y_test, y_pred)
-        self.trained_base_predictors[
-            f"model_{model_name:}_bag_{bag_id:}".format(model_name=model_name, bag_id=bag_id)] = model
-        results_dict = {"model_name": model_name, "bag_id": bag_id, "fold_id": fold_id, "fmax_score": f_score,
-                        "model": model, "y_pred": y_pred, "labels": y_test}
-        return results_dict
-
-    def combine_data_inner(self, list_of_dicts):
-        # dictionary to store predictions
-        combined_predictions = {}
-        # combine fold predictions for each model
-        for model_name in self.base_predictors.keys():
-            for bag_id in range(self.n_bags):
-                model_predictions = np.concatenate(
-                    list(d["y_pred"] for d in list_of_dicts if d["model_name"] == model_name and d["bag_id"] == bag_id))
-                combined_predictions[model_name, bag_id] = model_predictions
-        labels = np.concatenate(list(d["labels"] for d in list_of_dicts if
-                                     d["model_name"] == list(self.base_predictors.keys())[0] and d["bag_id"] == 0))
-        combined_predictions["labels", None] = labels
-        combined_predictions = pd.DataFrame(combined_predictions)
-        return combined_predictions
-
-    def combine_data_outer(self, list_of_dicts):
-        # dictionary to store predictions
-        combined_predictions = []
-        # collect predictions for each outer fold
-        for fold_id in range(self.k_outer):
-            predictions = {}
-            for model_name in self.base_predictors.keys():
-                for bag_id in range(self.n_bags):
-                    model_predictions = list([d["y_pred"], d["model"]] for d in list_of_dicts if
-                                             d["fold_id"] == fold_id and d["model_name"] == model_name and d[
-                                                 "bag_id"] == bag_id)
-                    predictions[model_name, bag_id] = model_predictions[0][0]
-                    self.trained_base_predictors[(model_name, bag_id)] = model_predictions[0][1]
-            labels = [d["labels"] for d in list_of_dicts if
-                      d["fold_id"] == fold_id and d["model_name"] == list(self.base_predictors.keys())[0] and d[
-                          "bag_id"] == 0]
-            predictions["labels", None] = labels[0]
-            combined_predictions.append(pd.DataFrame(predictions))
-        return combined_predictions
-
+    
     def train_base_inner(self, X, y):
         """
         Perform a round of (inner) k-fold cross validation on each outer
@@ -293,3 +241,64 @@ class EnsembleIntegration:
                           for bag_state in enumerate(self.random_numbers_for_bags))
         meta_test_data = self.combine_data_outer(output)
         return meta_test_data
+
+    @ignore_warnings(category=ConvergenceWarning)
+    def train_base_fold(self, X, y, model_params, fold_params, bag_state, outer=False):
+        model_name, model = model_params
+        fold_id, (train_index, test_index) = fold_params
+        bag_id, bag_random_state = bag_state
+        # use cross validation to calculate probability outputs
+        if not hasattr(model, "predict_proba"):
+            model = CalibratedClassifierCV(model)
+        X_train, X_test = X[train_index], X[test_index]
+        y_train, y_test = y[train_index], y[test_index]
+        X_bag, y_bag = undersample(X_train, y_train, random_state=bag_random_state)
+        model.fit(X_bag, y_bag)
+        y_pred = model.predict_proba(X_test)[:, 1]
+        f_score, _, _ = fmax_score(y_test, y_pred)
+        results_dict = {"model_name": model_name, "bag_id": bag_id, "fold_id": fold_id, "fmax_score": f_score,
+                        "model": model, "y_pred": y_pred, "labels": y_test}
+        return results_dict
+
+    def combine_data_inner(self, list_of_dicts):
+        # dictionary to store predictions
+        combined_predictions = {}
+        # combine fold predictions for each model
+        for model_name in self.base_predictors.keys():
+            for bag_id in range(self.n_bags):
+                model_predictions = np.concatenate(
+                    list(d["y_pred"] for d in list_of_dicts if d["model_name"] == model_name and d["bag_id"] == bag_id))
+                combined_predictions[model_name, bag_id] = model_predictions
+        labels = np.concatenate(list(d["labels"] for d in list_of_dicts if
+                                     d["model_name"] == list(self.base_predictors.keys())[0] and d["bag_id"] == 0))
+        combined_predictions["labels", None] = labels
+        combined_predictions = pd.DataFrame(combined_predictions)
+        return combined_predictions
+
+    def combine_data_outer(self, list_of_dicts):
+        combined_predictions = []
+        for fold_id in range(self.k_outer):
+            predictions = {}
+            for model_name in self.base_predictors.keys():
+                for bag_id in range(self.n_bags):
+                    model_predictions = list([d["y_pred"], d["model"]] for d in list_of_dicts if
+                                             d["fold_id"] == fold_id and d["model_name"] == model_name and d[
+                                                 "bag_id"] == bag_id)
+                    predictions[model_name, bag_id] = model_predictions[0][0]
+                    self.trained_base_predictors[(model_name, bag_id)] = model_predictions[0][1]
+            labels = [d["labels"] for d in list_of_dicts if
+                      d["fold_id"] == fold_id and d["model_name"] == list(self.base_predictors.keys())[0] and d[
+                          "bag_id"] == 0]
+            predictions["labels", None] = labels[0]
+            combined_predictions.append(pd.DataFrame(predictions))
+        return combined_predictions
+    
+    def save(self):
+        with open(f"EI.{self.name}", 'wb') as f:
+            pickle.dump(self, f)
+        print(f"\nProject saved to EI.{self.name}")
+            
+    @classmethod
+    def load(cls, filename):
+        with open(filename, 'rb') as f:
+            return pickle.load(f)  
