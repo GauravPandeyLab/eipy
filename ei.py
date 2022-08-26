@@ -45,10 +45,10 @@ def read_arff_to_pandas_df(arff_path):
     df = pd.read_csv(arff_path, comment='@', header=None)
     columns = []
     file1 = open(arff_path, 'r')
-    Lines = file1.readlines()
+    lines = file1.readlines()
 
     # Strips the newline character
-    for line_idx, line in enumerate(Lines):
+    for line_idx, line in enumerate(lines):
         # if line_idx > num_col
         if '@attribute' in line.lower():
             columns.append(line.strip().split(' ')[1])
