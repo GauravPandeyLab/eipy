@@ -20,6 +20,7 @@ import warnings
 
 warnings.filterwarnings("ignore", category=DeprecationWarning)
 
+
 def fmax_score(y_true, y_pred, beta=1, display=False):
     # beta = 0 for precision, beta -> infinity for recall, beta=1 for harmonic mean
     np.seterr(divide='ignore', invalid='ignore')
@@ -72,6 +73,7 @@ def retrieve_X_y(data):
     X = data.drop(columns=["labels"], level=0)
     y = np.ravel(data["labels"])
     return X, y
+
 
 def update_keys(dictionary, string):
     return {f'{k}_' + string: v for k, v in dictionary.items()}
@@ -132,7 +134,7 @@ class EnsembleIntegration:
 
         self.trained_meta_models = {}
         self.trained_base_predictors = {}
-        
+
         if k_outer is not None:
             self.cv_outer = StratifiedKFold(n_splits=self.k_outer, shuffle=True,
                                             random_state=random_integers(n_integers=1)[0])
@@ -152,14 +154,14 @@ class EnsembleIntegration:
             self.meta_models = meta_models
 
         print("\nTraining meta models \n")
-        
+
         fmax_scores = []
 
         for fold_id in range(self.k_outer):
             for model_name, model in self.meta_models.items():
 
                 print("\nTraining {model_name:} on outer fold {fold_id:}... \n".format(model_name=model_name,
-                                                                                    fold_id=fold_id))
+                                                                                       fold_id=fold_id))
 
                 X_train, y_train = retrieve_X_y(data=self.meta_training_data[fold_id])
                 X_test, y_test = retrieve_X_y(data=self.meta_test_data[fold_id])
@@ -180,7 +182,6 @@ class EnsembleIntegration:
             self.base_predictors = base_predictors  # update base predictors
 
         if modality is not None:
-
             print(f"\n Working on {modality} data... \n")
 
             self.base_predictors = update_keys(dictionary=self.base_predictors,
@@ -195,7 +196,7 @@ class EnsembleIntegration:
             self.meta_test_data = append_modality(self.meta_test_data, self.train_base_outer(X, y))
 
         return self
-    
+
     def train_base_inner(self, X, y):
         """
         Perform a round of (inner) k-fold cross validation on each outer
@@ -221,7 +222,8 @@ class EnsembleIntegration:
         # define joblib Parallel function
         parallel = Parallel(n_jobs=self.n_jobs, verbose=10)
         for outer_fold_id, (train_index_outer, test_index_outer) in enumerate(self.cv_outer.split(X, y)):
-            print("\n Generating meta-training data for outer fold {outer_fold_id:}... \n".format(outer_fold_id=outer_fold_id))
+            print("\n Generating meta-training data for outer fold {outer_fold_id:}... \n".format(
+                outer_fold_id=outer_fold_id))
 
             X_train_inner = X[train_index_outer]
             y_train_inner = y[train_index_outer]
@@ -324,13 +326,13 @@ class EnsembleIntegration:
             predictions["labels", None] = labels[0]
             combined_predictions.append(pd.DataFrame(predictions))
         return combined_predictions
-    
+
     def save(self):
         with open(f"EI.{self.name}", 'wb') as f:
             pickle.dump(self, f)
         print(f"\nProject saved to EI.{self.name}\n")
-            
+
     @classmethod
     def load(cls, filename):
         with open(filename, 'rb') as f:
-            return pickle.load(f)  
+            return pickle.load(f)
