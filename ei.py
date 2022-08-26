@@ -1,8 +1,5 @@
 """
-
 Ensemble Integration
-
-Created on Wed Aug  3 11:30:30 2022
 
 @author: Jamie Bennett, Yan Chak (Richard) Li
 """
@@ -76,6 +73,20 @@ def retrieve_X_y(data):
     y = np.ravel(data["labels"])
     return X, y
 
+def update_keys(dictionary, string):
+    return {f'{k}_' + string: v for k, v in dictionary.items()}
+
+
+def append_modality(current_data, modality_data):
+    combined_dataframe = []
+    for fold, dataframe in enumerate(current_data):
+        if (dataframe.iloc[:, -1].to_numpy() != modality_data[fold].iloc[:, -1].to_numpy()).all():
+            print("Error: labels do not match across modalities")
+            break
+        combined_dataframe.append(pd.concat((dataframe.iloc[:, :-1],
+                                             modality_data[fold]), axis=1))
+    return combined_dataframe
+
 
 class EnsembleIntegration:
     """
@@ -130,12 +141,15 @@ class EnsembleIntegration:
                                             random_state=random_integers(n_integers=1)[0])
         if n_bags is not None:
             self.random_numbers_for_bags = random_integers(n_integers=n_bags)
-            
+
         self.meta_training_data = None
         self.meta_test_data = None
 
     @ignore_warnings(category=ConvergenceWarning)
-    def train_meta(self):
+    def train_meta(self, meta_models=None):
+
+        if meta_models is not None:
+            self.meta_models = meta_models
 
         print("\nTraining meta models \n")
         
@@ -144,7 +158,7 @@ class EnsembleIntegration:
         for fold_id in range(self.k_outer):
             for model_name, model in self.meta_models.items():
 
-                print("\nTraining {model_name:} on outer fold {fold_id:} \n".format(model_name=model_name,
+                print("\nTraining {model_name:} on outer fold {fold_id:}... \n".format(model_name=model_name,
                                                                                     fold_id=fold_id))
 
                 X_train, y_train = retrieve_X_y(data=self.meta_training_data[fold_id])
@@ -156,12 +170,30 @@ class EnsembleIntegration:
                 model.fit(X_train, y_train)
                 y_pred = model.predict(X_test)
                 fmax_scores.append(fmax_score(y_test, y_pred, display=True))
+
         return fmax_scores
 
     @ignore_warnings(category=ConvergenceWarning)
-    def train_base(self, X, y):
-        self.meta_training_data = self.train_base_inner(X, y)
-        self.meta_test_data = self.train_base_outer(X, y)
+    def train_base(self, X, y, base_predictors=None, modality=None):
+
+        if base_predictors is not None:
+            self.base_predictors = base_predictors  # update base predictors
+
+        if modality is not None:
+
+            print(f"\n Working on {modality} data... \n")
+
+            self.base_predictors = update_keys(dictionary=self.base_predictors,
+                                               string=modality)  # include modality in model name
+
+        if (self.meta_training_data or self.meta_test_data) is None:
+            self.meta_training_data = self.train_base_inner(X, y)
+            self.meta_test_data = self.train_base_outer(X, y)
+
+        else:
+            self.meta_training_data = append_modality(self.meta_training_data, self.train_base_inner(X, y))
+            self.meta_test_data = append_modality(self.meta_test_data, self.train_base_outer(X, y))
+
         return self
     
     def train_base_inner(self, X, y):
@@ -182,14 +214,14 @@ class EnsembleIntegration:
         of shape (n_outer_training_samples, n_base_predictors * n_bags)
         """
 
-        print("\n Training base predictors on inner training sets \n")
+        print("\n Training base predictors on inner training sets... \n")
 
         # dictionaries for meta train/test data for each outer fold
         meta_training_data = []
         # define joblib Parallel function
         parallel = Parallel(n_jobs=self.n_jobs, verbose=10)
         for outer_fold_id, (train_index_outer, test_index_outer) in enumerate(self.cv_outer.split(X, y)):
-            print("\n Generating meta-training data for fold {outer_fold_id:} \n".format(outer_fold_id=outer_fold_id))
+            print("\n Generating meta-training data for outer fold {outer_fold_id:}... \n".format(outer_fold_id=outer_fold_id))
 
             X_train_inner = X[train_index_outer]
             y_train_inner = y[train_index_outer]
@@ -228,7 +260,7 @@ class EnsembleIntegration:
         # define joblib Parallel function
         parallel = Parallel(n_jobs=self.n_jobs, verbose=10)
 
-        print("\n Training base predictors on outer training sets \n")
+        print("\n Training base predictors on outer training sets... \n")
 
         # spawn job for each bag, inner_fold and model
         output = parallel(delayed(self.train_base_fold)(X=X,
@@ -296,7 +328,7 @@ class EnsembleIntegration:
     def save(self):
         with open(f"EI.{self.name}", 'wb') as f:
             pickle.dump(self, f)
-        print(f"\nProject saved to EI.{self.name}")
+        print(f"\nProject saved to EI.{self.name}\n")
             
     @classmethod
     def load(cls, filename):
