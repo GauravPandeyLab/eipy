@@ -84,7 +84,7 @@ EI = EnsembleIntegration(base_predictors=base_predictors,
                          k_inner=5,
                          n_bags=1,
                          bagging_strategy="mean",
-                         n_jobs=-1,
+                         n_jobs=-1, # set as -1 to use all available CPUs
                          random_state=42,
                          project_name="demo")
 ```
