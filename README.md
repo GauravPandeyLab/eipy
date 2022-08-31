@@ -59,7 +59,7 @@ X_view_3 = X[:, 15:]
   
 ```
 
-Define base predictors as a dictionary,
+Define base predictors as a dictionary.
 
 ```
 base_predictors = {
@@ -76,7 +76,7 @@ base_predictors = {
 }
 ```
 
-Set up a 5-fold outer cross validation, along with a 5-fold inner cross validation for meta-training data generation.
+Set up a 5-fold outer cross validation, along with a 5-fold inner cross validation for meta-training data generation. Meta models can be defined here, or later. 
 
 ```
 EI = EnsembleIntegration(base_predictors=base_predictors,
