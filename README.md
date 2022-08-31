@@ -25,7 +25,7 @@ joblib==1.1.0
 
 ## Demo ##
 
-First import the scikit-learn classifiers and EI
+Import scikit-learn classifiers and EI.
 
 ```
 from sklearn.ensemble import AdaBoostClassifier, GradientBoostingClassifier, RandomForestClassifier
@@ -42,24 +42,12 @@ import sys
 path_to_ei = "/home/opc/ei-python/"
 sys.path.append(path_to_ei)
 from ei import EnsembleIntegration, read_arff_to_pandas_df
+```
 
-Generate a toy multimodal dataset
+Generate a toy multimodal dataset.
 
 '''
-def generate_data(n_samples, lim):
-    """Generate random data in a rectangle"""
-    lim = np.array(lim)
-    n_features = lim.shape[0]
-    data = np.random.random((n_samples, n_features))
-    data = (lim[:, 1]-lim[:, 0]) * data + lim[:, 0]
-    return data
-
-# generate some data
-
-seed = 12
-np.random.seed(seed)
-
-n_samples = 1000
+from sklearn.dataset import make_classification
 
 X, y = make_classification(n_samples=1000, n_features=20, n_redundant=0,
 n_clusters_per_class=1, weights=[0.7], flip_y=0, random_state=1)
@@ -71,7 +59,7 @@ X_view_3 = X[:, 15:]
   
 ```
 
-Define your base predictors as a dictionary,
+Define base predictors as a dictionary,
 
 ```
 base_predictors = {
@@ -81,14 +69,14 @@ base_predictors = {
     'KNN': KNeighborsClassifier(n_neighbors=21),
     'LR': LogisticRegression(),
     'NB': GaussianNB(),
-    'MLP': MLPClassifier(max_iter=2000),
+    'MLP': MLPClassifier(),
     'RF': RandomForestClassifier(),
     'SVM': LinearSVC(),
     'XGB': XGBClassifier(use_label_encoder=False, eval_metric='error')
 }
 ```
 
-and call EI. Here we set up a 5-fold outer cross validation, along with a 5-fold inner cross validation for meta-training data generation.
+Set up a 5-fold outer cross validation, along with a 5-fold inner cross validation for meta-training data generation.
 
 ```
 EI = EnsembleIntegration(base_predictors=base_predictors,
@@ -99,5 +87,39 @@ EI = EnsembleIntegration(base_predictors=base_predictors,
                          n_jobs=-1,
                          random_state=42,
                          project_name="demo")
+```
 
-modalities = ["view_0", "view_1"]
+Generate meta-training data and train base classifiers on outer folds.
+
+```
+modalities = ["view_0", "view_1", "view_2", "view_3"]
+
+for modality in modalities:
+    X, y = read_data(f"data/{modality}/data.arff")
+    EI.train_base(X, y, base_predictors, modality=modality)
+
+EI.save() # save EI as EI.demo
+```
+
+Define stacking classifiers and test ensembles.
+
+```
+meta_models = {
+    "AdaBoost": AdaBoostClassifier(),
+    "DT": DecisionTreeClassifier(max_depth=5),
+    "GradientBoosting": GradientBoostingClassifier(),
+    "KNN": KNeighborsClassifier(n_neighbors=21),
+    "LR": LogisticRegression(),
+    "NB": GaussianNB(),
+    "MLP": MLPClassifier(),
+    "RF": RandomForestClassifier(),
+    "SVM": LinearSVC(tol=1e-2, max_iter=10000),
+    "XGB": XGBClassifier(use_label_encoder=False, eval_metric='error')
+}
+
+EI = EnsembleIntegration().load("EI.demo") # load models from disk
+
+EI.train_meta(meta_models=meta_models) # train meta classifiers
+```
+
+
