@@ -42,8 +42,8 @@ def fmax_score(y_true, y_pred, beta=1, display=False):
 def read_arff_to_pandas_df(arff_path):
     df = pd.read_csv(arff_path, comment='@', header=None)
     columns = []
-    file1 = open(arff_path, 'r')
-    lines = file1.readlines()
+    file = open(arff_path, 'r')
+    lines = file.readlines()
 
     # Strips the newline character
     for line_idx, line in enumerate(lines):
@@ -69,14 +69,14 @@ def undersample(X, y, random_state):
     return X_resampled, y_resampled
 
 
-def retrieve_X_y(data):
-    X = data.drop(columns=["labels"], level=0)
-    y = np.ravel(data["labels"])
+def retrieve_X_y(labelled_data):
+    X = labelled_data.drop(columns=["labels"], level=0)
+    y = np.ravel(labelled_data["labels"])
     return X, y
 
 
 def update_keys(dictionary, string):
-    return {f'{k}_' + string: v for k, v in dictionary.items()}
+    return {f"{k}_" + string: v for k, v in dictionary.items()}
 
 
 def append_modality(current_data, modality_data):
@@ -118,7 +118,7 @@ class EnsembleIntegration:
                  bagging_strategy="mean",
                  n_jobs=-1,
                  random_state=None,
-                 name="project"):
+                 project_name="project"):
 
         set_seed(random_state)
 
@@ -130,7 +130,7 @@ class EnsembleIntegration:
         self.bagging_strategy = bagging_strategy
         self.n_jobs = n_jobs
         self.random_state = random_state
-        self.name = name
+        self.project_name = project_name
 
         self.trained_meta_models = {}
         self.trained_base_predictors = {}
@@ -153,27 +153,37 @@ class EnsembleIntegration:
         if meta_models is not None:
             self.meta_models = meta_models
 
-        print("\nTraining meta models \n")
+        print("\nWorking on meta models \n")
 
-        fmax_scores = []
+        combined_predictions = {}
+        performance_metrics = []
 
-        for fold_id in range(self.k_outer):
-            for model_name, model in self.meta_models.items():
+        for model_name, model in self.meta_models.items():
 
-                print("\nTraining {model_name:} on outer fold {fold_id:}... \n".format(model_name=model_name,
-                                                                                       fold_id=fold_id))
+            print("\nTraining {model_name:}... \n".format(model_name=model_name))
 
-                X_train, y_train = retrieve_X_y(data=self.meta_training_data[fold_id])
-                X_test, y_test = retrieve_X_y(data=self.meta_test_data[fold_id])
+            y_pred_combined = []
+            y_test_combined = []
+            for fold_id in range(self.k_outer):
+
+                X_train, y_train = retrieve_X_y(labelled_data=self.meta_training_data[fold_id])
+                X_test, y_test = retrieve_X_y(labelled_data=self.meta_test_data[fold_id])
 
                 if self.bagging_strategy == "mean":
                     X_train = X_train.groupby(level=0, axis=1).mean()
                     X_test = X_test.groupby(level=0, axis=1).mean()
                 model.fit(X_train, y_train)
                 y_pred = model.predict(X_test)
-                fmax_scores.append(fmax_score(y_test, y_pred, display=True))
+                y_pred_combined.extend(y_pred)
+                y_test_combined.extend(y_test)
 
-        return fmax_scores
+            # Add model predictions to dictionary, along with model name.
+
+            # Convert to pandas dataframe and export as csv. Also, add metrics to
+
+            performance_metrics.append(fmax_score(y_test_combined, y_pred_combined, display=True))
+
+        return performance_metrics
 
     @ignore_warnings(category=ConvergenceWarning)
     def train_base(self, X, y, base_predictors=None, modality=None):
@@ -294,7 +304,7 @@ class EnsembleIntegration:
                         "model": model, "y_pred": y_pred, "labels": y_test}
         return results_dict
 
-    def combine_data_inner(self, list_of_dicts):
+    def combine_data_inner(self, list_of_dicts): # we don't save the models trained here
         # dictionary to store predictions
         combined_predictions = {}
         # combine fold predictions for each model
@@ -319,7 +329,7 @@ class EnsembleIntegration:
                                              d["fold_id"] == fold_id and d["model_name"] == model_name and d[
                                                  "bag_id"] == bag_id)
                     predictions[model_name, bag_id] = model_predictions[0][0]
-                    self.trained_base_predictors[(model_name, bag_id)] = model_predictions[0][1]
+                    # self.trained_base_predictors[(model_name, bag_id)] = model_predictions[0][1] # need to write to file to avoid memory issues
             labels = [d["labels"] for d in list_of_dicts if
                       d["fold_id"] == fold_id and d["model_name"] == list(self.base_predictors.keys())[0] and d[
                           "bag_id"] == 0]
@@ -327,10 +337,12 @@ class EnsembleIntegration:
             combined_predictions.append(pd.DataFrame(predictions))
         return combined_predictions
 
-    def save(self):
-        with open(f"EI.{self.name}", 'wb') as f:
+    def save(self, path=None):
+        if path is None:
+            path = f"EI.{self.project_name}"
+        with open(path, 'wb') as f:
             pickle.dump(self, f)
-        print(f"\nProject saved to EI.{self.name}\n")
+        print(f"\nSaved to {path}\n")
 
     @classmethod
     def load(cls, filename):
