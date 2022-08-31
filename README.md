@@ -41,7 +41,7 @@ import sys
 
 path_to_ei = "/path/to/ei-python/"
 sys.path.append(path_to_ei)
-from ei import EnsembleIntegration, read_arff_to_pandas_df
+from ei import EnsembleIntegration
 ```
 
 Generate a toy multimodal dataset.
