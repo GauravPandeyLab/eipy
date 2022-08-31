@@ -13,6 +13,8 @@ This repository is protected by CC-BY-NC-ND-4.0.
 
 ## Requirements ##
 
+The following packages are requirements for EI:
+
 ```
 python==3.9.12
 scikit-learn==1.1.1
@@ -20,3 +22,82 @@ pandas==1.4.3
 numpy==1.22.3
 joblib==1.1.0
 ```
+
+## Demo ##
+
+First import the scikit-learn classifiers and EI
+
+```
+from sklearn.ensemble import AdaBoostClassifier, GradientBoostingClassifier, RandomForestClassifier
+from sklearn.tree import DecisionTreeClassifier
+from sklearn.neighbors import KNeighborsClassifier
+from sklearn.linear_model import LogisticRegression
+from sklearn.naive_bayes import GaussianNB
+from sklearn.preprocessing import RobustScaler
+from sklearn.svm import LinearSVC
+from sklearn.neural_network import MLPClassifier
+from xgboost import XGBClassifier
+import sys
+
+path_to_ei = "/home/opc/ei-python/"
+sys.path.append(path_to_ei)
+from ei import EnsembleIntegration, read_arff_to_pandas_df
+
+Generate a toy multimodal dataset
+
+'''
+def generate_data(n_samples, lim):
+    """Generate random data in a rectangle"""
+    lim = np.array(lim)
+    n_features = lim.shape[0]
+    data = np.random.random((n_samples, n_features))
+    data = (lim[:, 1]-lim[:, 0]) * data + lim[:, 0]
+    return data
+
+# generate some data
+
+seed = 12
+np.random.seed(seed)
+
+n_samples = 1000
+
+X, y = make_classification(n_samples=1000, n_features=20, n_redundant=0,
+n_clusters_per_class=1, weights=[0.7], flip_y=0, random_state=1)
+
+X_view_0 = X[:, :5]
+X_view_1 = X[:, 5:10]
+X_view_2 = X[:, 10:15]
+X_view_3 = X[:, 15:]
+  
+```
+
+Define your base predictors as a dictionary,
+
+```
+base_predictors = {
+    'AdaBoost': AdaBoostClassifier(base_estimator=DecisionTreeClassifier(max_depth=3)),
+    'DT': DecisionTreeClassifier(max_depth=3),
+    'GradientBoosting': GradientBoostingClassifier(),
+    'KNN': KNeighborsClassifier(n_neighbors=21),
+    'LR': LogisticRegression(),
+    'NB': GaussianNB(),
+    'MLP': MLPClassifier(max_iter=2000),
+    'RF': RandomForestClassifier(),
+    'SVM': LinearSVC(),
+    'XGB': XGBClassifier(use_label_encoder=False, eval_metric='error')
+}
+```
+
+and call EI. Here we set up a 5-fold outer cross validation, along with a 5-fold inner cross validation for meta-training data generation.
+
+```
+EI = EnsembleIntegration(base_predictors=base_predictors,
+                         k_outer=5,
+                         k_inner=5,
+                         n_bags=1,
+                         bagging_strategy="mean",
+                         n_jobs=-1,
+                         random_state=42,
+                         project_name="demo")
+
+modalities = ["view_0", "view_1"]
