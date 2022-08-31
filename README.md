@@ -13,7 +13,7 @@ This repository is protected by CC-BY-NC-ND-4.0.
 
 ## Requirements ##
 
-`
+```
 python==3.9.12
 
 scikit-learn==1.1.1
@@ -24,4 +24,4 @@ numpy==1.22.3
 
 joblib==1.1.0
 
-`
+```
