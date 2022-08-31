@@ -39,7 +39,7 @@ from sklearn.neural_network import MLPClassifier
 from xgboost import XGBClassifier
 import sys
 
-path_to_ei = "/home/opc/ei-python/"
+path_to_ei = "/path/to/ei-python/"
 sys.path.append(path_to_ei)
 from ei import EnsembleIntegration, read_arff_to_pandas_df
 ```
