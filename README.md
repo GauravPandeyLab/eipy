@@ -46,7 +46,7 @@ from ei import EnsembleIntegration, read_arff_to_pandas_df
 
 Generate a toy multimodal dataset.
 
-'''
+```
 from sklearn.dataset import make_classification
 
 X, y = make_classification(n_samples=1000, n_features=20, n_redundant=0,
