@@ -20,8 +20,7 @@ import warnings
 
 warnings.filterwarnings("ignore", category=DeprecationWarning)
 
-from utils.py import fmax_score, read_arff_to_pandas_df, set_seed, random_integers, undersample,
-        retrieve_X_y, update_keys, append_modality
+from utils import fmax_score, set_seed, random_integers, undersample, retrieve_X_y, update_keys, append_modality
 
 class EnsembleIntegration:
     """
