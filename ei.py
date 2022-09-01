@@ -17,10 +17,8 @@ from joblib import Parallel, delayed
 from imblearn.under_sampling import RandomUnderSampler
 from sklearn.calibration import CalibratedClassifierCV
 import warnings
-
-warnings.filterwarnings("ignore", category=DeprecationWarning)
-
 from utils import fmax_score, set_seed, random_integers, undersample, retrieve_X_y, update_keys, append_modality
+warnings.filterwarnings("ignore", category=DeprecationWarning)
 
 class EnsembleIntegration:
     """
