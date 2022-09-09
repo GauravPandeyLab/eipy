@@ -135,5 +135,3 @@ For PFP, since the raw data is very large (around 2139 * 2GB), we uploaded 5 sam
 For example, you may generate the input data for predicting `GO:0000166` by the following command:
 
 	python processing_scripts/generate_data.py --outcome GO:0000166 
-
-Due to IRB constraints, we are currently unable to publicly share the COVID-19 EHR dataset used in our study. However, we shared the model built based on the dataset for application in `covid19-model-built.zip` which can load by using `load_models.py` [(more detail here)](#saving-and-loading-ei-models).
