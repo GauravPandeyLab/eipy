@@ -68,6 +68,6 @@ meta_models = {
     "XGB": XGBClassifier(use_label_encoder=False, eval_metric='error')
 }
 
-EI = EnsembleIntegration().load("EI.demo") # load models from disk
+EI = EnsembleIntegration().load("EI.demo")  # load models from disk
 
-EI.train_meta(meta_models=meta_models) # train meta classifiers
+EI.train_meta(meta_models=meta_models)  # train meta classifiers

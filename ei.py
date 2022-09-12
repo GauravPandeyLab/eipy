@@ -78,7 +78,7 @@ class EnsembleIntegration:
         self.meta_test_data = None
 
     @ignore_warnings(category=ConvergenceWarning)
-    def train_meta(self, meta_models=None):
+    def train_meta(self, meta_models=None, display_metrics=False):
 
         if meta_models is not None:
             self.meta_models = meta_models
@@ -111,9 +111,9 @@ class EnsembleIntegration:
 
             # Convert to pandas dataframe and export as csv. Also, add metrics to
 
-            performance_metrics.append(fmax_score(y_test_combined, y_pred_combined, display=True))
+            pms = performance_metrics.append(fmax_score(y_test_combined, y_pred_combined, display=display_metrics))
 
-        return performance_metrics
+        return pms
 
     @ignore_warnings(category=ConvergenceWarning)
     def train_base(self, X, y, base_predictors=None, modality=None):
