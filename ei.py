@@ -14,10 +14,9 @@ from sklearn.exceptions import ConvergenceWarning
 from sklearn.metrics import precision_recall_curve
 from sklearn.model_selection import StratifiedKFold
 from joblib import Parallel, delayed
-from imblearn.under_sampling import RandomUnderSampler
 from sklearn.calibration import CalibratedClassifierCV
 import warnings
-from utils import fmax_score, set_seed, random_integers, sampler, retrieve_X_y, update_keys, append_modality
+from utils import fmax_score, set_seed, random_integers, sample, retrieve_X_y, update_keys, append_modality
 warnings.filterwarnings("ignore", category=DeprecationWarning)
 
 class EnsembleIntegration:
