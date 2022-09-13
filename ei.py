@@ -78,7 +78,7 @@ class EnsembleIntegration:
         self.meta_test_data = None
 
     @ignore_warnings(category=ConvergenceWarning)
-    def train_meta(self, meta_models=None, display_metrics=False):
+    def train_meta(self, meta_models=None, display_metrics=True):
 
         if meta_models is not None:
             self.meta_models = meta_models
