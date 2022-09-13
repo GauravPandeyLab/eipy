@@ -42,7 +42,7 @@ def scores(y_true, y_pred, beta=1, display=False):
                    }
 
     if display:
-        for metric_name, score in scores_dict.keys():
+        for metric_name, score in scores_dict.items():
             print(metric_name + ": ", score)
 
     return scores_dict
