@@ -6,12 +6,9 @@ Ensemble Integration
 
 import pandas as pd
 import numpy as np
-import random
 import pickle
-import os
 from sklearn.utils._testing import ignore_warnings
 from sklearn.exceptions import ConvergenceWarning
-from sklearn.metrics import precision_recall_curve
 from sklearn.model_selection import StratifiedKFold
 from joblib import Parallel, delayed
 from sklearn.calibration import CalibratedClassifierCV
@@ -230,7 +227,7 @@ class EnsembleIntegration:
             model = CalibratedClassifierCV(model)
         X_train, X_test = X[train_index], X[test_index]
         y_train, y_test = y[train_index], y[test_index]
-        X_bag, y_bag = sample(X_train, y_train, strategy=self.balancing_strategy, random_state=bag_random_state)
+        X_bag, y_bag = sampler(X_train, y_train, strategy=self.balancing_strategy, random_state=bag_random_state)
         model.fit(X_bag, y_bag)
         y_pred = model.predict_proba(X_test)[:, 1]
         f_score, _, _ = fmax_score(y_test, y_pred)
