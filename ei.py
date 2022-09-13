@@ -42,7 +42,7 @@ class EnsembleIntegration:
                  k_inner=None,
                  n_bags=None,
                  balancing_strategy="undersampling",
-                 bagging_strategy="mean",
+                 sampling_aggregation="mean",
                  n_jobs=-1,
                  random_state=None,
                  project_name="project"):
@@ -55,7 +55,7 @@ class EnsembleIntegration:
         self.k_inner = k_inner
         self.n_bags = n_bags
         self.balancing_strategy = balancing_strategy
-        self.bagging_strategy = bagging_strategy
+        self.sampling_aggregation = sampling_aggregation
         self.n_jobs = n_jobs
         self.random_state = random_state
         self.project_name = project_name
@@ -100,7 +100,7 @@ class EnsembleIntegration:
                 X_train, y_train = retrieve_X_y(labelled_data=self.meta_training_data[fold_id])
                 X_test, y_test = retrieve_X_y(labelled_data=self.meta_test_data[fold_id])
 
-                if self.bagging_strategy == "mean":
+                if self.sampling_aggregation == "mean":
                     X_train = X_train.groupby(level=0, axis=1).mean()
                     X_test = X_test.groupby(level=0, axis=1).mean()
                 model.fit(X_train, y_train)
