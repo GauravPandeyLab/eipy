@@ -92,6 +92,9 @@ class EnsembleIntegration:
 
             print("\nTraining {model_name:}... \n".format(model_name=model_name))
 
+            if not hasattr(model, "predict_proba"):
+                model = CalibratedClassifierCV(model)
+
             y_pred_combined = []
             y_test_combined = []
             for fold_id in range(self.k_outer):
