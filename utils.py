@@ -40,7 +40,7 @@ def scores(y_true, y_pred, beta=1, display=False):
 
     matthews_score, _ = matthews_max_score(y_true, y_pred)
 
-    scores_dict = {"fmax score": fmax,
+    scores_dict = {"(fmax, precision, recall) scores": fmax,
                    "Matthew's correlation coefficient": matthews_score
                    }
 
