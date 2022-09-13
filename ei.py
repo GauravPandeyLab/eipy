@@ -41,7 +41,7 @@ class EnsembleIntegration:
                  k_outer=None,
                  k_inner=None,
                  n_bags=None,
-                 balancing_strategy="undersample",
+                 balancing_strategy="under_sample",
                  bagging_strategy="mean",
                  n_jobs=-1,
                  random_state=None,
@@ -227,7 +227,7 @@ class EnsembleIntegration:
             model = CalibratedClassifierCV(model)
         X_train, X_test = X[train_index], X[test_index]
         y_train, y_test = y[train_index], y[test_index]
-        X_bag, y_bag = sampler(X_train, y_train, strategy=self.balancing_strategy, random_state=bag_random_state)
+        X_bag, y_bag = sample(X_train, y_train, strategy=self.balancing_strategy, random_state=bag_random_state)
         model.fit(X_bag, y_bag)
         y_pred = model.predict_proba(X_test)[:, 1]
         f_score, _, _ = fmax_score(y_test, y_pred)

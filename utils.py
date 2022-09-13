@@ -55,10 +55,10 @@ def random_integers(n_integers=1):
     return random.sample(range(0, 10000), n_integers)
 
 
-def sample(X, y, random_state, strategy="undersample"):
-    if strategy is "undersample":
+def sample(X, y, random_state, strategy="under_sample"):
+    if strategy is "under_sample":
         sampler = RandomUnderSampler(random_state=random_state)
-    if strategy is "oversample":
+    if strategy is "over_sample":
         sampler = RandomOverSampler(random_state=random_state)
     X_resampled, y_resampled = sampler.fit_resample(X=X, y=y)
     return X_resampled, y_resampled
