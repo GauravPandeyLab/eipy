@@ -41,7 +41,7 @@ class EnsembleIntegration:
                  k_outer=None,
                  k_inner=None,
                  n_bags=None,
-                 balancing_strategy="under_sample",
+                 balancing_strategy="undersampling",
                  bagging_strategy="mean",
                  n_jobs=-1,
                  random_state=None,
