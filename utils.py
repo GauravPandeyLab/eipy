@@ -5,7 +5,7 @@ import pickle
 import os
 from sklearn.utils._testing import ignore_warnings
 from sklearn.exceptions import ConvergenceWarning
-from sklearn.metrics import precision_recall_curve
+from sklearn.metrics import precision_recall_curve, matthews_corrcoef
 from sklearn.model_selection import StratifiedKFold
 from joblib import Parallel, delayed
 from imblearn.under_sampling import RandomUnderSampler
@@ -13,7 +13,7 @@ from imblearn.over_sampling import RandomOverSampler
 from sklearn.calibration import CalibratedClassifierCV
 import warnings
 
-def fmax_score(y_true, y_pred, beta=1, display=False):
+def scores(y_true, y_pred, beta=1, display=False):
     # beta = 0 for precision, beta -> infinity for recall, beta=1 for harmonic mean
     np.seterr(divide='ignore', invalid='ignore')
     precision, recall, threshold = precision_recall_curve(y_true, y_pred)
@@ -24,11 +24,14 @@ def fmax_score(y_true, y_pred, beta=1, display=False):
     pscore = precision[argmax]
     rscore = recall[argmax]
 
+    matthews_corr_coeff = matthews_corrcoef(y_true, y_pred)
+
     if display:
         print("f1 score: ", f1score,
               "\nprecision score:", pscore,
-              "\nrecall score:", rscore)
-    return f1score, pscore, rscore
+              "\nrecall score:", rscore,
+              "\nMatthew's correlation coefficient")
+    return f1score, pscore, rscore, matthews_corr_coeff
 
 
 def read_arff_to_pandas_df(arff_path):

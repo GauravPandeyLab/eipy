@@ -13,7 +13,7 @@ from sklearn.model_selection import StratifiedKFold
 from joblib import Parallel, delayed
 from sklearn.calibration import CalibratedClassifierCV
 import warnings
-from utils import fmax_score, set_seed, random_integers, sample, retrieve_X_y, update_keys, append_modality
+from utils import scores, set_seed, random_integers, sample, retrieve_X_y, update_keys, append_modality
 warnings.filterwarnings("ignore", category=DeprecationWarning)
 
 class EnsembleIntegration:
@@ -112,7 +112,7 @@ class EnsembleIntegration:
 
             # Convert to pandas dataframe and export as csv. Also, add metrics
 
-            pms = performance_metrics.append(fmax_score(y_test_combined, y_pred_combined, display=display_metrics))
+            pms = performance_metrics.append(scores(y_test_combined, y_pred_combined, display=display_metrics))
 
         return pms
 
