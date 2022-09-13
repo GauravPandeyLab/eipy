@@ -1,18 +1,12 @@
 import pandas as pd
 import numpy as np
 import random
-import pickle
-import os
-from sklearn.utils._testing import ignore_warnings
-from sklearn.exceptions import ConvergenceWarning
-from sklearn.metrics import precision_recall_curve
-from sklearn.model_selection import StratifiedKFold
-from joblib import Parallel, delayed
+from sklearn.metrics import precision_recall_curve, matthews_corrcoef
 from imblearn.under_sampling import RandomUnderSampler
-from sklearn.calibration import CalibratedClassifierCV
-import warnings
+from imblearn.over_sampling import RandomOverSampler
 
-def fmax_score(y_true, y_pred, beta=1, display=False):
+
+def fmax_score(y_true, y_pred, beta=1):
     # beta = 0 for precision, beta -> infinity for recall, beta=1 for harmonic mean
     np.seterr(divide='ignore', invalid='ignore')
     precision, recall, threshold = precision_recall_curve(y_true, y_pred)
@@ -23,11 +17,38 @@ def fmax_score(y_true, y_pred, beta=1, display=False):
     pscore = precision[argmax]
     rscore = recall[argmax]
 
-    if display:
-        print("f1 score: ", f1score,
-              "\nprecision score:", pscore,
-              "\nrecall score:", rscore)
     return f1score, pscore, rscore
+def matthews_max_score(y_true, y_pred):
+    thresholds = np.arange(0, 1, 0.01)
+    coeffs = []
+
+    for threshold in thresholds:
+        y_pred_round = np.copy(y_pred)
+        y_pred_round[y_pred_round >= threshold] = 1
+        y_pred_round[y_pred_round < threshold] = 0
+        coeffs.append(matthews_corrcoef(y_true, y_pred_round))
+
+    max_index = np.argmax(coeffs)
+    max_threshold = thresholds[max_index]
+    max_coeff = coeffs[max_index]
+
+    return max_coeff, max_threshold
+
+def scores(y_true, y_pred, beta=1, display=False):
+
+    fmax = fmax_score(y_true, y_pred, beta=1)
+
+    matthews_score, _ = matthews_max_score(y_true, y_pred)
+
+    scores_dict = {"fmax score": fmax,
+                   "Matthew's correlation coefficient": matthews_score
+                   }
+
+    if display:
+        for metric_name, score in scores_dict.items():
+            print(metric_name + ": ", score)
+
+    return scores_dict
 
 
 def read_arff_to_pandas_df(arff_path):
@@ -54,9 +75,12 @@ def random_integers(n_integers=1):
     return random.sample(range(0, 10000), n_integers)
 
 
-def undersample(X, y, random_state):
-    RUS = RandomUnderSampler(random_state=random_state)
-    X_resampled, y_resampled = RUS.fit_resample(X=X, y=y)
+def sample(X, y, random_state, strategy="undersampling"):
+    if strategy == "undersampling":
+        sampler = RandomUnderSampler(random_state=random_state)
+    if strategy == "oversampling":
+        sampler = RandomOverSampler(random_state=random_state)
+    X_resampled, y_resampled = sampler.fit_resample(X=X, y=y)
     return X_resampled, y_resampled
 
 
@@ -79,4 +103,3 @@ def append_modality(current_data, modality_data):
         combined_dataframe.append(pd.concat((dataframe.iloc[:, :-1],
                                              modality_data[fold]), axis=1))
     return combined_dataframe
-

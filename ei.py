@@ -6,18 +6,14 @@ Ensemble Integration
 
 import pandas as pd
 import numpy as np
-import random
 import pickle
-import os
 from sklearn.utils._testing import ignore_warnings
 from sklearn.exceptions import ConvergenceWarning
-from sklearn.metrics import precision_recall_curve
 from sklearn.model_selection import StratifiedKFold
 from joblib import Parallel, delayed
-from imblearn.under_sampling import RandomUnderSampler
 from sklearn.calibration import CalibratedClassifierCV
 import warnings
-from utils import fmax_score, set_seed, random_integers, undersample, retrieve_X_y, update_keys, append_modality
+from utils import scores, set_seed, random_integers, sample, retrieve_X_y, update_keys, append_modality
 warnings.filterwarnings("ignore", category=DeprecationWarning)
 
 class EnsembleIntegration:
@@ -45,7 +41,8 @@ class EnsembleIntegration:
                  k_outer=None,
                  k_inner=None,
                  n_bags=None,
-                 bagging_strategy="mean",
+                 balancing_strategy="undersampling",
+                 sampling_aggregation="mean",
                  n_jobs=-1,
                  random_state=None,
                  project_name="project"):
@@ -57,7 +54,8 @@ class EnsembleIntegration:
         self.k_outer = k_outer
         self.k_inner = k_inner
         self.n_bags = n_bags
-        self.bagging_strategy = bagging_strategy
+        self.balancing_strategy = balancing_strategy
+        self.sampling_aggregation = sampling_aggregation
         self.n_jobs = n_jobs
         self.random_state = random_state
         self.project_name = project_name
@@ -78,7 +76,7 @@ class EnsembleIntegration:
         self.meta_test_data = None
 
     @ignore_warnings(category=ConvergenceWarning)
-    def train_meta(self, meta_models=None):
+    def train_meta(self, meta_models=None, display_metrics=True):
 
         if meta_models is not None:
             self.meta_models = meta_models
@@ -92,6 +90,9 @@ class EnsembleIntegration:
 
             print("\nTraining {model_name:}... \n".format(model_name=model_name))
 
+            if not hasattr(model, "predict_proba"):
+                model = CalibratedClassifierCV(model)
+
             y_pred_combined = []
             y_test_combined = []
             for fold_id in range(self.k_outer):
@@ -99,21 +100,21 @@ class EnsembleIntegration:
                 X_train, y_train = retrieve_X_y(labelled_data=self.meta_training_data[fold_id])
                 X_test, y_test = retrieve_X_y(labelled_data=self.meta_test_data[fold_id])
 
-                if self.bagging_strategy == "mean":
+                if self.sampling_aggregation == "mean":
                     X_train = X_train.groupby(level=0, axis=1).mean()
                     X_test = X_test.groupby(level=0, axis=1).mean()
                 model.fit(X_train, y_train)
-                y_pred = model.predict(X_test)
+                y_pred = model.predict_proba(X_test)[:, 1]
                 y_pred_combined.extend(y_pred)
                 y_test_combined.extend(y_test)
 
             # Add model predictions to dictionary, along with model name.
 
-            # Convert to pandas dataframe and export as csv. Also, add metrics to
+            # Convert to pandas dataframe and export as csv. Also, add metrics
 
-            performance_metrics.append(fmax_score(y_test_combined, y_pred_combined, display=True))
+            pms = performance_metrics.append(scores(y_test_combined, y_pred_combined, display=display_metrics))
 
-        return performance_metrics
+        return pms
 
     @ignore_warnings(category=ConvergenceWarning)
     def train_base(self, X, y, base_predictors=None, modality=None):
@@ -226,11 +227,11 @@ class EnsembleIntegration:
             model = CalibratedClassifierCV(model)
         X_train, X_test = X[train_index], X[test_index]
         y_train, y_test = y[train_index], y[test_index]
-        X_bag, y_bag = undersample(X_train, y_train, random_state=bag_random_state)
+        X_bag, y_bag = sample(X_train, y_train, strategy=self.balancing_strategy, random_state=bag_random_state)
         model.fit(X_bag, y_bag)
         y_pred = model.predict_proba(X_test)[:, 1]
-        f_score, _, _ = fmax_score(y_test, y_pred)
-        results_dict = {"model_name": model_name, "bag_id": bag_id, "fold_id": fold_id, "fmax_score": f_score,
+        metrics = scores(y_test, y_pred)
+        results_dict = {"model_name": model_name, "bag_id": bag_id, "fold_id": fold_id, "scores": metrics,
                         "model": model, "y_pred": y_pred, "labels": y_test}
         return results_dict
 
