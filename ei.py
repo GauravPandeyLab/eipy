@@ -103,13 +103,13 @@ class EnsembleIntegration:
                     X_train = X_train.groupby(level=0, axis=1).mean()
                     X_test = X_test.groupby(level=0, axis=1).mean()
                 model.fit(X_train, y_train)
-                y_pred = model.predict(X_test)
+                y_pred = model.predict_proba(X_test)[:, 1]
                 y_pred_combined.extend(y_pred)
                 y_test_combined.extend(y_test)
 
             # Add model predictions to dictionary, along with model name.
 
-            # Convert to pandas dataframe and export as csv. Also, add metrics to
+            # Convert to pandas dataframe and export as csv. Also, add metrics
 
             pms = performance_metrics.append(fmax_score(y_test_combined, y_pred_combined, display=display_metrics))
 
