@@ -17,7 +17,7 @@ from joblib import Parallel, delayed
 from imblearn.under_sampling import RandomUnderSampler
 from sklearn.calibration import CalibratedClassifierCV
 import warnings
-from utils import fmax_score, set_seed, random_integers, undersample, retrieve_X_y, update_keys, append_modality
+from utils import fmax_score, set_seed, random_integers, sample, retrieve_X_y, update_keys, append_modality
 warnings.filterwarnings("ignore", category=DeprecationWarning)
 
 class EnsembleIntegration:
@@ -45,6 +45,7 @@ class EnsembleIntegration:
                  k_outer=None,
                  k_inner=None,
                  n_bags=None,
+                 balancing_strategy="undersample",
                  bagging_strategy="mean",
                  n_jobs=-1,
                  random_state=None,
@@ -57,6 +58,7 @@ class EnsembleIntegration:
         self.k_outer = k_outer
         self.k_inner = k_inner
         self.n_bags = n_bags
+        self.balancing_strategy = balancing_strategy
         self.bagging_strategy = bagging_strategy
         self.n_jobs = n_jobs
         self.random_state = random_state
@@ -229,7 +231,7 @@ class EnsembleIntegration:
             model = CalibratedClassifierCV(model)
         X_train, X_test = X[train_index], X[test_index]
         y_train, y_test = y[train_index], y[test_index]
-        X_bag, y_bag = undersample(X_train, y_train, random_state=bag_random_state)
+        X_bag, y_bag = sample(X_train, y_train, strategy=self.balancing_strategy, random_state=bag_random_state)
         model.fit(X_bag, y_bag)
         y_pred = model.predict_proba(X_test)[:, 1]
         f_score, _, _ = fmax_score(y_test, y_pred)

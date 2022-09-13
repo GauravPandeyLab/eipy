@@ -9,6 +9,7 @@ from sklearn.metrics import precision_recall_curve
 from sklearn.model_selection import StratifiedKFold
 from joblib import Parallel, delayed
 from imblearn.under_sampling import RandomUnderSampler
+from imblearn.over_sampling import RandomOverSampler
 from sklearn.calibration import CalibratedClassifierCV
 import warnings
 
@@ -54,9 +55,12 @@ def random_integers(n_integers=1):
     return random.sample(range(0, 10000), n_integers)
 
 
-def undersample(X, y, random_state):
-    RUS = RandomUnderSampler(random_state=random_state)
-    X_resampled, y_resampled = RUS.fit_resample(X=X, y=y)
+def sample(X, y, random_state, strategy="undersample"):
+    if strategy is "undersample":
+        sampler = RandomUnderSampler(random_state=random_state)
+    if strategy is "oversample":
+        sampler = RandomOverSampler(random_state=random_state)
+    X_resampled, y_resampled = sampler.fit_resample(X=X, y=y)
     return X_resampled, y_resampled
 
 
