@@ -1,18 +1,26 @@
 import pandas as pd
 import numpy as np
 import random
-import pickle
-import os
-from sklearn.utils._testing import ignore_warnings
-from sklearn.exceptions import ConvergenceWarning
 from sklearn.metrics import precision_recall_curve, matthews_corrcoef
-from sklearn.model_selection import StratifiedKFold
-from joblib import Parallel, delayed
 from imblearn.under_sampling import RandomUnderSampler
 from imblearn.over_sampling import RandomOverSampler
-from sklearn.calibration import CalibratedClassifierCV
-import warnings
 
+
+def max_matthews_corr_coeff(y_true, y_pred):
+    thresholds = np.arange(0, 1, 0.01)
+    coeffs = []
+
+    for threshold in thresholds:
+        y_pred_round = np.copy(y_pred)
+        y_pred_round[y_pred_round >= threshold] = 1
+        y_pred_round[y_pred_round < threshold] = 0
+        coeffs.append(matthews_corrcoef(y_true, y_pred_round))
+
+    max_index = np.argmax(coeffs)
+    max_threshold = thresholds[max_index]
+    max_coeff = coeffs[max_index]
+
+    return max_coeff, max_threshold
 
 def scores(y_true, y_pred, beta=1, display=False):
     # beta = 0 for precision, beta -> infinity for recall, beta=1 for harmonic mean
@@ -25,7 +33,7 @@ def scores(y_true, y_pred, beta=1, display=False):
     pscore = precision[argmax]
     rscore = recall[argmax]
 
-    matthews_corr_coeff = matthews_corrcoef(y_true, y_pred)
+    matthews_corr_coeff, _ = max_matthews_corr_coeff(y_true, y_pred)
 
     scores_dict = {"f1 score": f1score,
                    "precision score": pscore,
