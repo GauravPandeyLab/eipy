@@ -6,7 +6,19 @@ from imblearn.under_sampling import RandomUnderSampler
 from imblearn.over_sampling import RandomOverSampler
 
 
-def max_matthews_corr_coeff(y_true, y_pred):
+def fmax_score(y_true, y_pred, beta=1):
+    # beta = 0 for precision, beta -> infinity for recall, beta=1 for harmonic mean
+    np.seterr(divide='ignore', invalid='ignore')
+    precision, recall, threshold = precision_recall_curve(y_true, y_pred)
+    fmeasure = (1 + beta ** 2) * (precision * recall) / ((beta ** 2 * precision) + recall)
+    argmax = np.nanargmax(fmeasure)
+
+    f1score = fmeasure[argmax]
+    pscore = precision[argmax]
+    rscore = recall[argmax]
+
+    return f1score, pscore, rscore
+def matthews_max_score(y_true, y_pred):
     thresholds = np.arange(0, 1, 0.01)
     coeffs = []
 
@@ -23,22 +35,13 @@ def max_matthews_corr_coeff(y_true, y_pred):
     return max_coeff, max_threshold
 
 def scores(y_true, y_pred, beta=1, display=False):
-    # beta = 0 for precision, beta -> infinity for recall, beta=1 for harmonic mean
-    np.seterr(divide='ignore', invalid='ignore')
-    precision, recall, threshold = precision_recall_curve(y_true, y_pred)
-    fmeasure = (1 + beta ** 2) * (precision * recall) / ((beta ** 2 * precision) + recall)
-    argmax = np.nanargmax(fmeasure)
 
-    f1score = fmeasure[argmax]
-    pscore = precision[argmax]
-    rscore = recall[argmax]
+    fmax = fmax_score(y_true, y_pred, beta=1)
 
-    matthews_corr_coeff, _ = max_matthews_corr_coeff(y_true, y_pred)
+    matthews_score, _ = matthews_max_score(y_true, y_pred)
 
-    scores_dict = {"f1 score": f1score,
-                   "precision score": pscore,
-                   "recall score": rscore,
-                   "Matthew's correlation coefficient": matthews_corr_coeff
+    scores_dict = {"fmax score": fmax,
+                   "Matthew's correlation coefficient": matthews_score
                    }
 
     if display:
