@@ -13,6 +13,7 @@ from imblearn.over_sampling import RandomOverSampler
 from sklearn.calibration import CalibratedClassifierCV
 import warnings
 
+
 def scores(y_true, y_pred, beta=1, display=False):
     # beta = 0 for precision, beta -> infinity for recall, beta=1 for harmonic mean
     np.seterr(divide='ignore', invalid='ignore')
@@ -26,12 +27,17 @@ def scores(y_true, y_pred, beta=1, display=False):
 
     matthews_corr_coeff = matthews_corrcoef(y_true, y_pred)
 
+    scores_dict = {"f1 score": f1score,
+                   "precision score": pscore,
+                   "recall score": rscore,
+                   "Matthew's correlation coefficient": matthews_corr_coeff
+                   }
+
     if display:
-        print("f1 score: ", f1score,
-              "\nprecision score:", pscore,
-              "\nrecall score:", rscore,
-              "\nMatthew's correlation coefficient")
-    return f1score, pscore, rscore, matthews_corr_coeff
+        for metric_name, score in scores_dict.keys():
+            print(metric_name + ": ", score)
+
+    return scores_dict
 
 
 def read_arff_to_pandas_df(arff_path):
@@ -86,4 +92,3 @@ def append_modality(current_data, modality_data):
         combined_dataframe.append(pd.concat((dataframe.iloc[:, :-1],
                                              modality_data[fold]), axis=1))
     return combined_dataframe
-

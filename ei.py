@@ -230,8 +230,8 @@ class EnsembleIntegration:
         X_bag, y_bag = sample(X_train, y_train, strategy=self.balancing_strategy, random_state=bag_random_state)
         model.fit(X_bag, y_bag)
         y_pred = model.predict_proba(X_test)[:, 1]
-        f_score, _, _ = fmax_score(y_test, y_pred)
-        results_dict = {"model_name": model_name, "bag_id": bag_id, "fold_id": fold_id, "fmax_score": f_score,
+        metrics = scores(y_test, y_pred)
+        results_dict = {"model_name": model_name, "bag_id": bag_id, "fold_id": fold_id, "scores": metrics,
                         "model": model, "y_pred": y_pred, "labels": y_test}
         return results_dict
 
