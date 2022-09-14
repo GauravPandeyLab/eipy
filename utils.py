@@ -26,6 +26,7 @@ def fmax_score(y_true, y_pred, beta=1):
     max_fmax_threshold = thresholds[argmax]
 
     return fmax, max_fmax_threshold
+
 def matthews_max_score(y_true, y_pred):
     thresholds = np.arange(0, 1, 0.01)
     coeffs = []
@@ -53,7 +54,7 @@ def scores(y_true, y_pred, beta=1, metric_to_maximise="fscore", display=False):
     auc = roc_auc_score(y_true, y_pred)
 
     scores_threshold_dict = {"fmax score (positive class)": fmax,
-                   "AUC score": (auc, np.nan)
+                   "AUC score": (auc, np.nan),
                    "Matthew's correlation coefficient": max_mmc,
                    "Accuracy score": max_accuracy
                    }
