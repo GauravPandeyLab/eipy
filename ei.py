@@ -88,7 +88,7 @@ class EnsembleIntegration:
 
         for model_name, model in self.meta_models.items():
 
-            print("\nTraining {model_name:}... \n".format(model_name=model_name))
+            print("\n {model_name:}... \n".format(model_name=model_name))
 
             if not hasattr(model, "predict_proba"):
                 model = CalibratedClassifierCV(model)
