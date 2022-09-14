@@ -90,8 +90,8 @@ class EnsembleIntegration:
 
             print("\n{model_name:}... \n".format(model_name=model_name))
 
-            if not hasattr(model, "predict_proba"):
-                model = CalibratedClassifierCV(model)
+            # calibrate classifiers
+            model = CalibratedClassifierCV(model)
 
             y_pred_combined = []
             y_test_combined = []
@@ -222,9 +222,8 @@ class EnsembleIntegration:
         model_name, model = model_params
         fold_id, (train_index, test_index) = fold_params
         bag_id, bag_random_state = bag_state
-        # use cross validation to calculate probability outputs
-        if not hasattr(model, "predict_proba"):
-            model = CalibratedClassifierCV(model)
+        # calibrate classifiers
+        model = CalibratedClassifierCV(model)
         X_train, X_test = X[train_index], X[test_index]
         y_train, y_test = y[train_index], y[test_index]
         X_bag, y_bag = sample(X_train, y_train, strategy=self.balancing_strategy, random_state=bag_random_state)
