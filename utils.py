@@ -1,7 +1,7 @@
 import pandas as pd
 import numpy as np
 import random
-from sklearn.metrics import accuracy_score, roc_curve, precision_recall_curve, matthews_corrcoef
+from sklearn.metrics import accuracy_score, roc_curve, roc_auc_score, precision_recall_curve, matthews_corrcoef
 from imblearn.under_sampling import RandomUnderSampler
 from imblearn.over_sampling import RandomOverSampler
 
@@ -50,16 +50,19 @@ def scores(y_true, y_pred, beta=1, metric_to_maximise="fscore", display=False):
 
     max_accuracy = max_accuracy_score(y_true, y_pred)
 
-    scores_dict = {"fmax score (positive class)": fmax,
+    auc = roc_auc_score(y_true, y_pred)
+
+    scores_threshold_dict = {"fmax score (positive class)": fmax,
+                   "AUC score": (auc, np.nan)
                    "Matthew's correlation coefficient": max_mmc,
                    "Accuracy score": max_accuracy
                    }
 
     if display:
-        for metric_name, score in scores_dict.items():
+        for metric_name, score in scores_threshold_dict.items():
             print(metric_name + ": ", score[0])
 
-    return scores_dict
+    return scores_threshold_dict
 
 
 def read_arff_to_pandas_df(arff_path):
