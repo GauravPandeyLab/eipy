@@ -1,23 +1,31 @@
 import pandas as pd
 import numpy as np
 import random
-from sklearn.metrics import precision_recall_curve, matthews_corrcoef
+from sklearn.metrics import accuracy_score, roc_curve, precision_recall_curve, matthews_corrcoef
 from imblearn.under_sampling import RandomUnderSampler
 from imblearn.over_sampling import RandomOverSampler
 
+def max_accuracy_score(y_true, y_pred):
+    fpr, tpr, thresholds = roc_curve(y_true, y_pred)
+    accuracy_scores = []
+    for thresh in thresholds:
+        accuracy_scores.append(accuracy_score(y_true, [m > thresh for m in y_pred]))
 
+    accuracies = np.array(accuracy_scores)
+    max_accuracy = accuracies.max()
+    max_accuracy_threshold = thresholds[accuracies.argmax()]
+    return max_accuracy, max_accuracy_threshold
 def fmax_score(y_true, y_pred, beta=1):
     # beta = 0 for precision, beta -> infinity for recall, beta=1 for harmonic mean
     np.seterr(divide='ignore', invalid='ignore')
-    precision, recall, threshold = precision_recall_curve(y_true, y_pred)
+    precision, recall, thresholds = precision_recall_curve(y_true, y_pred)
     fmeasure = (1 + beta ** 2) * (precision * recall) / ((beta ** 2 * precision) + recall)
     argmax = np.nanargmax(fmeasure)
 
-    f1score = fmeasure[argmax]
-    pscore = precision[argmax]
-    rscore = recall[argmax]
+    fmax = fmeasure[argmax]
+    max_fmax_threshold = thresholds[argmax]
 
-    return f1score, pscore, rscore
+    return fmax, max_fmax_threshold
 def matthews_max_score(y_true, y_pred):
     thresholds = np.arange(0, 1, 0.01)
     coeffs = []
@@ -29,24 +37,27 @@ def matthews_max_score(y_true, y_pred):
         coeffs.append(matthews_corrcoef(y_true, y_pred_round))
 
     max_index = np.argmax(coeffs)
-    max_threshold = thresholds[max_index]
-    max_coeff = coeffs[max_index]
+    max_mcc_threshold = thresholds[max_index]
+    max_mcc = coeffs[max_index]
 
-    return max_coeff, max_threshold
+    return max_mcc, max_mcc_threshold
 
-def scores(y_true, y_pred, beta=1, display=False):
+def scores(y_true, y_pred, beta=1, metric_to_maximise="fscore", display=False):
 
     fmax = fmax_score(y_true, y_pred, beta=1)
 
-    matthews_score, _ = matthews_max_score(y_true, y_pred)
+    max_mmc = matthews_max_score(y_true, y_pred)
+
+    max_accuracy = max_accuracy_score(y_true, y_pred)
 
     scores_dict = {"fmax score (positive class)": fmax,
-                   "Matthew's correlation coefficient": matthews_score
+                   "Matthew's correlation coefficient": max_mmc,
+                   "Accuracy score": max_accuracy
                    }
 
     if display:
         for metric_name, score in scores_dict.items():
-            print(metric_name + ": ", score)
+            print(metric_name + ": ", score[0])
 
     return scores_dict
 
