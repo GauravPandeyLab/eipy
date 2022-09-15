@@ -81,7 +81,7 @@ class EnsembleIntegration:
         if meta_models is not None:
             self.meta_models = meta_models
 
-        print("\nWorking on meta models\n")
+        print("\nWorking on meta models")
 
         combined_predictions = {}
         performance_metrics = []
@@ -123,7 +123,7 @@ class EnsembleIntegration:
             self.base_predictors = base_predictors  # update base predictors
 
         if modality is not None:
-            print(f"\n Working on {modality} data...")
+            print(f"\nWorking on {modality} data...")
 
             self.base_predictors = update_keys(dictionary=self.base_predictors,
                                                string=modality)  # include modality in model name
@@ -156,14 +156,14 @@ class EnsembleIntegration:
         of shape (n_outer_training_samples, n_base_predictors * n_bags)
         """
 
-        print("\n Training base predictors on inner training sets...")
+        print("\nTraining base predictors on inner training sets...")
 
         # dictionaries for meta train/test data for each outer fold
         meta_training_data = []
         # define joblib Parallel function
         parallel = Parallel(n_jobs=self.n_jobs, verbose=10)
         for outer_fold_id, (train_index_outer, test_index_outer) in enumerate(self.cv_outer.split(X, y)):
-            print("\n Generating meta-training data for outer fold {outer_fold_id:}... \n".format(
+            print("\nGenerating meta-training data for outer fold {outer_fold_id:}...".format(
                 outer_fold_id=outer_fold_id))
 
             X_train_inner = X[train_index_outer]
@@ -203,7 +203,7 @@ class EnsembleIntegration:
         # define joblib Parallel function
         parallel = Parallel(n_jobs=self.n_jobs, verbose=10)
 
-        print("\n Training base predictors on outer training sets...")
+        print("\nTraining base predictors on outer training sets...")
 
         # spawn job for each bag, inner_fold and model
         output = parallel(delayed(self.train_base_fold)(X=X,
