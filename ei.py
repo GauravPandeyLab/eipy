@@ -91,7 +91,7 @@ class EnsembleIntegration:
             print("\n{model_name:}...".format(model_name=model_name))
 
             # calibrate classifiers
-            model = CalibratedClassifierCV(model)
+            model = CalibratedClassifierCV(model, ensemble=False)
 
             y_pred_combined = []
             y_test_combined = []
@@ -223,7 +223,7 @@ class EnsembleIntegration:
         fold_id, (train_index, test_index) = fold_params
         bag_id, bag_random_state = bag_state
         # calibrate classifiers
-        model = CalibratedClassifierCV(model)
+        model = CalibratedClassifierCV(model, ensemble=False)
         X_train, X_test = X[train_index], X[test_index]
         y_train, y_test = y[train_index], y[test_index]
         X_bag, y_bag = sample(X_train, y_train, strategy=self.balancing_strategy, random_state=bag_random_state)
