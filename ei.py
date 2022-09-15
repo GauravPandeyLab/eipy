@@ -81,14 +81,14 @@ class EnsembleIntegration:
         if meta_models is not None:
             self.meta_models = meta_models
 
-        print("\nWorking on meta models \n")
+        print("\nWorking on meta models\n")
 
         combined_predictions = {}
         performance_metrics = []
 
         for model_name, model in self.meta_models.items():
 
-            print("\n{model_name:}... \n".format(model_name=model_name))
+            print("\n{model_name:}...".format(model_name=model_name))
 
             # calibrate classifiers
             model = CalibratedClassifierCV(model)
