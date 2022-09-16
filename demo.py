@@ -39,9 +39,10 @@ base_predictors = {
 EI = EnsembleIntegration(base_predictors=base_predictors,
                          k_outer=5,
                          k_inner=5,
-                         n_bags=1,
-                         bagging_strategy="mean",
-                         n_jobs=-1, # set as -1 to use all available CPUs
+                         n_samples=1,
+                         sampling_strategy="undersampling",
+                         sampling_aggregation="mean",
+                         n_jobs=-1,  # set as -1 to use all available CPUs
                          random_state=42,
                          project_name="demo")
 

@@ -26,6 +26,8 @@ class EnsembleIntegration:
     ----------
     base_predictors : dictionary
         Base predictors.
+    k_outer : int, optional
+        Number of outer folds. Default is 5.
     k_inner : int, optional
         Number of inner folds. Default is 5.
     random_state : int, optional
@@ -49,8 +51,8 @@ class EnsembleIntegration:
                  meta_models=None,
                  k_outer=None,
                  k_inner=None,
-                 n_bags=None,
-                 balancing_strategy="undersampling",
+                 n_samples=None,
+                 sampling_strategy="undersampling",
                  sampling_aggregation="mean",
                  n_jobs=-1,
                  random_state=None,
@@ -62,8 +64,8 @@ class EnsembleIntegration:
         self.meta_models = meta_models
         self.k_outer = k_outer
         self.k_inner = k_inner
-        self.n_bags = n_bags
-        self.balancing_strategy = balancing_strategy
+        self.n_samples = n_samples
+        self.sampling_strategy = sampling_strategy
         self.sampling_aggregation = sampling_aggregation
         self.n_jobs = n_jobs
         self.random_state = random_state
@@ -78,8 +80,8 @@ class EnsembleIntegration:
         if k_inner is not None:
             self.cv_inner = StratifiedKFold(n_splits=self.k_inner, shuffle=True,
                                             random_state=random_integers(n_integers=1)[0])
-        if n_bags is not None:
-            self.random_numbers_for_bags = random_integers(n_integers=n_bags)
+        if n_samples is not None:
+            self.random_numbers_for_samples = random_integers(n_integers=n_samples)
 
         self.meta_training_data = None
         self.meta_test_data = None
@@ -162,7 +164,7 @@ class EnsembleIntegration:
         Returns
         -------
         meta_training_data : List of length k_outer containing Pandas dataframes
-        of shape (n_outer_training_samples, n_base_predictors * n_bags)
+        of shape (n_outer_training_samples, n_base_predictors * n_samples)
         """
 
         print("\nTraining base predictors on inner training sets...")
@@ -178,15 +180,15 @@ class EnsembleIntegration:
             X_train_outer = X[train_index_outer]
             y_train_outer = y[train_index_outer]
 
-            # spawn n_jobs jobs for each bag, inner_fold and model
+            # spawn n_jobs jobs for each sample, inner_fold and model
             output = parallel(delayed(self.train_base_fold)(X=X_train_outer,
                                                             y=y_train_outer,
                                                             model_params=model_params,
                                                             fold_params=inner_fold_params,
-                                                            bag_state=bag_state)
+                                                            sample_state=sample_state)
                               for model_params in self.base_predictors.items()
                               for inner_fold_params in enumerate(self.cv_inner.split(X_train_outer, y_train_outer))
-                              for bag_state in enumerate(self.random_numbers_for_bags))
+                              for sample_state in enumerate(self.random_numbers_for_samples))
             combined_predictions = self.combine_data_inner(output)
             meta_training_data.append(combined_predictions)
         return meta_training_data
@@ -206,7 +208,7 @@ class EnsembleIntegration:
         -------
 
         meta_test_data : List of length k_outer containing Pandas dataframes
-        of shape (n_outer_test_samples, n_base_predictors * n_bags)
+        of shape (n_outer_test_samples, n_base_predictors * n_samples)
         """
 
         # define joblib Parallel function
@@ -214,32 +216,32 @@ class EnsembleIntegration:
 
         print("\nTraining base predictors on outer training sets...")
 
-        # spawn job for each bag, inner_fold and model
+        # spawn job for each sample, inner_fold and model
         output = parallel(delayed(self.train_base_fold)(X=X,
                                                         y=y,
                                                         model_params=model_params,
                                                         fold_params=outer_fold_params,
-                                                        bag_state=bag_state)
+                                                        sample_state=sample_state)
                           for model_params in self.base_predictors.items()
                           for outer_fold_params in enumerate(self.cv_outer.split(X, y))
-                          for bag_state in enumerate(self.random_numbers_for_bags))
+                          for sample_state in enumerate(self.random_numbers_for_samples))
         meta_test_data = self.combine_data_outer(output)
         return meta_test_data
 
     @ignore_warnings(category=ConvergenceWarning)
-    def train_base_fold(self, X, y, model_params, fold_params, bag_state):
+    def train_base_fold(self, X, y, model_params, fold_params, sample_state):
         model_name, model = model_params
         fold_id, (train_index, test_index) = fold_params
-        bag_id, bag_random_state = bag_state
+        sample_id, sample_random_state = sample_state
         # calibrate classifiers
         model = CalibratedClassifierCV(model, ensemble=True)
         X_train, X_test = X[train_index], X[test_index]
         y_train, y_test = y[train_index], y[test_index]
-        X_bag, y_bag = sample(X_train, y_train, strategy=self.balancing_strategy, random_state=bag_random_state)
-        model.fit(X_bag, y_bag)
+        X_sample, y_sample = sample(X_train, y_train, strategy=self.sampling_strategy, random_state=sample_random_state)
+        model.fit(X_sample, y_sample)
         y_pred = model.predict_proba(X_test)[:, 1]
         metrics = scores(y_test, y_pred)
-        results_dict = {"model_name": model_name, "bag_id": bag_id, "fold_id": fold_id, "scores": metrics,
+        results_dict = {"model_name": model_name, "sample_id": sample_id, "fold_id": fold_id, "scores": metrics,
                         "model": model, "y_pred": y_pred, "labels": y_test}
         return results_dict
 
@@ -248,12 +250,12 @@ class EnsembleIntegration:
         combined_predictions = {}
         # combine fold predictions for each model
         for model_name in self.base_predictors.keys():
-            for bag_id in range(self.n_bags):
+            for sample_id in range(self.n_samples):
                 model_predictions = np.concatenate(
-                    list(d["y_pred"] for d in list_of_dicts if d["model_name"] == model_name and d["bag_id"] == bag_id))
-                combined_predictions[model_name, bag_id] = model_predictions
+                    list(d["y_pred"] for d in list_of_dicts if d["model_name"] == model_name and d["sample_id"] == sample_id))
+                combined_predictions[model_name, sample_id] = model_predictions
         labels = np.concatenate(list(d["labels"] for d in list_of_dicts if
-                                     d["model_name"] == list(self.base_predictors.keys())[0] and d["bag_id"] == 0))
+                                     d["model_name"] == list(self.base_predictors.keys())[0] and d["sample_id"] == 0))
         combined_predictions["labels", None] = labels
         combined_predictions = pd.DataFrame(combined_predictions)
         return combined_predictions
@@ -263,15 +265,15 @@ class EnsembleIntegration:
         for fold_id in range(self.k_outer):
             predictions = {}
             for model_name in self.base_predictors.keys():
-                for bag_id in range(self.n_bags):
+                for sample_id in range(self.n_samples):
                     model_predictions = list([d["y_pred"], d["model"]] for d in list_of_dicts if
                                              d["fold_id"] == fold_id and d["model_name"] == model_name and d[
-                                                 "bag_id"] == bag_id)
-                    predictions[model_name, bag_id] = model_predictions[0][0]
-                    # self.trained_base_predictors[(model_name, bag_id)] = model_predictions[0][1] # need to write to file to avoid memory issues
+                                                 "sample_id"] == sample_id)
+                    predictions[model_name, sample_id] = model_predictions[0][0]
+                    # self.trained_base_predictors[(model_name, sample_id)] = model_predictions[0][1] # need to write to file to avoid memory issues
             labels = [d["labels"] for d in list_of_dicts if
                       d["fold_id"] == fold_id and d["model_name"] == list(self.base_predictors.keys())[0] and d[
-                          "bag_id"] == 0]
+                          "sample_id"] == 0]
             predictions["labels", None] = labels[0]
             combined_predictions.append(pd.DataFrame(predictions))
         return combined_predictions
