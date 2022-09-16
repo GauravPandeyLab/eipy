@@ -86,7 +86,7 @@ EI = EnsembleIntegration(base_predictors=base_predictors,
                          k_inner=5,
                          n_samples=1,
                          sampling_strategy="undersampling",
-                         sampling_aggregation="mean"
+                         sampling_aggregation="mean",
                          n_jobs=-1, # set as -1 to use all available CPUs
                          random_state=42,
                          project_name="demo")
