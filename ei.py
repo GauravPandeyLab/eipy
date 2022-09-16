@@ -35,6 +35,13 @@ class EnsembleIntegration:
     -------
     predictions_df : Pandas dataframe of shape (n_samples, n_base_predictors)
         Matrix of data intended for training of a meta-algorithm.
+
+    To be done:
+        - mean/median ensemble
+        - CES ensemble
+        - interpretation
+        - best base predictor
+        - model building
     """
 
     def __init__(self,
