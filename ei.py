@@ -52,7 +52,7 @@ class EnsembleIntegration:
                  k_outer=None,
                  k_inner=None,
                  n_samples=None,
-                 balancing_strategy="undersampling",
+                 sampling_strategy="undersampling",
                  sampling_aggregation="mean",
                  n_jobs=-1,
                  random_state=None,
@@ -65,7 +65,7 @@ class EnsembleIntegration:
         self.k_outer = k_outer
         self.k_inner = k_inner
         self.n_samples = n_samples
-        self.balancing_strategy = balancing_strategy
+        self.sampling_strategy = sampling_strategy
         self.sampling_aggregation = sampling_aggregation
         self.n_jobs = n_jobs
         self.random_state = random_state
@@ -237,7 +237,7 @@ class EnsembleIntegration:
         model = CalibratedClassifierCV(model, ensemble=True)
         X_train, X_test = X[train_index], X[test_index]
         y_train, y_test = y[train_index], y[test_index]
-        X_sample, y_sample = sample(X_train, y_train, strategy=self.balancing_strategy, random_state=sample_random_state)
+        X_sample, y_sample = sample(X_train, y_train, strategy=self.sampling_strategy, random_state=sample_random_state)
         model.fit(X_sample, y_sample)
         y_pred = model.predict_proba(X_test)[:, 1]
         metrics = scores(y_test, y_pred)
