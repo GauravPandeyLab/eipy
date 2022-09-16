@@ -14,7 +14,9 @@ from joblib import Parallel, delayed
 from sklearn.calibration import CalibratedClassifierCV
 import warnings
 from utils import scores, set_seed, random_integers, sample, retrieve_X_y, update_keys, append_modality
+
 warnings.filterwarnings("ignore", category=DeprecationWarning)
+
 
 class EnsembleIntegration:
     """
@@ -166,17 +168,17 @@ class EnsembleIntegration:
             print("\nGenerating meta-training data for outer fold {outer_fold_id:}...".format(
                 outer_fold_id=outer_fold_id))
 
-            X_train_inner = X[train_index_outer]
-            y_train_inner = y[train_index_outer]
+            X_train_outer = X[train_index_outer]
+            y_train_outer = y[train_index_outer]
 
             # spawn n_jobs jobs for each bag, inner_fold and model
-            output = parallel(delayed(self.train_base_fold)(X=X_train_inner,
-                                                            y=y_train_inner,
+            output = parallel(delayed(self.train_base_fold)(X=X_train_outer,
+                                                            y=y_train_outer,
                                                             model_params=model_params,
                                                             fold_params=inner_fold_params,
                                                             bag_state=bag_state)
                               for model_params in self.base_predictors.items()
-                              for inner_fold_params in enumerate(self.cv_inner.split(X_train_inner, y_train_inner)) \
+                              for inner_fold_params in enumerate(self.cv_inner.split(X_train_outer, y_train_outer))
                               for bag_state in enumerate(self.random_numbers_for_bags))
             combined_predictions = self.combine_data_inner(output)
             meta_training_data.append(combined_predictions)
@@ -218,7 +220,7 @@ class EnsembleIntegration:
         return meta_test_data
 
     @ignore_warnings(category=ConvergenceWarning)
-    def train_base_fold(self, X, y, model_params, fold_params, bag_state, outer=False):
+    def train_base_fold(self, X, y, model_params, fold_params, bag_state):
         model_name, model = model_params
         fold_id, (train_index, test_index) = fold_params
         bag_id, bag_random_state = bag_state
@@ -234,7 +236,7 @@ class EnsembleIntegration:
                         "model": model, "y_pred": y_pred, "labels": y_test}
         return results_dict
 
-    def combine_data_inner(self, list_of_dicts): # we don't save the models trained here
+    def combine_data_inner(self, list_of_dicts):  # we don't save the models trained here
         # dictionary to store predictions
         combined_predictions = {}
         # combine fold predictions for each model
