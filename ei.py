@@ -18,6 +18,29 @@ from utils import scores, set_seed, random_integers, sample, retrieve_X_y, updat
 warnings.filterwarnings("ignore", category=DeprecationWarning)
 
 
+class MeanAggregation:
+    def __init__(self):
+        pass
+
+    def fit(self, X, y):
+        pass
+
+    def predict_proba(self, X):
+        predict_positive = X.mean(axis=1)
+        return np.transpose(np.array([1-predict_positive, predict_positive]))
+
+
+class MedianAggregation:
+    def __init__(self):
+        pass
+
+    def fit(self, X, y):
+        pass
+
+    def predict_proba(self, X):
+        predict_positive = X.median(axis=1)
+        return np.transpose(np.array([1-predict_positive, predict_positive]))
+
 class EnsembleIntegration:
     """
     Algorithms to test a variety of ensemble methods.
@@ -61,7 +84,8 @@ class EnsembleIntegration:
         set_seed(random_state)
 
         self.base_predictors = base_predictors
-        self.meta_models = meta_models
+        if meta_models is not None:
+            self.meta_models = {k + ".S": v for k, v in meta_models.items()}  # suffix denotes stacking
         self.k_outer = k_outer
         self.k_inner = k_inner
         self.n_samples = n_samples
@@ -91,6 +115,12 @@ class EnsembleIntegration:
 
         if meta_models is not None:
             self.meta_models = meta_models
+            self.meta_models = {k + ".S": v for k, v in meta_models.items()}  # suffix denotes stacking
+
+        additional_meta_models = {"Mean": MeanAggregation(),
+                                  "Median": MedianAggregation()}
+
+        self.meta_models = {**additional_meta_models, **self.meta_models}
 
         print("\nWorking on meta models")
 
@@ -101,11 +131,13 @@ class EnsembleIntegration:
 
             print("\n{model_name:}...".format(model_name=model_name))
 
-            # calibrate classifiers
-            model = CalibratedClassifierCV(model, ensemble=True)
+            # calibrate stacking classifiers
+            if model_name[-2:] == ".S":
+                model = CalibratedClassifierCV(model, ensemble=True)
 
             y_pred_combined = []
             y_test_combined = []
+
             for fold_id in range(self.k_outer):
 
                 X_train, y_train = retrieve_X_y(labelled_data=self.meta_training_data[fold_id])
@@ -181,7 +213,7 @@ class EnsembleIntegration:
             y_train_outer = y[train_index_outer]
 
             # spawn n_jobs jobs for each sample, inner_fold and model
-            output = parallel(delayed(self.train_base_fold)(X=X_train_outer,
+            output = parallel(delayed(self.train_model_fold_sample)(X=X_train_outer,
                                                             y=y_train_outer,
                                                             model_params=model_params,
                                                             fold_params=inner_fold_params,
@@ -217,7 +249,7 @@ class EnsembleIntegration:
         print("\nTraining base predictors on outer training sets...")
 
         # spawn job for each sample, inner_fold and model
-        output = parallel(delayed(self.train_base_fold)(X=X,
+        output = parallel(delayed(self.train_model_fold_sample)(X=X,
                                                         y=y,
                                                         model_params=model_params,
                                                         fold_params=outer_fold_params,
@@ -229,7 +261,7 @@ class EnsembleIntegration:
         return meta_test_data
 
     @ignore_warnings(category=ConvergenceWarning)
-    def train_base_fold(self, X, y, model_params, fold_params, sample_state):
+    def train_model_fold_sample(self, X, y, model_params, fold_params, sample_state):
         model_name, model = model_params
         fold_id, (train_index, test_index) = fold_params
         sample_id, sample_random_state = sample_state
