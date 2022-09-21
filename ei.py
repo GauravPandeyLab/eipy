@@ -13,7 +13,7 @@ from sklearn.model_selection import StratifiedKFold
 from joblib import Parallel, delayed
 from sklearn.calibration import CalibratedClassifierCV
 import warnings
-from utils import scores, set_seed, random_integers, sample, retrieve_X_y, update_keys, append_modality
+from utils import scores, set_seed, random_integers, sample, retrieve_X_y, append_modality, metric_threshold_dataframes
 
 warnings.filterwarnings("ignore", category=DeprecationWarning)
 
@@ -62,7 +62,6 @@ class EnsembleIntegration:
         Matrix of data intended for training of a meta-algorithm.
 
     To be done:
-        - mean/median ensemble
         - CES ensemble
         - interpretation
         - best base predictor
@@ -109,6 +108,10 @@ class EnsembleIntegration:
 
         self.meta_training_data = None
         self.meta_test_data = None
+        self.base_summary = None
+
+        self.meta_predictions = None
+        self.meta_summary = None
 
     @ignore_warnings(category=ConvergenceWarning)
     def train_meta(self, meta_models=None, display_metrics=True):
@@ -124,24 +127,28 @@ class EnsembleIntegration:
 
         print("\nWorking on meta models")
 
-        combined_predictions = {}
+        y_test_combined = []
+
+        for fold_id in range(self.k_outer):
+            _, y_test = retrieve_X_y(labelled_data=self.meta_test_data[fold_id])
+            y_test_combined.extend(y_test)
+
+        meta_predictions = {}
         performance_metrics = []
 
         for model_name, model in self.meta_models.items():
 
             print("\n{model_name:}...".format(model_name=model_name))
 
-            # calibrate stacking classifiers
-            if model_name[-2:] == ".S":
+            if model_name[-2:] == ".S":  # calibrate stacking classifiers
                 model = CalibratedClassifierCV(model, ensemble=True)
 
             y_pred_combined = []
-            y_test_combined = []
 
             for fold_id in range(self.k_outer):
 
                 X_train, y_train = retrieve_X_y(labelled_data=self.meta_training_data[fold_id])
-                X_test, y_test = retrieve_X_y(labelled_data=self.meta_test_data[fold_id])
+                X_test, _ = retrieve_X_y(labelled_data=self.meta_test_data[fold_id])
 
                 if self.sampling_aggregation == "mean":
                     X_train = X_train.groupby(level=0, axis=1).mean()
@@ -149,15 +156,15 @@ class EnsembleIntegration:
                 model.fit(X_train, y_train)
                 y_pred = model.predict_proba(X_test)[:, 1]
                 y_pred_combined.extend(y_pred)
-                y_test_combined.extend(y_test)
 
-            # Add model predictions to dictionary, along with model name.
+            performance_metrics.append(scores(y_test_combined, y_pred_combined, display=display_metrics))
+            meta_predictions[model_name] = y_pred_combined
+        meta_predictions["labels"] = y_test_combined
 
-            # Convert to pandas dataframe and export as csv. Also, add metrics
+        self.meta_predictions = pd.DataFrame.from_dict(meta_predictions)
+        self.meta_summary = metric_threshold_dataframes([self.meta_predictions], labels_column="labels")[0]
 
-            pms = performance_metrics.append(scores(y_test_combined, y_pred_combined, display=display_metrics))
-
-        return pms
+        return self
 
     @ignore_warnings(category=ConvergenceWarning)
     def train_base(self, X, y, base_predictors=None, modality=None):
@@ -168,20 +175,22 @@ class EnsembleIntegration:
         if modality is not None:
             print(f"\nWorking on {modality} data...")
 
-            self.base_predictors = update_keys(dictionary=self.base_predictors,
-                                               string=modality)  # include modality in model name
+            # self.base_predictors = update_keys(dictionary=self.base_predictors,
+            #                                    string=modality)  # include modality in model name
 
         if (self.meta_training_data or self.meta_test_data) is None:
-            self.meta_training_data = self.train_base_inner(X, y)
-            self.meta_test_data = self.train_base_outer(X, y)
+            self.meta_training_data = self.train_base_inner(X, y, modality)
+            self.meta_test_data = self.train_base_outer(X, y, modality)
 
         else:
-            self.meta_training_data = append_modality(self.meta_training_data, self.train_base_inner(X, y))
-            self.meta_test_data = append_modality(self.meta_test_data, self.train_base_outer(X, y))
+            self.meta_training_data = append_modality(self.meta_training_data, self.train_base_inner(X, y, modality))
+            self.meta_test_data = append_modality(self.meta_test_data, self.train_base_outer(X, y, modality))
+
+        self.base_summary = metric_threshold_dataframes(self.meta_test_data, labels_column=("labels", None, None))
 
         return self
 
-    def train_base_inner(self, X, y):
+    def train_base_inner(self, X, y, modality):
         """
         Perform a round of (inner) k-fold cross validation on each outer
         training set for generation of training data for the meta-algorithm
@@ -221,11 +230,11 @@ class EnsembleIntegration:
                               for model_params in self.base_predictors.items()
                               for inner_fold_params in enumerate(self.cv_inner.split(X_train_outer, y_train_outer))
                               for sample_state in enumerate(self.random_numbers_for_samples))
-            combined_predictions = self.combine_data_inner(output)
+            combined_predictions = self.combine_data_inner(output, modality)
             meta_training_data.append(combined_predictions)
         return meta_training_data
 
-    def train_base_outer(self, X, y):
+    def train_base_outer(self, X, y, modality):
         """
         Train each base predictor on each outer training set
 
@@ -257,7 +266,7 @@ class EnsembleIntegration:
                           for model_params in self.base_predictors.items()
                           for outer_fold_params in enumerate(self.cv_outer.split(X, y))
                           for sample_state in enumerate(self.random_numbers_for_samples))
-        meta_test_data = self.combine_data_outer(output)
+        meta_test_data = self.combine_data_outer(output, modality)
         return meta_test_data
 
     @ignore_warnings(category=ConvergenceWarning)
@@ -277,7 +286,7 @@ class EnsembleIntegration:
                         "model": model, "y_pred": y_pred, "labels": y_test}
         return results_dict
 
-    def combine_data_inner(self, list_of_dicts):  # we don't save the models trained here
+    def combine_data_inner(self, list_of_dicts, modality):  # we don't save the models trained here
         # dictionary to store predictions
         combined_predictions = {}
         # combine fold predictions for each model
@@ -285,14 +294,14 @@ class EnsembleIntegration:
             for sample_id in range(self.n_samples):
                 model_predictions = np.concatenate(
                     list(d["y_pred"] for d in list_of_dicts if d["model_name"] == model_name and d["sample_id"] == sample_id))
-                combined_predictions[model_name, sample_id] = model_predictions
+                combined_predictions[modality, model_name, sample_id] = model_predictions
         labels = np.concatenate(list(d["labels"] for d in list_of_dicts if
                                      d["model_name"] == list(self.base_predictors.keys())[0] and d["sample_id"] == 0))
-        combined_predictions["labels", None] = labels
+        combined_predictions["labels", None, None] = labels
         combined_predictions = pd.DataFrame(combined_predictions)
         return combined_predictions
 
-    def combine_data_outer(self, list_of_dicts):
+    def combine_data_outer(self, list_of_dicts, modality):
         combined_predictions = []
         for fold_id in range(self.k_outer):
             predictions = {}
@@ -301,12 +310,12 @@ class EnsembleIntegration:
                     model_predictions = list([d["y_pred"], d["model"]] for d in list_of_dicts if
                                              d["fold_id"] == fold_id and d["model_name"] == model_name and d[
                                                  "sample_id"] == sample_id)
-                    predictions[model_name, sample_id] = model_predictions[0][0]
+                    predictions[modality, model_name, sample_id] = model_predictions[0][0]
                     # self.trained_base_predictors[(model_name, sample_id)] = model_predictions[0][1] # need to write to file to avoid memory issues
             labels = [d["labels"] for d in list_of_dicts if
                       d["fold_id"] == fold_id and d["model_name"] == list(self.base_predictors.keys())[0] and d[
                           "sample_id"] == 0]
-            predictions["labels", None] = labels[0]
+            predictions["labels", None, None] = labels[0]
             combined_predictions.append(pd.DataFrame(predictions))
         return combined_predictions
 
