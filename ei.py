@@ -84,7 +84,7 @@ class EnsembleIntegration:
 
         self.base_predictors = base_predictors
         if meta_models is not None:
-            self.meta_models = {k + ".S": v for k, v in meta_models.items()}  # suffix denotes stacking
+            self.meta_models = {"S." + k: v for k, v in meta_models.items()}  # suffix denotes stacking
         self.k_outer = k_outer
         self.k_inner = k_inner
         self.n_samples = n_samples
@@ -118,7 +118,7 @@ class EnsembleIntegration:
 
         if meta_models is not None:
             self.meta_models = meta_models
-            self.meta_models = {k + ".S": v for k, v in meta_models.items()}  # suffix denotes stacking
+            self.meta_models = {"S." + k: v for k, v in meta_models.items()}  # suffix denotes stacking
 
         additional_meta_models = {"Mean": MeanAggregation(),
                                   "Median": MedianAggregation()}
@@ -140,7 +140,7 @@ class EnsembleIntegration:
 
             print("\n{model_name:}...".format(model_name=model_name))
 
-            if model_name[-2:] == ".S":  # calibrate stacking classifiers
+            if model_name[:2] == "S.":  # calibrate stacking classifiers
                 model = CalibratedClassifierCV(model, ensemble=True)
 
             y_pred_combined = []
@@ -157,12 +157,13 @@ class EnsembleIntegration:
                 y_pred = model.predict_proba(X_test)[:, 1]
                 y_pred_combined.extend(y_pred)
 
-            performance_metrics.append(scores(y_test_combined, y_pred_combined, display=display_metrics))
             meta_predictions[model_name] = y_pred_combined
+            performance_metrics.append(scores(y_test_combined, y_pred_combined, display=display_metrics))
+
         meta_predictions["labels"] = y_test_combined
 
         self.meta_predictions = pd.DataFrame.from_dict(meta_predictions)
-        self.meta_summary = metric_threshold_dataframes([self.meta_predictions], labels_column="labels")[0]
+        self.meta_summary = metric_threshold_dataframes(self.meta_predictions)
 
         return self
 
@@ -186,7 +187,11 @@ class EnsembleIntegration:
             self.meta_training_data = append_modality(self.meta_training_data, self.train_base_inner(X, y, modality))
             self.meta_test_data = append_modality(self.meta_test_data, self.train_base_outer(X, y, modality))
 
-        self.base_summary = metric_threshold_dataframes(self.meta_test_data, labels_column=("labels", None, None))
+        labels = pd.concat([df["labels"] for df in self.meta_test_data])
+        meta_test_averaged_samples = pd.concat([df.drop(columns=["labels"], level=0).groupby(level=(0, 1), axis=1).mean() for df in self.meta_test_data])
+        meta_test_averaged_samples["labels"] = labels
+
+        self.base_summary = metric_threshold_dataframes(meta_test_averaged_samples)
 
         return self
 
@@ -297,8 +302,8 @@ class EnsembleIntegration:
                 combined_predictions[modality, model_name, sample_id] = model_predictions
         labels = np.concatenate(list(d["labels"] for d in list_of_dicts if
                                      d["model_name"] == list(self.base_predictors.keys())[0] and d["sample_id"] == 0))
-        combined_predictions["labels", None, None] = labels
-        combined_predictions = pd.DataFrame(combined_predictions)
+        combined_predictions = pd.DataFrame(combined_predictions).rename_axis(["modality", "base predictor", "sample"], axis=1)
+        combined_predictions["labels"] = labels
         return combined_predictions
 
     def combine_data_outer(self, list_of_dicts, modality):
@@ -315,8 +320,9 @@ class EnsembleIntegration:
             labels = [d["labels"] for d in list_of_dicts if
                       d["fold_id"] == fold_id and d["model_name"] == list(self.base_predictors.keys())[0] and d[
                           "sample_id"] == 0]
-            predictions["labels", None, None] = labels[0]
-            combined_predictions.append(pd.DataFrame(predictions))
+            predictions = pd.DataFrame(predictions)
+            predictions["labels"] = labels[0]
+            combined_predictions.append(predictions.rename_axis(["modality", "base predictor", "sample"], axis=1))
         return combined_predictions
 
     def save(self, path=None):
