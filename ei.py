@@ -165,6 +165,8 @@ class EnsembleIntegration:
         self.meta_predictions = pd.DataFrame.from_dict(meta_predictions)
         self.meta_summary = metric_threshold_dataframes(self.meta_predictions)
 
+        print("\n" + self.meta_summary["metrics"])
+
         return self
 
     @ignore_warnings(category=ConvergenceWarning)
@@ -192,6 +194,8 @@ class EnsembleIntegration:
         meta_test_averaged_samples["labels"] = labels
 
         self.base_summary = metric_threshold_dataframes(meta_test_averaged_samples)
+
+        print("\n" + self.base_summary["metrics"])
 
         return self
 
