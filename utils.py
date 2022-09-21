@@ -5,16 +5,58 @@ from sklearn.metrics import accuracy_score, roc_curve, roc_auc_score, precision_
 from imblearn.under_sampling import RandomUnderSampler
 from imblearn.over_sampling import RandomOverSampler
 
-def max_accuracy_score(y_true, y_pred):
-    fpr, tpr, thresholds = roc_curve(y_true, y_pred)
-    accuracy_scores = []
-    for thresh in thresholds:
-        accuracy_scores.append(accuracy_score(y_true, [m > thresh for m in y_pred]))
 
-    accuracies = np.array(accuracy_scores)
-    max_accuracy = accuracies.max()
-    max_accuracy_threshold = thresholds[accuracies.argmax()]
-    return max_accuracy, max_accuracy_threshold
+def score_threshold_vectors(df, labels):
+    fmax = []
+    auc = []
+    mcc = []
+    for column in df.columns:
+        column_temp = df[column]
+        metrics = scores(labels, column_temp)
+        metric_names = list(metrics.keys())
+        fmax.append(metrics[metric_names[0]])
+        auc.append(metrics[metric_names[1]])
+        mcc.append(metrics[metric_names[2]])
+    return fmax, auc, mcc
+
+
+def score_vector_split(list_of_tuples):
+    score = []
+    threshold = []
+    for score_tuple in list_of_tuples:
+        score.append(score_tuple[0])
+        threshold.append(score_tuple[1])
+    return score, threshold
+
+
+def metrics_per_fold(df, labels):
+    columns = df.columns
+
+    fmax, auc, mcc = score_threshold_vectors(df, labels)
+
+    metrics_df = pd.DataFrame(columns=df.columns)
+    thresholds_df = pd.DataFrame(columns=df.columns)
+
+    metrics_df.loc["fmax score"], thresholds_df.loc["fmax score"] = list(zip(*fmax))
+    metrics_df.loc["AUC score"], thresholds_df.loc["AUC score"] = list(zip(*auc))
+    metrics_df.loc["MCC score"], thresholds_df.loc["MCC score"] = list(zip(*mcc))
+
+    return metrics_df, thresholds_df
+
+
+def metric_threshold_dataframes(list_of_dataframes, labels_column):
+    df_list = []
+    for df in list_of_dataframes:
+        data = df.drop(labels_column, axis=1)
+        labels = df[labels_column]
+
+        df_dict = {}
+        df_dict["metrics"], df_dict["thresholds"] = metrics_per_fold(data, labels)
+        df_list.append(df_dict)
+
+    return df_list
+
+
 def fmax_score(y_true, y_pred, beta=1):
     # beta = 0 for precision, beta -> infinity for recall, beta=1 for harmonic mean
     np.seterr(divide='ignore', invalid='ignore')
@@ -26,6 +68,7 @@ def fmax_score(y_true, y_pred, beta=1):
     max_fmax_threshold = thresholds[argmax]
 
     return fmax, max_fmax_threshold
+
 
 def matthews_max_score(y_true, y_pred):
     thresholds = np.arange(0, 1, 0.01)
@@ -43,21 +86,18 @@ def matthews_max_score(y_true, y_pred):
 
     return max_mcc, max_mcc_threshold
 
-def scores(y_true, y_pred, beta=1, metric_to_maximise="fscore", display=False):
 
+def scores(y_true, y_pred, beta=1, metric_to_maximise="fscore", display=False):
     fmax = fmax_score(y_true, y_pred, beta=1)
 
     max_mmc = matthews_max_score(y_true, y_pred)
 
-    max_accuracy = max_accuracy_score(y_true, y_pred)
-
     auc = roc_auc_score(y_true, y_pred)
 
     scores_threshold_dict = {"fmax score (positive class)": fmax,
-                   "AUC score": (auc, np.nan),
-                   "Matthew's correlation coefficient": max_mmc,
-                   "Accuracy score": max_accuracy
-                   }
+                             "AUC score": (auc, np.nan),
+                             "Matthew's correlation coefficient": max_mmc
+                             }  # dictionary of (score, threshold)
 
     if display:
         for metric_name, score in scores_threshold_dict.items():
@@ -105,8 +145,8 @@ def retrieve_X_y(labelled_data):
     return X, y
 
 
-def update_keys(dictionary, string):
-    return {f"{k}_" + string: v for k, v in dictionary.items()}
+# def update_keys(dictionary, string):
+#     return {f"{k}_" + string: v for k, v in dictionary.items()}
 
 
 def append_modality(current_data, modality_data):
