@@ -165,7 +165,7 @@ class EnsembleIntegration:
         self.meta_predictions = pd.DataFrame.from_dict(meta_predictions)
         self.meta_summary = metric_threshold_dataframes(self.meta_predictions)
 
-        print("\n" + self.meta_summary["metrics"])
+        print(self.meta_summary["metrics"])
 
         return self
 
