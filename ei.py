@@ -280,8 +280,7 @@ class EnsembleIntegration:
         model_name, model = model_params
         fold_id, (train_index, test_index) = fold_params
         sample_id, sample_random_state = sample_state
-        # calibrate classifiers
-        model = CalibratedClassifierCV(model, ensemble=True)
+        model = CalibratedClassifierCV(model, ensemble=True)  # calibrate classifiers
         X_train, X_test = X[train_index], X[test_index]
         y_train, y_test = y[train_index], y[test_index]
         X_sample, y_sample = sample(X_train, y_train, strategy=self.sampling_strategy, random_state=sample_random_state)
