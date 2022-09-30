@@ -288,8 +288,15 @@ class EnsembleIntegration:
         model.fit(X_sample, y_sample)
         y_pred = model.predict_proba(X_test)[:, 1]
         metrics = scores(y_test, y_pred)
-        results_dict = {"model_name": model_name, "sample_id": sample_id, "fold_id": fold_id, "scores": metrics,
-                        "model": model, "y_pred": y_pred, "labels": y_test}
+
+        results_dict = {"model_name": model_name,
+                        "sample_id": sample_id,
+                        "fold_id": fold_id,
+                        "scores": metrics,
+                        "model": model,
+                        "y_pred": y_pred,
+                        "labels": y_test}
+
         return results_dict
 
     def combine_data_inner(self, list_of_dicts, modality):  # we don't save the models trained here
