@@ -66,6 +66,7 @@ class EnsembleIntegration:
         - interpretation
         - best base predictor
         - model building
+        - think about the use of calibrated classifier in base and meta
     """
 
     def __init__(self,
