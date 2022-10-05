@@ -7,7 +7,7 @@ More details of EI can be found in our Biorxiv preprint:
 
 Full citation:
 
-Yan Chak Li, Linhua Wang, Jeffrey Law, T. M. Murali, Gaurav Pandey (2022): Integrating multimodal data through interpretable heterogeneous ensembles, bioRxiv. Preprint. 2020.05.29.123497; doi: https://doi.org/10.1101/2020.05.29.123497
+Yan Chak Li, Linhua Wang, Jeffrey N Law, T M Murali, Gaurav Pandey, Integrating multimodal data through interpretable heterogeneous ensembles, Bioinformatics Advances, Volume 2, Issue 1, 2022, vbac065, https://doi.org/10.1093/bioadv/vbac065
 
 This repository is protected by [CC BY-NC 4.0](https://github.com/GauravPandeyLab/ei-python/blob/main/license.md).
 
