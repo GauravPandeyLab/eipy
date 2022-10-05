@@ -30,7 +30,6 @@ def score_vector_split(list_of_tuples):
 
 
 def metrics_per_fold(df, labels):
-    columns = df.columns
 
     fmax, auc, mcc = score_threshold_vectors(df, labels)
 
@@ -44,17 +43,12 @@ def metrics_per_fold(df, labels):
     return metrics_df, thresholds_df
 
 
-def metric_threshold_dataframes(list_of_dataframes, labels_column):
-    df_list = []
-    for df in list_of_dataframes:
-        data = df.drop(labels_column, axis=1)
-        labels = df[labels_column]
-
-        df_dict = {}
-        df_dict["metrics"], df_dict["thresholds"] = metrics_per_fold(data, labels)
-        df_list.append(df_dict)
-
-    return df_list
+def metric_threshold_dataframes(df):
+    data = df.drop(["labels"], axis=1)
+    labels = df["labels"]
+    df_dict = {}
+    df_dict["metrics"], df_dict["thresholds"] = metrics_per_fold(data, labels)
+    return df_dict
 
 
 def fmax_score(y_true, y_pred, beta=1):
