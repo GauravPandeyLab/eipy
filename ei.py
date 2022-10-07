@@ -18,6 +18,12 @@ from utils import scores, set_seed, random_integers, sample, retrieve_X_y, appen
 
 warnings.filterwarnings("ignore", category=DeprecationWarning)
 
+def create_base_summary(meta_test_dataframe):
+    labels = pd.concat([df["labels"] for df in meta_test_dataframe])
+    meta_test_averaged_samples = pd.concat(
+        [df.drop(columns=["labels"], level=0).groupby(level=(0, 1), axis=1).mean() for df in self.meta_test_data])
+    meta_test_averaged_samples["labels"] = labels
+    return metric_threshold_dataframes(meta_test_averaged_samples)
 
 class MeanAggregation:
     def __init__(self):
@@ -28,7 +34,7 @@ class MeanAggregation:
 
     def predict_proba(self, X):
         predict_positive = X.mean(axis=1)
-        return np.transpose(np.array([1-predict_positive, predict_positive]))
+        return np.transpose(np.array([1 - predict_positive, predict_positive]))
 
 
 class MedianAggregation:
@@ -40,7 +46,8 @@ class MedianAggregation:
 
     def predict_proba(self, X):
         predict_positive = X.median(axis=1)
-        return np.transpose(np.array([1-predict_positive, predict_positive]))
+        return np.transpose(np.array([1 - predict_positive, predict_positive]))
+
 
 class EnsembleIntegration:
     """
@@ -189,11 +196,13 @@ class EnsembleIntegration:
             self.meta_training_data = append_modality(self.meta_training_data, self.train_base_inner(X, y, modality))
             self.meta_test_data = append_modality(self.meta_test_data, self.train_base_outer(X, y, modality))
 
-        labels = pd.concat([df["labels"] for df in self.meta_test_data])
-        meta_test_averaged_samples = pd.concat([df.drop(columns=["labels"], level=0).groupby(level=(0, 1), axis=1).mean() for df in self.meta_test_data])
-        meta_test_averaged_samples["labels"] = labels
+        # labels = pd.concat([df["labels"] for df in self.meta_test_data])
+        # meta_test_averaged_samples = pd.concat([df.drop(columns=["labels"], level=0).groupby(level=(0, 1), axis=1).mean() for df in self.meta_test_data])
+        # meta_test_averaged_samples["labels"] = labels
+        #
+        # self.base_summary = metric_threshold_dataframes(meta_test_averaged_samples)
 
-        self.base_summary = metric_threshold_dataframes(meta_test_averaged_samples)
+        self.base_summary = create_base_summary(self.meta_test_data)
 
         return self
 
@@ -230,10 +239,10 @@ class EnsembleIntegration:
 
             # spawn n_jobs jobs for each sample, inner_fold and model
             output = parallel(delayed(self.train_model_fold_sample)(X=X_train_outer,
-                                                            y=y_train_outer,
-                                                            model_params=model_params,
-                                                            fold_params=inner_fold_params,
-                                                            sample_state=sample_state)
+                                                                    y=y_train_outer,
+                                                                    model_params=model_params,
+                                                                    fold_params=inner_fold_params,
+                                                                    sample_state=sample_state)
                               for model_params in self.base_predictors.items()
                               for inner_fold_params in enumerate(self.cv_inner.split(X_train_outer, y_train_outer))
                               for sample_state in enumerate(self.random_numbers_for_samples))
@@ -266,14 +275,17 @@ class EnsembleIntegration:
 
         # spawn job for each sample, inner_fold and model
         output = parallel(delayed(self.train_model_fold_sample)(X=X,
-                                                        y=y,
-                                                        model_params=model_params,
-                                                        fold_params=outer_fold_params,
-                                                        sample_state=sample_state)
+                                                                y=y,
+                                                                model_params=model_params,
+                                                                fold_params=outer_fold_params,
+                                                                sample_state=sample_state)
                           for model_params in self.base_predictors.items()
                           for outer_fold_params in enumerate(self.cv_outer.split(X, y))
                           for sample_state in enumerate(self.random_numbers_for_samples))
         meta_test_data = self.combine_data_outer(output, modality)
+
+        self.base_summary = create_base_summary(meta_test_data)
+
         return meta_test_data
 
     @ignore_warnings(category=ConvergenceWarning)
@@ -311,11 +323,13 @@ class EnsembleIntegration:
         for model_name in self.base_predictors.keys():
             for sample_id in range(self.n_samples):
                 model_predictions = np.concatenate(
-                    list(d["y_pred"] for d in list_of_dicts if d["model_name"] == model_name and d["sample_id"] == sample_id))
+                    list(d["y_pred"] for d in list_of_dicts if
+                         d["model_name"] == model_name and d["sample_id"] == sample_id))
                 combined_predictions[modality, model_name, sample_id] = model_predictions
         labels = np.concatenate(list(d["labels"] for d in list_of_dicts if
                                      d["model_name"] == list(self.base_predictors.keys())[0] and d["sample_id"] == 0))
-        combined_predictions = pd.DataFrame(combined_predictions).rename_axis(["modality", "base predictor", "sample"], axis=1)
+        combined_predictions = pd.DataFrame(combined_predictions).rename_axis(["modality", "base predictor", "sample"],
+                                                                              axis=1)
         combined_predictions["labels"] = labels
         return combined_predictions
 
