@@ -2,9 +2,13 @@ import pandas as pd
 import numpy as np
 import random
 from sklearn.metrics import accuracy_score, roc_curve, roc_auc_score, precision_recall_curve, matthews_corrcoef
+from tensorflow.keras.wrappers.scikit_learn import KerasClassifier
 from imblearn.under_sampling import RandomUnderSampler
 from imblearn.over_sampling import RandomOverSampler
 
+def tf_classifier_to_sk(tf_model, epochs=100, batch_size=500, verbose=0):
+    build_fn = lambda: tf_model
+    return KerasClassifier(build_fn, epochs=epochs, batch_size=batch_size, verbose=verbose)
 
 def score_threshold_vectors(df, labels):
     fmax = []
