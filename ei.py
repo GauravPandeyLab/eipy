@@ -80,7 +80,7 @@ class EnsembleIntegration:
                  sampling_aggregation="mean",
                  n_jobs=-1,
                  random_state=None,
-                 parallel_backend="loky",
+                 parallel_backend="threading",
                  project_name="project"):
 
         set_seed(random_state)
