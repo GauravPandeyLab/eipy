@@ -79,6 +79,7 @@ class EnsembleIntegration:
                  sampling_aggregation="mean",
                  n_jobs=-1,
                  random_state=None,
+                 parallel_backend="loky",
                  project_name="project"):
 
         set_seed(random_state)
@@ -94,6 +95,7 @@ class EnsembleIntegration:
         self.n_jobs = n_jobs
         self.random_state = random_state
         self.project_name = project_name
+        self.parallel_backend = parallel_backend
 
         self.trained_meta_models = {}
         self.trained_base_predictors = {}
@@ -219,7 +221,7 @@ class EnsembleIntegration:
         # dictionaries for meta train/test data for each outer fold
         meta_training_data = []
         # define joblib Parallel function
-        parallel = Parallel(n_jobs=self.n_jobs, verbose=10, backend="threading")
+        parallel = Parallel(n_jobs=self.n_jobs, verbose=10, backend=self.parallel_backend)
         for outer_fold_id, (train_index_outer, test_index_outer) in enumerate(self.cv_outer.split(X, y)):
             print("\nGenerating meta-training data for outer fold {outer_fold_id:}...".format(
                 outer_fold_id=outer_fold_id))
@@ -259,7 +261,7 @@ class EnsembleIntegration:
         """
 
         # define joblib Parallel function
-        parallel = Parallel(n_jobs=self.n_jobs, verbose=10, backend="threading")
+        parallel = Parallel(n_jobs=self.n_jobs, verbose=10, backend=self.parallel_backend)
 
         print("\nTraining base predictors on outer training sets...")
 
