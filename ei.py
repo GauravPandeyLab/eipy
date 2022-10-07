@@ -21,7 +21,7 @@ warnings.filterwarnings("ignore", category=DeprecationWarning)
 def create_base_summary(meta_test_dataframe):
     labels = pd.concat([df["labels"] for df in meta_test_dataframe])
     meta_test_averaged_samples = pd.concat(
-        [df.drop(columns=["labels"], level=0).groupby(level=(0, 1), axis=1).mean() for df in self.meta_test_data])
+        [df.drop(columns=["labels"], level=0).groupby(level=(0, 1), axis=1).mean() for df in meta_test_dataframe])
     meta_test_averaged_samples["labels"] = labels
     return metric_threshold_dataframes(meta_test_averaged_samples)
 
