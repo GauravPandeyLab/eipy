@@ -282,7 +282,7 @@ class EnsembleIntegration:
         fold_id, (train_index, test_index) = fold_params
         sample_id, sample_random_state = sample_state
 
-        if model.__class__.__name__ != "KerasClassifier":
+        if model.__class__.__name__ != "KerasClassifier":  # not working for KerasClassifier for some reason
             model = CalibratedClassifierCV(model, n_jobs=1, ensemble=True)  # calibrate classifiers
 
         X_train, X_test = X[train_index], X[test_index]
