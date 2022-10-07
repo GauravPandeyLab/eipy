@@ -84,7 +84,7 @@ class EnsembleIntegration:
                  project_name="project"):
 
         set_seed(random_state)
-        set_loky_pickler('pickle')
+        set_loky_pickler('dill')
 
         self.base_predictors = base_predictors
         if meta_models is not None:
