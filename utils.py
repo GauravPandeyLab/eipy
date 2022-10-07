@@ -139,7 +139,7 @@ def retrieve_X_y(labelled_data):
     return X, y
 
 
-# def update_keys(dictionary, string):
+# def update_keys(dictionary, string):  #  not needed since use of MultiIndexing
 #     return {f"{k}_" + string: v for k, v in dictionary.items()}
 
 

@@ -84,7 +84,7 @@ class EnsembleIntegration:
                  project_name="project"):
 
         set_seed(random_state)
-        set_loky_pickler("dill")  # not working. Attempt to get Parallel working with Keras Classifier
+        # set_loky_pickler("dill")  # not working. Attempt to get Parallel working with KerasClassifier()
 
         self.base_predictors = base_predictors
         if meta_models is not None:
@@ -180,9 +180,6 @@ class EnsembleIntegration:
 
         if modality is not None:
             print(f"\nWorking on {modality} data...")
-
-            # self.base_predictors = update_keys(dictionary=self.base_predictors,
-            #                                    string=modality)  # include modality in model name
 
         if (self.meta_training_data or self.meta_test_data) is None:
             self.meta_training_data = self.train_base_inner(X, y, modality)
@@ -285,7 +282,7 @@ class EnsembleIntegration:
         fold_id, (train_index, test_index) = fold_params
         sample_id, sample_random_state = sample_state
 
-        #model = CalibratedClassifierCV(model, ensemble=True)  # calibrate classifiers
+        model = CalibratedClassifierCV(model, ensemble=True)  # calibrate classifiers
 
         X_train, X_test = X[train_index], X[test_index]
         y_train, y_test = y[train_index], y[test_index]
