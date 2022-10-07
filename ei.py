@@ -11,6 +11,7 @@ from sklearn.utils._testing import ignore_warnings
 from sklearn.exceptions import ConvergenceWarning
 from sklearn.model_selection import StratifiedKFold
 from joblib import Parallel, delayed
+from joblib.externals.loky import set_loky_pickler
 from sklearn.calibration import CalibratedClassifierCV
 import warnings
 from utils import scores, set_seed, random_integers, sample, retrieve_X_y, append_modality, metric_threshold_dataframes
@@ -83,6 +84,7 @@ class EnsembleIntegration:
                  project_name="project"):
 
         set_seed(random_state)
+        set_loky_pickler('pickle')
 
         self.base_predictors = base_predictors
         if meta_models is not None:
