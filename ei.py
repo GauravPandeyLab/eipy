@@ -84,7 +84,6 @@ class EnsembleIntegration:
                  project_name="project"):
 
         set_seed(random_state)
-        # set_loky_pickler("dill")  # not working. Attempt to get Parallel working with KerasClassifier()
 
         self.base_predictors = base_predictors
         if meta_models is not None:
