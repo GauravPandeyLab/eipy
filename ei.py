@@ -219,7 +219,7 @@ class EnsembleIntegration:
         # dictionaries for meta train/test data for each outer fold
         meta_training_data = []
         # define joblib Parallel function
-        parallel = Parallel(n_jobs=self.n_jobs, verbose=10)
+        parallel = Parallel(n_jobs=self.n_jobs, verbose=10, backend="threading")
         for outer_fold_id, (train_index_outer, test_index_outer) in enumerate(self.cv_outer.split(X, y)):
             print("\nGenerating meta-training data for outer fold {outer_fold_id:}...".format(
                 outer_fold_id=outer_fold_id))
@@ -259,7 +259,7 @@ class EnsembleIntegration:
         """
 
         # define joblib Parallel function
-        parallel = Parallel(n_jobs=self.n_jobs, verbose=10)
+        parallel = Parallel(n_jobs=self.n_jobs, verbose=10, backend="threading")
 
         print("\nTraining base predictors on outer training sets...")
 
@@ -280,12 +280,16 @@ class EnsembleIntegration:
         model_name, model = model_params
         fold_id, (train_index, test_index) = fold_params
         sample_id, sample_random_state = sample_state
+
         model = CalibratedClassifierCV(model, ensemble=True)  # calibrate classifiers
+
         X_train, X_test = X[train_index], X[test_index]
         y_train, y_test = y[train_index], y[test_index]
         X_sample, y_sample = sample(X_train, y_train, strategy=self.sampling_strategy, random_state=sample_random_state)
         model.fit(X_sample, y_sample)
+
         y_pred = model.predict_proba(X_test)[:, 1]
+
         metrics = scores(y_test, y_pred)
 
         results_dict = {"model_name": model_name,
