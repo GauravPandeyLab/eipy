@@ -6,7 +6,7 @@ Ensemble Integration
 
 import pandas as pd
 import numpy as np
-import pickle
+import dill as pickle
 from sklearn.utils._testing import ignore_warnings
 from sklearn.exceptions import ConvergenceWarning
 from sklearn.model_selection import StratifiedKFold
@@ -84,7 +84,7 @@ class EnsembleIntegration:
                  project_name="project"):
 
         set_seed(random_state)
-        set_loky_pickler("cloudpickle")
+        #set_loky_pickler("cloudpickle")
 
         self.base_predictors = base_predictors
         if meta_models is not None:
