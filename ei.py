@@ -6,17 +6,25 @@ Ensemble Integration
 
 import pandas as pd
 import numpy as np
-import pickle
+import dill as pickle
 from sklearn.utils._testing import ignore_warnings
 from sklearn.exceptions import ConvergenceWarning
 from sklearn.model_selection import StratifiedKFold
 from joblib import Parallel, delayed
+from tensorflow.keras.backend import clear_session
+from joblib.externals.loky import set_loky_pickler
 from sklearn.calibration import CalibratedClassifierCV
 import warnings
 from utils import scores, set_seed, random_integers, sample, retrieve_X_y, append_modality, metric_threshold_dataframes
 
 warnings.filterwarnings("ignore", category=DeprecationWarning)
 
+def create_base_summary(meta_test_dataframe):
+    labels = pd.concat([df["labels"] for df in meta_test_dataframe])
+    meta_test_averaged_samples = pd.concat(
+        [df.drop(columns=["labels"], level=0).groupby(level=(0, 1), axis=1).mean() for df in meta_test_dataframe])
+    meta_test_averaged_samples["labels"] = labels
+    return metric_threshold_dataframes(meta_test_averaged_samples)
 
 class MeanAggregation:
     def __init__(self):
@@ -27,7 +35,7 @@ class MeanAggregation:
 
     def predict_proba(self, X):
         predict_positive = X.mean(axis=1)
-        return np.transpose(np.array([1-predict_positive, predict_positive]))
+        return np.transpose(np.array([1 - predict_positive, predict_positive]))
 
 
 class MedianAggregation:
@@ -39,7 +47,8 @@ class MedianAggregation:
 
     def predict_proba(self, X):
         predict_positive = X.median(axis=1)
-        return np.transpose(np.array([1-predict_positive, predict_positive]))
+        return np.transpose(np.array([1 - predict_positive, predict_positive]))
+
 
 class EnsembleIntegration:
     """
@@ -79,9 +88,11 @@ class EnsembleIntegration:
                  sampling_aggregation="mean",
                  n_jobs=-1,
                  random_state=None,
+                 parallel_backend="threading",
                  project_name="project"):
 
         set_seed(random_state)
+        # set_loky_pickler("dill")  # not working. Attempt to get Parallel working with KerasClassifier()
 
         self.base_predictors = base_predictors
         if meta_models is not None:
@@ -94,6 +105,7 @@ class EnsembleIntegration:
         self.n_jobs = n_jobs
         self.random_state = random_state
         self.project_name = project_name
+        self.parallel_backend = parallel_backend
 
         self.trained_meta_models = {}
         self.trained_base_predictors = {}
@@ -177,9 +189,6 @@ class EnsembleIntegration:
         if modality is not None:
             print(f"\nWorking on {modality} data...")
 
-            # self.base_predictors = update_keys(dictionary=self.base_predictors,
-            #                                    string=modality)  # include modality in model name
-
         if (self.meta_training_data or self.meta_test_data) is None:
             self.meta_training_data = self.train_base_inner(X, y, modality)
             self.meta_test_data = self.train_base_outer(X, y, modality)
@@ -188,11 +197,13 @@ class EnsembleIntegration:
             self.meta_training_data = append_modality(self.meta_training_data, self.train_base_inner(X, y, modality))
             self.meta_test_data = append_modality(self.meta_test_data, self.train_base_outer(X, y, modality))
 
-        labels = pd.concat([df["labels"] for df in self.meta_test_data])
-        meta_test_averaged_samples = pd.concat([df.drop(columns=["labels"], level=0).groupby(level=(0, 1), axis=1).mean() for df in self.meta_test_data])
-        meta_test_averaged_samples["labels"] = labels
+        # labels = pd.concat([df["labels"] for df in self.meta_test_data])
+        # meta_test_averaged_samples = pd.concat([df.drop(columns=["labels"], level=0).groupby(level=(0, 1), axis=1).mean() for df in self.meta_test_data])
+        # meta_test_averaged_samples["labels"] = labels
+        #
+        # self.base_summary = metric_threshold_dataframes(meta_test_averaged_samples)
 
-        self.base_summary = metric_threshold_dataframes(meta_test_averaged_samples)
+        self.base_summary = create_base_summary(self.meta_test_data)
 
         return self
 
@@ -219,7 +230,7 @@ class EnsembleIntegration:
         # dictionaries for meta train/test data for each outer fold
         meta_training_data = []
         # define joblib Parallel function
-        parallel = Parallel(n_jobs=self.n_jobs, verbose=10)
+        parallel = Parallel(n_jobs=self.n_jobs, verbose=10, backend=self.parallel_backend)
         for outer_fold_id, (train_index_outer, test_index_outer) in enumerate(self.cv_outer.split(X, y)):
             print("\nGenerating meta-training data for outer fold {outer_fold_id:}...".format(
                 outer_fold_id=outer_fold_id))
@@ -229,10 +240,10 @@ class EnsembleIntegration:
 
             # spawn n_jobs jobs for each sample, inner_fold and model
             output = parallel(delayed(self.train_model_fold_sample)(X=X_train_outer,
-                                                            y=y_train_outer,
-                                                            model_params=model_params,
-                                                            fold_params=inner_fold_params,
-                                                            sample_state=sample_state)
+                                                                    y=y_train_outer,
+                                                                    model_params=model_params,
+                                                                    fold_params=inner_fold_params,
+                                                                    sample_state=sample_state)
                               for model_params in self.base_predictors.items()
                               for inner_fold_params in enumerate(self.cv_inner.split(X_train_outer, y_train_outer))
                               for sample_state in enumerate(self.random_numbers_for_samples))
@@ -259,20 +270,23 @@ class EnsembleIntegration:
         """
 
         # define joblib Parallel function
-        parallel = Parallel(n_jobs=self.n_jobs, verbose=10)
+        parallel = Parallel(n_jobs=self.n_jobs, verbose=10, backend=self.parallel_backend)
 
         print("\nTraining base predictors on outer training sets...")
 
         # spawn job for each sample, inner_fold and model
         output = parallel(delayed(self.train_model_fold_sample)(X=X,
-                                                        y=y,
-                                                        model_params=model_params,
-                                                        fold_params=outer_fold_params,
-                                                        sample_state=sample_state)
+                                                                y=y,
+                                                                model_params=model_params,
+                                                                fold_params=outer_fold_params,
+                                                                sample_state=sample_state)
                           for model_params in self.base_predictors.items()
                           for outer_fold_params in enumerate(self.cv_outer.split(X, y))
                           for sample_state in enumerate(self.random_numbers_for_samples))
         meta_test_data = self.combine_data_outer(output, modality)
+
+        self.base_summary = create_base_summary(meta_test_data)
+
         return meta_test_data
 
     @ignore_warnings(category=ConvergenceWarning)
@@ -280,12 +294,20 @@ class EnsembleIntegration:
         model_name, model = model_params
         fold_id, (train_index, test_index) = fold_params
         sample_id, sample_random_state = sample_state
-        model = CalibratedClassifierCV(model, ensemble=True)  # calibrate classifiers
+
+        if model.__class__.__name__ != "KerasClassifier":  # not working for KerasClassifier for some reason
+            model = CalibratedClassifierCV(model, n_jobs=1, ensemble=True)  # calibrate classifiers
+
+        if model.__class__.__name__ == "KerasClassifier":  # clear any previous TensorFlow sessions
+            clear_session()
+
         X_train, X_test = X[train_index], X[test_index]
         y_train, y_test = y[train_index], y[test_index]
         X_sample, y_sample = sample(X_train, y_train, strategy=self.sampling_strategy, random_state=sample_random_state)
         model.fit(X_sample, y_sample)
+
         y_pred = model.predict_proba(X_test)[:, 1]
+
         metrics = scores(y_test, y_pred)
 
         results_dict = {"model_name": model_name,
@@ -305,11 +327,13 @@ class EnsembleIntegration:
         for model_name in self.base_predictors.keys():
             for sample_id in range(self.n_samples):
                 model_predictions = np.concatenate(
-                    list(d["y_pred"] for d in list_of_dicts if d["model_name"] == model_name and d["sample_id"] == sample_id))
+                    list(d["y_pred"] for d in list_of_dicts if
+                         d["model_name"] == model_name and d["sample_id"] == sample_id))
                 combined_predictions[modality, model_name, sample_id] = model_predictions
         labels = np.concatenate(list(d["labels"] for d in list_of_dicts if
                                      d["model_name"] == list(self.base_predictors.keys())[0] and d["sample_id"] == 0))
-        combined_predictions = pd.DataFrame(combined_predictions).rename_axis(["modality", "base predictor", "sample"], axis=1)
+        combined_predictions = pd.DataFrame(combined_predictions).rename_axis(["modality", "base predictor", "sample"],
+                                                                              axis=1)
         combined_predictions["labels"] = labels
         return combined_predictions
 
