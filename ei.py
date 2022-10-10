@@ -11,6 +11,7 @@ from sklearn.utils._testing import ignore_warnings
 from sklearn.exceptions import ConvergenceWarning
 from sklearn.model_selection import StratifiedKFold
 from joblib import Parallel, delayed
+from tensorflow.keras.backend import clear_session
 from joblib.externals.loky import set_loky_pickler
 from sklearn.calibration import CalibratedClassifierCV
 import warnings
@@ -296,6 +297,9 @@ class EnsembleIntegration:
 
         if model.__class__.__name__ != "KerasClassifier":  # not working for KerasClassifier for some reason
             model = CalibratedClassifierCV(model, n_jobs=1, ensemble=True)  # calibrate classifiers
+
+        if model.__class__.__name__ == "KerasClassifier":  # clear any previous TensorFlow sessions
+            clear_session()
 
         X_train, X_test = X[train_index], X[test_index]
         y_train, y_test = y[train_index], y[test_index]
