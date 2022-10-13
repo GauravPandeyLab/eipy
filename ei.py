@@ -14,6 +14,7 @@ from joblib import Parallel, delayed
 from tensorflow.keras.backend import clear_session
 from joblib.externals.loky import set_loky_pickler
 from sklearn.calibration import CalibratedClassifierCV
+from sklearn.base import clone
 import warnings
 from utils import scores, set_seed, random_integers, sample, retrieve_X_y, append_modality, metric_threshold_dataframes
 
@@ -292,14 +293,15 @@ class EnsembleIntegration:
     @ignore_warnings(category=ConvergenceWarning)
     def train_model_fold_sample(self, X, y, model_params, fold_params, sample_state):
         model_name, model = model_params
+        model = clone(model)
         fold_id, (train_index, test_index) = fold_params
         sample_id, sample_random_state = sample_state
 
         if model.__class__.__name__ != "KerasClassifier":  # not working for KerasClassifier for some reason
             model = CalibratedClassifierCV(model, n_jobs=1, ensemble=True)  # calibrate classifiers
 
-        if model.__class__.__name__ == "KerasClassifier":  # clear any previous TensorFlow sessions
-            model.clear_session()
+        # if model.__class__.__name__ == "KerasClassifier":  # clear any previous TensorFlow sessions
+        #     clear_session()
 
         X_train, X_test = X[train_index], X[test_index]
         y_train, y_test = y[train_index], y[test_index]
@@ -308,8 +310,8 @@ class EnsembleIntegration:
 
         y_pred = model.predict_proba(X_test)[:, 1]
 
-        if model.__class__.__name__ == "KerasClassifier":  # clear any previous TensorFlow sessions
-            model.clear_session()
+        # if model.__class__.__name__ == "KerasClassifier":  # clear any previous TensorFlow sessions
+        #     model.clear_session()
 
         metrics = scores(y_test, y_pred)
 
