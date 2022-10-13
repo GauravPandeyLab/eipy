@@ -167,6 +167,7 @@ class EnsembleIntegration:
                 if self.sampling_aggregation == "mean":
                     X_train = X_train.groupby(level=0, axis=1).mean()
                     X_test = X_test.groupby(level=0, axis=1).mean()
+
                 model.fit(X_train, y_train)
                 y_pred = model.predict_proba(X_test)[:, 1]
                 y_pred_combined.extend(y_pred)
@@ -299,7 +300,7 @@ class EnsembleIntegration:
         sample_id, sample_random_state = sample_state
 
         if model.__class__.__name__ != "KerasClassifier":  # not working for KerasClassifier for some reason
-            model = CalibratedClassifierCV(model, n_jobs=1, ensemble=True)  # calibrate classifiers
+            model = CalibratedClassifierCV(model, ensemble=True)  # calibrate classifiers
 
         # if model.__class__.__name__ == "KerasClassifier":  # clear any previous TensorFlow sessions
         #     clear_session()
@@ -323,7 +324,7 @@ class EnsembleIntegration:
                         "model": model,
                         "y_pred": y_pred,
                         "labels": y_test}
-
+        del model
         return results_dict
 
     def combine_data_inner(self, list_of_dicts, modality):  # we don't save the models trained here
