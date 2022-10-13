@@ -307,9 +307,8 @@ class EnsembleIntegration:
         model.fit(X_sample, y_sample)
 
         y_pred = model.predict_proba(X_test)[:, 1]
-
         if model.__class__.__name__ == "KerasClassifier":  # clear any previous TensorFlow sessions
-            clear_session()
+            model.clear_session()
 
         metrics = scores(y_test, y_pred)
 
