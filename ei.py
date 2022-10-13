@@ -299,7 +299,7 @@ class EnsembleIntegration:
             model = CalibratedClassifierCV(model, n_jobs=1, ensemble=True)  # calibrate classifiers
 
         if model.__class__.__name__ == "KerasClassifier":  # clear any previous TensorFlow sessions
-            clear_session()
+            model.clear_session()
 
         X_train, X_test = X[train_index], X[test_index]
         y_train, y_test = y[train_index], y[test_index]
@@ -307,6 +307,7 @@ class EnsembleIntegration:
         model.fit(X_sample, y_sample)
 
         y_pred = model.predict_proba(X_test)[:, 1]
+
         if model.__class__.__name__ == "KerasClassifier":  # clear any previous TensorFlow sessions
             model.clear_session()
 
