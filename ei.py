@@ -303,11 +303,12 @@ class EnsembleIntegration:
         X_train, X_test = X[train_index], X[test_index]
         y_train, y_test = y[train_index], y[test_index]
         X_sample, y_sample = sample(X_train, y_train, strategy=self.sampling_strategy, random_state=sample_random_state)
-        model.fit(X_sample, y_sample)
 
         if str(model.__class__).find("tensorflow") == -1:
+            model.fit(X_sample, y_sample)
             y_pred = model.predict_proba(X_test)[:, 1]  # assumes other models are sklearn
         else:
+            model.fit(X_sample, y_sample, epochs=100)
             y_pred = np.squeeze(model.predict(X_test))
 
         metrics = scores(y_test, y_pred)
