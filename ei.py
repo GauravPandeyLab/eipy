@@ -308,7 +308,7 @@ class EnsembleIntegration:
         if str(model.__class__).find("tensorflow") == -1:
             y_pred = model.predict_proba(X_test)[:, 1]  # assumes other models are sklearn
         else:
-            y_pred = model.predict(X_test)
+            y_pred = np.squeeze(model.predict(X_test))
 
         metrics = scores(y_test, y_pred)
 
