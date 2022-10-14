@@ -294,18 +294,21 @@ class EnsembleIntegration:
         fold_id, (train_index, test_index) = fold_params
         sample_id, sample_random_state = sample_state
 
-        # if model.__class__.__name__ != "KerasClassifier":  # not working for KerasClassifier for some reason
-        #     model = CalibratedClassifierCV(model, ensemble=True)  # calibrate classifiers
+        if str(model.__class__).find("tensorflow") == -1:
+            model = CalibratedClassifierCV(model, ensemble=True)  # calibrate classifiers
 
-        # if model.__class__.__name__ == "KerasClassifier":  # clear any previous TensorFlow sessions
-        #     clear_session()
+        if str(model.__class__).find("tensorflow") != -1:  # clear any previous TF sessions (just in case)
+            clear_session()
 
         X_train, X_test = X[train_index], X[test_index]
         y_train, y_test = y[train_index], y[test_index]
         X_sample, y_sample = sample(X_train, y_train, strategy=self.sampling_strategy, random_state=sample_random_state)
         model.fit(X_sample, y_sample)
 
-        y_pred = model.predict_proba(X_test)[:, 1]
+        if str(model.__class__).find("tensorflow") == -1:
+            y_pred = model.predict_proba(X_test)[:, 1]  # assumes other models are sklearn
+        else:
+            y_pred = model.predict(X_test)
 
         metrics = scores(y_test, y_pred)
 
