@@ -7,6 +7,7 @@ Ensemble Integration
 import pandas as pd
 import numpy as np
 import dill as pickle
+from copy import copy
 from sklearn.utils._testing import ignore_warnings
 from sklearn.exceptions import ConvergenceWarning
 from sklearn.model_selection import StratifiedKFold
@@ -289,12 +290,12 @@ class EnsembleIntegration:
     def train_model_fold_sample(self, X, y, model_params, fold_params, sample_state):
         clear_session()
         model_name, model_original = model_params
-        model = model_original
+        model = copy(model_original)
         fold_id, (train_index, test_index) = fold_params
         sample_id, sample_random_state = sample_state
 
-        if model.__class__.__name__ != "KerasClassifier":  # not working for KerasClassifier for some reason
-            model = CalibratedClassifierCV(model, ensemble=True)  # calibrate classifiers
+        # if model.__class__.__name__ != "KerasClassifier":  # not working for KerasClassifier for some reason
+        #     model = CalibratedClassifierCV(model, ensemble=True)  # calibrate classifiers
 
         # if model.__class__.__name__ == "KerasClassifier":  # clear any previous TensorFlow sessions
         #     clear_session()
@@ -306,9 +307,6 @@ class EnsembleIntegration:
 
         y_pred = model.predict_proba(X_test)[:, 1]
 
-        # if model.__class__.__name__ == "KerasClassifier":  # clear any previous TensorFlow sessions
-        #     model.clear_session()
-
         metrics = scores(y_test, y_pred)
 
         results_dict = {"model_name": model_name,
@@ -318,7 +316,7 @@ class EnsembleIntegration:
                         "model": model,
                         "y_pred": y_pred,
                         "labels": y_test}
-        del model
+
         return results_dict
 
     def combine_data_inner(self, list_of_dicts, modality):  # we don't save the models trained here
