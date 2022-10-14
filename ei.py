@@ -199,12 +199,6 @@ class EnsembleIntegration:
             self.meta_training_data = append_modality(self.meta_training_data, self.train_base_inner(X, y, modality))
             self.meta_test_data = append_modality(self.meta_test_data, self.train_base_outer(X, y, modality))
 
-        # labels = pd.concat([df["labels"] for df in self.meta_test_data])
-        # meta_test_averaged_samples = pd.concat([df.drop(columns=["labels"], level=0).groupby(level=(0, 1), axis=1).mean() for df in self.meta_test_data])
-        # meta_test_averaged_samples["labels"] = labels
-        #
-        # self.base_summary = metric_threshold_dataframes(meta_test_averaged_samples)
-
         self.base_summary = create_base_summary(self.meta_test_data)
 
         return self
@@ -293,9 +287,9 @@ class EnsembleIntegration:
 
     @ignore_warnings(category=ConvergenceWarning)
     def train_model_fold_sample(self, X, y, model_params, fold_params, sample_state):
-
+        clear_session()
         model_name, model_original = model_params
-        model = clone(model_original)
+        model = model_original
         fold_id, (train_index, test_index) = fold_params
         sample_id, sample_random_state = sample_state
 
