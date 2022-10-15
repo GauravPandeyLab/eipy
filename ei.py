@@ -321,6 +321,8 @@ class EnsembleIntegration:
                         "y_pred": y_pred,
                         "labels": y_test}
 
+        del model
+        clear_session()
         return results_dict
 
     def combine_data_inner(self, list_of_dicts, modality):  # we don't save the models trained here
