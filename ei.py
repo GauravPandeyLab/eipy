@@ -74,7 +74,7 @@ class EnsembleIntegration:
 
     To be done:
         - EI.save() does not work with TF models in base predictors. Need to save models separately then set base_predictors=None to save. Load models from separate files
-        - create wrapper for TF models. Needs to take TF model + fit parameters. Then create fit function.
+        - create wrapper for TF models. Needs to take TF model + fit parameters. Then create new fit function.
         - CES ensemble
         - interpretation
         - best base predictor
