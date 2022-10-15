@@ -365,7 +365,7 @@ class EnsembleIntegration:
         if path is None:
             path = f"EI.{self.project_name}"
         with open(path, 'wb') as f:
-            pickle.dump(self, f)
+            dill.dump(self, f)
         print(f"\nSaved to {path}\n")
 
     @classmethod
