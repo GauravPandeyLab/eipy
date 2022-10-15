@@ -73,6 +73,8 @@ class EnsembleIntegration:
         Matrix of data intended for training of a meta-algorithm.
 
     To be done:
+        - EI.save() does not work with TF models in base predictors. Need to save models separately then set base_predictors=None to save. Load models from separate files
+        - create wrapper for TF models. Needs to take TF model + fit parameters. Then create fit function.
         - CES ensemble
         - interpretation
         - best base predictor
