@@ -288,6 +288,7 @@ class EnsembleIntegration:
 
     @ignore_warnings(category=ConvergenceWarning)
     def train_model_fold_sample(self, X, y, model_params, fold_params, sample_state):
+        clear_session()
         model_name, model_original = model_params
         model = copy(model_original)
         fold_id, (train_index, test_index) = fold_params
@@ -317,6 +318,7 @@ class EnsembleIntegration:
                         "model": model,
                         "y_pred": y_pred,
                         "labels": y_test}
+        clear_session()
         del model
         return results_dict
 
