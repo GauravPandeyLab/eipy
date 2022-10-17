@@ -306,7 +306,7 @@ class EnsembleIntegration:
             y_pred = model.predict_proba(X_test)[:, 1]  # assumes other models are sklearn
         else:
             model.fit(X_sample, y_sample)
-            y_pred = np.squeeze(model.predict(X_test))
+            y_pred = model.predict_proba(X_test)
 
         metrics = scores(y_test, y_pred)
 
