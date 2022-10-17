@@ -15,7 +15,7 @@ class TFWrapper:
         del tf_model
 
     def fit(self, X, y):
-        self.tf_model.fit(tf.constant(X), tf.constant(y), verbose=0, **self.fit_kwargs)
+        self.tf_model.fit(tf.constant(X), tf.constant(y), verbose=1, **self.fit_kwargs)
 
     def predict_proba(self, X):
         return np.squeeze(self.tf_model.predict(X))
