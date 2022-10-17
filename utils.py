@@ -13,7 +13,7 @@ class TFWrapper:
         self.fit_kwargs = fit_kwargs
 
     def fit(self, X, y):
-        self.tf_model.fit(X, y, verbose=0, **self.fit_kwargs)
+        self.tf_model.fit(X, y, verbose=1, **self.fit_kwargs)
 
     def predict_proba(self, X):
         return np.squeeze(self.tf_model.predict(X))
