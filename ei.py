@@ -13,7 +13,9 @@ from sklearn.exceptions import ConvergenceWarning
 from sklearn.model_selection import StratifiedKFold
 from joblib import Parallel, delayed
 from sklearn.calibration import CalibratedClassifierCV
+from tensorflow.keras.models import clone_model
 from tensorflow.keras.backend import clear_session
+from sklearn.base import clone
 import warnings
 from utils import scores, set_seed, random_integers, sample, retrieve_X_y, append_modality, metric_threshold_dataframes
 
@@ -288,14 +290,16 @@ class EnsembleIntegration:
 
     @ignore_warnings(category=ConvergenceWarning)
     def train_model_fold_sample(self, X, y, model_params, fold_params, sample_state):
-        clear_session()
+
         model_name, model_original = model_params
-        model = copy(model_original)
         fold_id, (train_index, test_index) = fold_params
         sample_id, sample_random_state = sample_state
 
-        if str(model.__class__).find("sklearn") != -1:
+        if str(model_original.__class__).find("sklearn") != -1:
+            model = clone(model_original)
             model = CalibratedClassifierCV(model, ensemble=True)  # calibrate classifiers
+        else:
+            model = clone_model(model_original)
 
         X_train, X_test = X[train_index], X[test_index]
         y_train, y_test = y[train_index], y[test_index]

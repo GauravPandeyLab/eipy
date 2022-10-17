@@ -10,16 +10,18 @@ from tensorflow.keras.backend import clear_session
 
 
 class TFWrapper:
-    def __init__(self, tf_model, fit_kwargs):
+    def __init__(self, tf_model, compile_kwargs, fit_kwargs):
         self.tf_model = tf_model
+        self.compile_kwargs = compile_kwargs
         self.fit_kwargs = fit_kwargs
 
     def fit(self, X, y):
-        clear_session()
+        self.tf_model.compile(**self.compile_kwargs)
         self.tf_model.fit(X, y, verbose=1, **self.fit_kwargs)
 
     def predict_proba(self, X):
         return np.squeeze(self.tf_model.predict(X))
+
 
 # def tf_wrapper(tf_model, epochs=100, batch_size=500, verbose=0):
 #     build_fn = lambda: tf_model
