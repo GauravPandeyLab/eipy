@@ -305,7 +305,6 @@ class EnsembleIntegration:
             model.fit(X_sample, y_sample)
             y_pred = model.predict_proba(X_test)[:, 1]  # assumes other models are sklearn
         else:
-            clear_session()
             model.fit(X_sample, y_sample)
             y_pred = model.predict_proba(X_test)
 
@@ -318,8 +317,8 @@ class EnsembleIntegration:
                         "model": model,
                         "y_pred": y_pred,
                         "labels": y_test}
-        clear_session()
-        del model
+        #clear_session()
+        #del model
         return results_dict
 
     def combine_data_inner(self, list_of_dicts, modality):  # we don't save the models trained here
