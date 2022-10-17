@@ -290,7 +290,7 @@ class EnsembleIntegration:
 
     @ignore_warnings(category=ConvergenceWarning)
     def train_model_fold_sample(self, X, y, model_params, fold_params, sample_state):
-
+        clear_session()
         model_name, model_original = model_params
         fold_id, (train_index, test_index) = fold_params
         sample_id, sample_random_state = sample_state

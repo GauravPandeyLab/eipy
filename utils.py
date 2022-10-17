@@ -12,10 +12,12 @@ from tensorflow.keras.backend import clear_session
 class TFWrapper:
     def __init__(self, tf_model, compile_kwargs, fit_kwargs):
         self.tf_model = tf_model
+        self.initial_weights = tf_model.get_weights()
         self.compile_kwargs = compile_kwargs
         self.fit_kwargs = fit_kwargs
 
     def fit(self, X, y):
+        self.tf_model.set_weights(self.initial_weights)
         self.tf_model.compile(**self.compile_kwargs)
         self.tf_model.fit(X, y, verbose=1, **self.fit_kwargs)
 
