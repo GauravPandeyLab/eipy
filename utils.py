@@ -5,6 +5,7 @@ from sklearn.metrics import accuracy_score, roc_curve, roc_auc_score, precision_
 # from tensorflow.keras.wrappers.scikit_learn import KerasClassifier
 from imblearn.under_sampling import RandomUnderSampler
 from imblearn.over_sampling import RandomOverSampler
+import tensorflow as tf
 
 
 class TFWrapper:
@@ -14,7 +15,7 @@ class TFWrapper:
         del tf_model
 
     def fit(self, X, y):
-        self.tf_model.fit(X, y, verbose=0, **self.fit_kwargs)
+        self.tf_model.fit(tf.constant(X), tf.constant(y), verbose=0, **self.fit_kwargs)
 
     def predict_proba(self, X):
         return np.squeeze(self.tf_model.predict(X))
