@@ -5,7 +5,6 @@ from sklearn.metrics import accuracy_score, roc_curve, roc_auc_score, precision_
 # from tensorflow.keras.wrappers.scikit_learn import KerasClassifier
 from imblearn.under_sampling import RandomUnderSampler
 from imblearn.over_sampling import RandomOverSampler
-from tensorflow.keras.backend import clear_session
 
 
 class TFWrapper:
