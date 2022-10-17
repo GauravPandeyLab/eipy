@@ -295,8 +295,9 @@ class EnsembleIntegration:
         fold_id, (train_index, test_index) = fold_params
         sample_id, sample_random_state = sample_state
 
+        model = copy(model_original)
+
         if str(model_original.__class__).find("sklearn") != -1:
-            model = clone(model_original)
             model = CalibratedClassifierCV(model, ensemble=True)  # calibrate classifiers
 
         X_train, X_test = X[train_index], X[test_index]
