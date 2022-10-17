@@ -316,7 +316,7 @@ class EnsembleIntegration:
                         "model": model,
                         "y_pred": y_pred,
                         "labels": y_test}
-        #clear_session()
+        clear_session()
         #del model
         return results_dict
 
