@@ -16,9 +16,10 @@ class TFWrapper:
         self.compile_kwargs = compile_kwargs
         self.fit_kwargs = fit_kwargs
 
+        self.tf_model.compile(**self.compile_kwargs)
+
     def fit(self, X, y):
         self.tf_model.set_weights(self.initial_weights)
-        self.tf_model.compile(**self.compile_kwargs)
         self.tf_model.fit(X, y, verbose=0, **self.fit_kwargs)
 
     def predict_proba(self, X):
