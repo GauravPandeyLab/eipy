@@ -298,8 +298,6 @@ class EnsembleIntegration:
         if str(model_original.__class__).find("sklearn") != -1:
             model = clone(model_original)
             model = CalibratedClassifierCV(model, ensemble=True)  # calibrate classifiers
-        else:
-            model = clone_model(model_original)
 
         X_train, X_test = X[train_index], X[test_index]
         y_train, y_test = y[train_index], y[test_index]
@@ -321,8 +319,7 @@ class EnsembleIntegration:
                         "model": model,
                         "y_pred": y_pred,
                         "labels": y_test}
-        clear_session()
-        del model
+
         return results_dict
 
     def combine_data_inner(self, list_of_dicts, modality):  # we don't save the models trained here
