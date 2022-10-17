@@ -24,9 +24,9 @@ class TFWrapper:
 #     build_fn = lambda: tf_model
 #     return KerasClassifier(build_fn, epochs=epochs, batch_size=batch_size, verbose=verbose)
 
-def tf_classifier_to_sk(tf_model, epochs=100, batch_size=500, verbose=0):
-    build_fn = lambda: tf_model
-    return KerasClassifier(build_fn, epochs=epochs, batch_size=batch_size, verbose=verbose)
+# def tf_classifier_to_sk(tf_model, epochs=100, batch_size=500, verbose=0):
+#     build_fn = lambda: tf_model
+#     return KerasClassifier(build_fn, epochs=epochs, batch_size=batch_size, verbose=verbose)
 
 def score_threshold_vectors(df, labels):
     fmax = []
