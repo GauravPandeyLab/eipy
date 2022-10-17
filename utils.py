@@ -6,6 +6,7 @@ from sklearn.metrics import accuracy_score, roc_curve, roc_auc_score, precision_
 from imblearn.under_sampling import RandomUnderSampler
 from imblearn.over_sampling import RandomOverSampler
 import tensorflow as tf
+from tensorflow.keras.backend import clear_session
 
 
 class TFWrapper:
@@ -14,6 +15,7 @@ class TFWrapper:
         self.fit_kwargs = fit_kwargs
 
     def fit(self, X, y):
+        clear_session()
         self.tf_model.fit(X, y, verbose=1, **self.fit_kwargs)
 
     def predict_proba(self, X):
