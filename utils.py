@@ -12,7 +12,6 @@ class TFWrapper:
     def __init__(self, tf_model, fit_kwargs):
         self.tf_model = tf_model
         self.fit_kwargs = fit_kwargs
-        del tf_model
 
     def fit(self, X, y):
         self.tf_model.fit(tf.constant(X), tf.constant(y), verbose=1, **self.fit_kwargs)
