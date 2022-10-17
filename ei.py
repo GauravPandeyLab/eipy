@@ -288,7 +288,6 @@ class EnsembleIntegration:
 
     @ignore_warnings(category=ConvergenceWarning)
     def train_model_fold_sample(self, X, y, model_params, fold_params, sample_state):
-        clear_session()
         model_name, model_original = model_params
         model = copy(model_original)
         fold_id, (train_index, test_index) = fold_params
@@ -305,6 +304,7 @@ class EnsembleIntegration:
             model.fit(X_sample, y_sample)
             y_pred = model.predict_proba(X_test)[:, 1]  # assumes other models are sklearn
         else:
+            clear_session()
             model.fit(X_sample, y_sample)
             y_pred = model.predict_proba(X_test)
 
