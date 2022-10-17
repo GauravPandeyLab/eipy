@@ -2,9 +2,27 @@ import pandas as pd
 import numpy as np
 import random
 from sklearn.metrics import accuracy_score, roc_curve, roc_auc_score, precision_recall_curve, matthews_corrcoef
-from tensorflow.keras.wrappers.scikit_learn import KerasClassifier
+# from tensorflow.keras.wrappers.scikit_learn import KerasClassifier
 from imblearn.under_sampling import RandomUnderSampler
 from imblearn.over_sampling import RandomOverSampler
+from tensorflow.keras.backend import clear_session
+
+
+class TFWrapper:
+    def __init__(self, tf_model, fit_kwargs):
+        self.tf_model = tf_model
+        self.fit_kwargs = fit_kwargs
+
+    def fit(self, X, y):
+        clear_session()
+        self.tf_model.fit(X, y, verbose=0, **self.fit_kwargs)
+
+    def predict_proba(self, X):
+        return np.squeeze(self.tf_model.predict(X))
+
+# def tf_wrapper(tf_model, epochs=100, batch_size=500, verbose=0):
+#     build_fn = lambda: tf_model
+#     return KerasClassifier(build_fn, epochs=epochs, batch_size=batch_size, verbose=verbose)
 
 def tf_classifier_to_sk(tf_model, epochs=100, batch_size=500, verbose=0):
     build_fn = lambda: tf_model

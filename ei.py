@@ -12,7 +12,6 @@ from sklearn.utils._testing import ignore_warnings
 from sklearn.exceptions import ConvergenceWarning
 from sklearn.model_selection import StratifiedKFold
 from joblib import Parallel, delayed
-from tensorflow.keras.backend import clear_session
 from joblib.externals.loky import set_loky_pickler
 from sklearn.calibration import CalibratedClassifierCV
 from sklearn.base import clone
@@ -290,27 +289,23 @@ class EnsembleIntegration:
 
     @ignore_warnings(category=ConvergenceWarning)
     def train_model_fold_sample(self, X, y, model_params, fold_params, sample_state):
-        clear_session()
         model_name, model_original = model_params
         model = copy(model_original)
         fold_id, (train_index, test_index) = fold_params
         sample_id, sample_random_state = sample_state
 
-        if str(model.__class__).find("tensorflow") == -1:
+        if str(model.__class__).find("sklearn") != -1:
             model = CalibratedClassifierCV(model, ensemble=True)  # calibrate classifiers
-
-        if str(model.__class__).find("tensorflow") != -1:  # clear any previous TF sessions (just in case)
-            clear_session()
 
         X_train, X_test = X[train_index], X[test_index]
         y_train, y_test = y[train_index], y[test_index]
         X_sample, y_sample = sample(X_train, y_train, strategy=self.sampling_strategy, random_state=sample_random_state)
 
-        if str(model.__class__).find("tensorflow") == -1:
+        if str(model.__class__).find("sklearn") != -1:
             model.fit(X_sample, y_sample)
             y_pred = model.predict_proba(X_test)[:, 1]  # assumes other models are sklearn
         else:
-            model.fit(X_sample, y_sample, epochs=100, verbose=0)  # need to pass epochs at initialization
+            model.fit(X_sample, y_sample)
             y_pred = np.squeeze(model.predict(X_test))
 
         metrics = scores(y_test, y_pred)
@@ -323,8 +318,6 @@ class EnsembleIntegration:
                         "y_pred": y_pred,
                         "labels": y_test}
 
-        del model
-        clear_session()
         return results_dict
 
     def combine_data_inner(self, list_of_dicts, modality):  # we don't save the models trained here
