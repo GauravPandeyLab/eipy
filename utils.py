@@ -133,7 +133,31 @@ def sample(X, y, random_state, strategy="undersampling"):
         sampler = RandomUnderSampler(random_state=random_state)
     if strategy == "oversampling":
         sampler = RandomOverSampler(random_state=random_state)
-    X_resampled, y_resampled = sampler.fit_resample(X=X, y=y)
+    if strategy == 'hybrid':
+        y_pos = float(sum(y==1))
+        y_total = y.shape[0]
+        if (y_pos/y_total) < 0.5:
+            y_min_count = y_pos
+            y_maj_count = (y_total - y_pos)
+            maj_class = 0
+        else:
+            y_maj_count = y_pos
+            y_min_count = (y_total - y_pos)
+            maj_class = 1
+        rus = RandomUnderSampler(random_state=random_state, 
+                                sampling_strategy=y_min_count/(y_total/2))
+        ros = RandomOverSampler(random_state=random_state,   
+                                sampling_strategy=(y_total/2)/y_maj_count)
+        X_maj, y_maj = rus.fit_resample(X=X, y=y)
+        X_maj = X_maj[y_maj==maj_class]
+        y_maj = y_maj[y_maj==maj_class]
+        X_min, y_min = ros.fit_resample(X=X, y=y)
+        X_min = X_min[y_min!=maj_class]
+        y_min = y_min[y_min!=maj_class]
+        X_resampled = np.concatenate([X_maj, X_min])
+        y_resampled = np.concatenate([y_maj, y_min])
+    else:
+        X_resampled, y_resampled = sampler.fit_resample(X=X, y=y)
     return X_resampled, y_resampled
 
 
