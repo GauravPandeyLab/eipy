@@ -224,10 +224,10 @@ class EnsembleIntegration:
         meta_training_data : List of length k_outer containing Pandas dataframes
         of shape (n_outer_training_samples, n_base_predictors * n_samples)
         """
-
-        print("\nTraining base predictors on inner training sets...")
         if modality is not None:
-            print(f"\n... working on {modality} data...")
+            print(f"\n{modality} modality: training base predictors on inner training sets...")
+        else:
+            print("Training base predictors on inner training sets...")
 
         # dictionaries for meta train/test data for each outer fold
         meta_training_data = []
@@ -272,12 +272,13 @@ class EnsembleIntegration:
         of shape (n_outer_test_samples, n_base_predictors * n_samples)
         """
 
+        if modality is not None:
+            print(f"\n{modality} modality: training base predictors on outer training sets...")
+        else:
+            print("Training base predictors on outer training sets...")
+
         # define joblib Parallel function
         parallel = Parallel(n_jobs=self.n_jobs, verbose=10, backend=self.parallel_backend)
-
-        print("\nTraining base predictors on outer training sets...")
-        if modality is not None:
-            print(f"\n... working on {modality} data...")
 
         # spawn job for each sample, outer_fold and model
         output = parallel(delayed(self.train_model_fold_sample)(X=X,
