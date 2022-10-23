@@ -225,9 +225,9 @@ class EnsembleIntegration:
         of shape (n_outer_training_samples, n_base_predictors * n_samples)
         """
 
-        if modality is not None:
-            print(f"\nWorking on {modality} data...")
         print("\nTraining base predictors on inner training sets...")
+        if modality is not None:
+            print(f"\n... working on {modality} data...")
 
         # dictionaries for meta train/test data for each outer fold
         meta_training_data = []
@@ -275,9 +275,9 @@ class EnsembleIntegration:
         # define joblib Parallel function
         parallel = Parallel(n_jobs=self.n_jobs, verbose=10, backend=self.parallel_backend)
 
-        if modality is not None:
-            print(f"\nWorking on {modality} data...")
         print("\nTraining base predictors on outer training sets...")
+        if modality is not None:
+            print(f"\n... working on {modality} data...")
 
         # spawn job for each sample, outer_fold and model
         output = parallel(delayed(self.train_model_fold_sample)(X=X,
