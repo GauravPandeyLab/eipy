@@ -255,7 +255,7 @@ class EnsembleIntegration:
 
         self.meta_training_data = append_modality(self.meta_training_data, meta_training_data)
 
-    def train_base_outer(self, X, y, modality):
+    def train_base_outer(self, X, y, modality=None):
         """
         Train each base predictor on each outer training set
 
@@ -287,10 +287,10 @@ class EnsembleIntegration:
                           for model_params in self.base_predictors.items()
                           for outer_fold_params in enumerate(self.cv_outer.split(X, y))
                           for sample_state in enumerate(self.random_numbers_for_samples))
-        meta_test_data = self.combine_data_outer(output, modality)
+        # meta_test_data = self.combine_data_outer(output, modality)
 
-        self.meta_test_data = append_modality(self.meta_test_data, meta_test_data)
-        self.base_summary = create_base_summary(meta_test_data)
+        self.meta_test_data = append_modality(self.meta_test_data, self.combine_data_outer(output, modality))
+        self.base_summary = create_base_summary(self.meta_test_data)
 
     @ignore_warnings(category=ConvergenceWarning)
     def train_model_fold_sample(self, X, y, model_params, fold_params, sample_state):
