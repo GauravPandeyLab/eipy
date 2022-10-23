@@ -6,14 +6,12 @@ Ensemble Integration
 
 import pandas as pd
 import numpy as np
-import dill as pickle
 from copy import copy
 from sklearn.utils._testing import ignore_warnings
 from sklearn.exceptions import ConvergenceWarning
 from sklearn.model_selection import StratifiedKFold
 from joblib import Parallel, delayed
 from sklearn.calibration import CalibratedClassifierCV
-from tensorflow.keras.models import clone_model
 from tensorflow.keras.backend import clear_session
 from sklearn.base import clone
 import warnings
@@ -27,6 +25,7 @@ def create_base_summary(meta_test_dataframe):
         [df.drop(columns=["labels"], level=0).groupby(level=(0, 1), axis=1).mean() for df in meta_test_dataframe])
     meta_test_averaged_samples["labels"] = labels
     return metric_threshold_dataframes(meta_test_averaged_samples)
+
 
 class MeanAggregation:
     def __init__(self):
@@ -96,7 +95,6 @@ class EnsembleIntegration:
                  project_name="project"):
 
         set_seed(random_state)
-        # set_loky_pickler("dill")  # not working. Attempt to get Parallel working with KerasClassifier()
 
         self.base_predictors = base_predictors
         if meta_models is not None:
@@ -194,13 +192,19 @@ class EnsembleIntegration:
         if modality is not None:
             print(f"\nWorking on {modality} data...")
 
-        if (self.meta_training_data or self.meta_test_data) is None:
-            self.meta_training_data = self.train_base_inner(X, y, modality)
-            self.meta_test_data = self.train_base_outer(X, y, modality)
+        # if (self.meta_training_data or self.meta_test_data) is None:
+        #     self.meta_training_data = self.train_base_inner(X, y, modality)
+        #     self.meta_test_data = self.train_base_outer(X, y, modality)
+        #
+        # else:
+        #     self.meta_training_data = append_modality(self.meta_training_data, self.train_base_inner(X, y, modality))
+        #     self.meta_test_data = append_modality(self.meta_test_data, self.train_base_outer(X, y, modality))
 
-        else:
-            self.meta_training_data = append_modality(self.meta_training_data, self.train_base_inner(X, y, modality))
-            self.meta_test_data = append_modality(self.meta_test_data, self.train_base_outer(X, y, modality))
+        # meta_training_data_new = self.train_base_inner(X, y, modality)
+        # meta_test_data_new = self.train_base_outer(X, y, modality)
+
+        self.meta_training_data = append_modality(self.meta_training_data, self.train_base_inner(X, y, modality))
+        self.meta_test_data = append_modality(self.meta_test_data, self.train_base_outer(X, y, modality))
 
         self.base_summary = create_base_summary(self.meta_test_data)
 
@@ -273,7 +277,7 @@ class EnsembleIntegration:
 
         print("\nTraining base predictors on outer training sets...")
 
-        # spawn job for each sample, inner_fold and model
+        # spawn job for each sample, outer_fold and model
         output = parallel(delayed(self.train_model_fold_sample)(X=X,
                                                                 y=y,
                                                                 model_params=model_params,

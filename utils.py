@@ -16,7 +16,7 @@ class TFWrapper:
         self.tf_model.compile(**self.compile_kwargs)
 
     def fit(self, X, y):
-        self.tf_model.set_weights(self.initial_weights)
+        self.tf_model.set_weights(self.initial_weights)  # re-initialises weights for multiple .fit calls
         self.tf_model.fit(X, y, verbose=0, **self.fit_kwargs)
 
     def predict_proba(self, X):
@@ -37,17 +37,16 @@ def score_threshold_vectors(df, labels):
     return fmax, auc, mcc
 
 
-def score_vector_split(list_of_tuples):
-    score = []
-    threshold = []
-    for score_tuple in list_of_tuples:
-        score.append(score_tuple[0])
-        threshold.append(score_tuple[1])
-    return score, threshold
+# def score_vector_split(list_of_tuples): # don't think this is needed anymore
+#     score = []
+#     threshold = []
+#     for score_tuple in list_of_tuples:
+#         score.append(score_tuple[0])
+#         threshold.append(score_tuple[1])
+#     return score, threshold
 
 
 def metrics_per_fold(df, labels):
-
     fmax, auc, mcc = score_threshold_vectors(df, labels)
 
     metrics_df = pd.DataFrame(columns=df.columns)
@@ -181,11 +180,14 @@ def retrieve_X_y(labelled_data):
 
 
 def append_modality(current_data, modality_data):
-    combined_dataframe = []
-    for fold, dataframe in enumerate(current_data):
-        if (dataframe.iloc[:, -1].to_numpy() != modality_data[fold].iloc[:, -1].to_numpy()).all():
-            print("Error: labels do not match across modalities")
-            break
-        combined_dataframe.append(pd.concat((dataframe.iloc[:, :-1],
-                                             modality_data[fold]), axis=1))
+    if current_data is None:
+        combined_dataframe = modality_data
+    else:
+        combined_dataframe = []
+        for fold, dataframe in enumerate(current_data):
+            if (dataframe.iloc[:, -1].to_numpy() != modality_data[fold].iloc[:, -1].to_numpy()).all():
+                print("Error: something is wrong. Labels do not match across modalities")
+                break
+            combined_dataframe.append(pd.concat((dataframe.iloc[:, :-1],
+                                                 modality_data[fold]), axis=1))
     return combined_dataframe
