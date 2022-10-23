@@ -189,9 +189,6 @@ class EnsembleIntegration:
         if base_predictors is not None:
             self.base_predictors = base_predictors  # update base predictors
 
-        if modality is not None:
-            print(f"\nWorking on {modality} data...")
-
         # if (self.meta_training_data or self.meta_test_data) is None:
         #     self.meta_training_data = self.train_base_inner(X, y, modality)
         #     self.meta_test_data = self.train_base_outer(X, y, modality)
@@ -210,7 +207,7 @@ class EnsembleIntegration:
 
         return self
 
-    def train_base_inner(self, X, y, modality):
+    def train_base_inner(self, X, y, modality=None):
         """
         Perform a round of (inner) k-fold cross validation on each outer
         training set for generation of training data for the meta-algorithm
@@ -228,6 +225,8 @@ class EnsembleIntegration:
         of shape (n_outer_training_samples, n_base_predictors * n_samples)
         """
 
+        if modality is not None:
+            print(f"\nWorking on {modality} data...")
         print("\nTraining base predictors on inner training sets...")
 
         # dictionaries for meta train/test data for each outer fold
@@ -276,6 +275,8 @@ class EnsembleIntegration:
         # define joblib Parallel function
         parallel = Parallel(n_jobs=self.n_jobs, verbose=10, backend=self.parallel_backend)
 
+        if modality is not None:
+            print(f"\nWorking on {modality} data...")
         print("\nTraining base predictors on outer training sets...")
 
         # spawn job for each sample, outer_fold and model
