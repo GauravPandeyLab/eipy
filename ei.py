@@ -7,13 +7,15 @@ Ensemble Integration
 import pandas as pd
 import numpy as np
 import dill as pickle
+from copy import copy
 from sklearn.utils._testing import ignore_warnings
 from sklearn.exceptions import ConvergenceWarning
 from sklearn.model_selection import StratifiedKFold
 from joblib import Parallel, delayed
-from tensorflow.keras.backend import clear_session
-from joblib.externals.loky import set_loky_pickler
 from sklearn.calibration import CalibratedClassifierCV
+from tensorflow.keras.models import clone_model
+from tensorflow.keras.backend import clear_session
+from sklearn.base import clone
 import warnings
 from utils import scores, set_seed, random_integers, sample, retrieve_X_y, append_modality, metric_threshold_dataframes
 
@@ -71,6 +73,8 @@ class EnsembleIntegration:
         Matrix of data intended for training of a meta-algorithm.
 
     To be done:
+        - EI.save() does not work with TF models in base predictors. Need to save models separately then set base_predictors=None to save. Load models from separate files
+        - create wrapper for TF models. Needs to take TF model + fit parameters. Then create new fit function.
         - CES ensemble
         - interpretation
         - best base predictor
@@ -166,6 +170,7 @@ class EnsembleIntegration:
                 if self.sampling_aggregation == "mean":
                     X_train = X_train.groupby(level=0, axis=1).mean()
                     X_test = X_test.groupby(level=0, axis=1).mean()
+
                 model.fit(X_train, y_train)
                 y_pred = model.predict_proba(X_test)[:, 1]
                 y_pred_combined.extend(y_pred)
@@ -196,12 +201,6 @@ class EnsembleIntegration:
         else:
             self.meta_training_data = append_modality(self.meta_training_data, self.train_base_inner(X, y, modality))
             self.meta_test_data = append_modality(self.meta_test_data, self.train_base_outer(X, y, modality))
-
-        # labels = pd.concat([df["labels"] for df in self.meta_test_data])
-        # meta_test_averaged_samples = pd.concat([df.drop(columns=["labels"], level=0).groupby(level=(0, 1), axis=1).mean() for df in self.meta_test_data])
-        # meta_test_averaged_samples["labels"] = labels
-        #
-        # self.base_summary = metric_threshold_dataframes(meta_test_averaged_samples)
 
         self.base_summary = create_base_summary(self.meta_test_data)
 
@@ -291,22 +290,26 @@ class EnsembleIntegration:
 
     @ignore_warnings(category=ConvergenceWarning)
     def train_model_fold_sample(self, X, y, model_params, fold_params, sample_state):
-        model_name, model = model_params
+        clear_session()
+        model_name, model_original = model_params
         fold_id, (train_index, test_index) = fold_params
         sample_id, sample_random_state = sample_state
 
-        if model.__class__.__name__ != "KerasClassifier":  # not working for KerasClassifier for some reason
-            model = CalibratedClassifierCV(model, n_jobs=1, ensemble=True)  # calibrate classifiers
+        model = copy(model_original)
 
-        if model.__class__.__name__ == "KerasClassifier":  # clear any previous TensorFlow sessions
-            clear_session()
+        if str(model_original.__class__).find("sklearn") != -1:
+            model = CalibratedClassifierCV(model, ensemble=True)  # calibrate classifiers
 
         X_train, X_test = X[train_index], X[test_index]
         y_train, y_test = y[train_index], y[test_index]
         X_sample, y_sample = sample(X_train, y_train, strategy=self.sampling_strategy, random_state=sample_random_state)
-        model.fit(X_sample, y_sample)
 
-        y_pred = model.predict_proba(X_test)[:, 1]
+        if str(model.__class__).find("sklearn") != -1:
+            model.fit(X_sample, y_sample)
+            y_pred = model.predict_proba(X_test)[:, 1]  # assumes other models are sklearn
+        else:
+            model.fit(X_sample, y_sample)
+            y_pred = model.predict_proba(X_test)
 
         metrics = scores(y_test, y_pred)
 
