@@ -203,8 +203,8 @@ class EnsembleIntegration:
         # meta_training_data_new = self.train_base_inner(X, y, modality)
         # meta_test_data_new = self.train_base_outer(X, y, modality)
 
-        self.meta_training_data = append_modality(self.meta_training_data, self.train_base_inner(X, y, modality))
-        self.meta_test_data = append_modality(self.meta_test_data, self.train_base_outer(X, y, modality))
+        self.train_base_inner(X, y, modality)
+        self.train_base_outer(X, y, modality)
 
         self.base_summary = create_base_summary(self.meta_test_data)
 
@@ -252,7 +252,8 @@ class EnsembleIntegration:
                               for sample_state in enumerate(self.random_numbers_for_samples))
             combined_predictions = self.combine_data_inner(output, modality)
             meta_training_data.append(combined_predictions)
-        return meta_training_data
+
+        self.meta_training_data = append_modality(self.meta_training_data, meta_training_data)
 
     def train_base_outer(self, X, y, modality):
         """
@@ -288,9 +289,8 @@ class EnsembleIntegration:
                           for sample_state in enumerate(self.random_numbers_for_samples))
         meta_test_data = self.combine_data_outer(output, modality)
 
+        self.meta_test_data = append_modality(self.meta_test_data, meta_test_data)
         self.base_summary = create_base_summary(meta_test_data)
-
-        return meta_test_data
 
     @ignore_warnings(category=ConvergenceWarning)
     def train_model_fold_sample(self, X, y, model_params, fold_params, sample_state):
