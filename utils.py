@@ -1,12 +1,9 @@
 import pandas as pd
 import numpy as np
 import random
-from sklearn.metrics import accuracy_score, roc_curve, roc_auc_score, precision_recall_curve, matthews_corrcoef
-# from tensorflow.keras.wrappers.scikit_learn import KerasClassifier
+from sklearn.metrics import roc_auc_score, precision_recall_curve, matthews_corrcoef
 from imblearn.under_sampling import RandomUnderSampler
 from imblearn.over_sampling import RandomOverSampler
-import tensorflow as tf
-from tensorflow.keras.backend import clear_session
 
 
 class TFWrapper:
@@ -25,14 +22,6 @@ class TFWrapper:
     def predict_proba(self, X):
         return np.squeeze(self.tf_model.predict(X))
 
-
-# def tf_wrapper(tf_model, epochs=100, batch_size=500, verbose=0):
-#     build_fn = lambda: tf_model
-#     return KerasClassifier(build_fn, epochs=epochs, batch_size=batch_size, verbose=verbose)
-
-# def tf_classifier_to_sk(tf_model, epochs=100, batch_size=500, verbose=0):
-#     build_fn = lambda: tf_model
-#     return KerasClassifier(build_fn, epochs=epochs, batch_size=batch_size, verbose=verbose)
 
 def score_threshold_vectors(df, labels):
     fmax = []
@@ -189,10 +178,6 @@ def retrieve_X_y(labelled_data):
     X = labelled_data.drop(columns=["labels"], level=0)
     y = np.ravel(labelled_data["labels"])
     return X, y
-
-
-# def update_keys(dictionary, string):  #  not needed since use of MultiIndexing
-#     return {f"{k}_" + string: v for k, v in dictionary.items()}
 
 
 def append_modality(current_data, modality_data):
