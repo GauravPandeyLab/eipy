@@ -1,6 +1,6 @@
 from utils import scores, set_seed, \
     random_integers, sample, \
-    retrieve_X_y, update_keys, append_modality
+    retrieve_X_y, append_modality
 
 from numpy.random import choice, seed
 from numpy import argmax, argmin, argsort, corrcoef, mean, nanmax, sqrt, triu_indices_from, where
