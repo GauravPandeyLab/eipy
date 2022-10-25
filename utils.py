@@ -13,10 +13,9 @@ class TFWrapper:
         self.compile_kwargs = compile_kwargs
         self.fit_kwargs = fit_kwargs
 
-        self.tf_model.compile(**self.compile_kwargs)
-
     def fit(self, X, y):
         self.tf_model_new = clone_model(self.tf_model)
+        self.tf_model.compile(**self.compile_kwargs)
         self.tf_model_new.set_weights(self.initial_weights)  # re-initialises weights for multiple .fit calls
         self.tf_model_new.fit(X, y, verbose=0, **self.fit_kwargs)
 
