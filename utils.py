@@ -4,18 +4,19 @@ import random
 from sklearn.metrics import roc_auc_score, precision_recall_curve, matthews_corrcoef
 from imblearn.under_sampling import RandomUnderSampler
 from imblearn.over_sampling import RandomOverSampler
-
+from tensorflow.keras.models import clone_model
 
 class TFWrapper:
     def __init__(self, tf_model, compile_kwargs, fit_kwargs):
-        self.tf_model = tf_model
-        self.initial_weights = self.tf_model.get_weights()
+        self.tf_parent_model = tf_model
+        self.initial_weights = self.tf_parent_model.get_weights()
         self.compile_kwargs = compile_kwargs
         self.fit_kwargs = fit_kwargs
 
         self.tf_model.compile(**self.compile_kwargs)
 
     def fit(self, X, y):
+        self.tf_model = clone_model(self.tf_parent_model)
         self.tf_model.set_weights(self.initial_weights)  # re-initialises weights for multiple .fit calls
         self.tf_model.fit(X, y, verbose=0, **self.fit_kwargs)
 
