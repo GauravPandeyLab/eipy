@@ -16,7 +16,7 @@ from sklearn.calibration import CalibratedClassifierCV
 from tensorflow.keras.backend import clear_session
 from sklearn.base import clone
 import warnings
-from utils import scores, set_seed, random_integers, sample, retrieve_X_y, append_modality, metric_threshold_dataframes
+from utils import TFWrapper, scores, set_seed, random_integers, sample, retrieve_X_y, append_modality, metric_threshold_dataframes
 
 warnings.filterwarnings("ignore", category=DeprecationWarning)
 
@@ -290,8 +290,10 @@ class EnsembleIntegration:
 
     @ignore_warnings(category=ConvergenceWarning)
     def train_model_fold_sample(self, X, y, model_params, fold_params, sample_state):
-        clear_session()
         model_name, model = model_params
+        if type(model) is tuple:
+            model = TFWrapper(*model)
+
         fold_id, (train_index, test_index) = fold_params
         sample_id, sample_random_state = sample_state
 
