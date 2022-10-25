@@ -220,7 +220,7 @@ class EnsembleIntegration:
         # dictionaries for meta train/test data for each outer fold
         meta_training_data = []
         # define joblib Parallel function
-        parallel = Parallel(n_jobs=self.n_jobs, verbose=10, prefer="threads") #backend=self.parallel_backend)
+        parallel = Parallel(n_jobs=self.n_jobs, verbose=10, prefer="loky") #backend=self.parallel_backend)
         for outer_fold_id, (train_index_outer, test_index_outer) in enumerate(self.cv_outer.split(X, y)):
             print("\nGenerating meta-training data for outer fold {outer_fold_id:}...".format(
                 outer_fold_id=outer_fold_id))
@@ -270,7 +270,7 @@ class EnsembleIntegration:
             print("Training base predictors on outer training sets...")
 
         # define joblib Parallel function
-        parallel = Parallel(n_jobs=self.n_jobs, verbose=10, prefer="threads")#backend=self.parallel_backend)
+        parallel = Parallel(n_jobs=self.n_jobs, verbose=10, prefer="loky")#backend=self.parallel_backend)
 
         # spawn job for each sample, outer_fold and model
         output = parallel(delayed(self.train_model_fold_sample)(X=X,
