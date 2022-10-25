@@ -7,7 +7,7 @@ Ensemble Integration
 import pandas as pd
 import numpy as np
 from copy import copy
-import dill
+import dill as pickle
 from sklearn.utils._testing import ignore_warnings
 from sklearn.exceptions import ConvergenceWarning
 from sklearn.model_selection import StratifiedKFold
@@ -18,7 +18,7 @@ import warnings
 from utils import scores, set_seed, random_integers, sample, retrieve_X_y, append_modality, metric_threshold_dataframes
 
 warnings.filterwarnings("ignore", category=DeprecationWarning)
-set_loky_pickler("dill")
+set_loky_pickler("pickle")
 def create_base_summary(meta_test_dataframe):
     labels = pd.concat([df["labels"] for df in meta_test_dataframe])
     meta_test_averaged_samples = pd.concat(
