@@ -4,26 +4,26 @@ import random
 from sklearn.metrics import roc_auc_score, precision_recall_curve, matthews_corrcoef
 from imblearn.under_sampling import RandomUnderSampler
 from imblearn.over_sampling import RandomOverSampler
-from tensorflow.keras.backend import clear_session
 
 class TFWrapper:
-    def __init__(self, tf_model, compile_kwargs, fit_kwargs):
-        self.tf_model = tf_model
-        self.initial_weights = self.tf_model.get_weights()
+    def __init__(self, build_fun, build_fun_kwargs, compile_kwargs, fit_kwargs):
+        self.build_fun = build_fun
+        self.build_fun_kwargs = build_fun_kwargs
         self.compile_kwargs = compile_kwargs
         self.fit_kwargs = fit_kwargs
 
-        self.tf_model.compile(**self.compile_kwargs)
+        self.model = None
 
     def fit(self, X, y):
-        clear_session()
-        self.tf_model.set_weights(self.initial_weights)  # re-initialises weights for multiple .fit calls
-        self.new_weights = self.tf_model.get_weights()
-        self.tf_model.fit(X, y, verbose=0, **self.fit_kwargs)
+        self.compile()
+        self.model.fit(X, y, verbose=0, **self.fit_kwargs)
 
     def predict_proba(self, X):
-        return np.squeeze(self.tf_model.predict(X))
+        return np.squeeze(self.model.predict(X))
 
+    def compile(self):
+        self.model = self.build_fun(**self.build_fun_kwargs)
+        self.model.compile(**self.compile_kwargs)
 
 def score_threshold_vectors(df, labels):
     fmax = []
