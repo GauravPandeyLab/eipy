@@ -7,7 +7,6 @@ from imblearn.over_sampling import RandomOverSampler
 from joblib import wrap_non_picklable_objects
 
 class TFWrapper:
-    @wrap_non_picklable_objects
     def __init__(self, tf_model, compile_kwargs, fit_kwargs):
         self.tf_model = tf_model
         self.initial_weights = self.tf_model.get_weights()
