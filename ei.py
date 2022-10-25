@@ -6,14 +6,13 @@ Ensemble Integration
 
 import pandas as pd
 import numpy as np
-import dill as pickle
 from copy import copy
+import dill as pickle
 from sklearn.utils._testing import ignore_warnings
 from sklearn.exceptions import ConvergenceWarning
 from sklearn.model_selection import StratifiedKFold
 from joblib import Parallel, delayed
 from sklearn.calibration import CalibratedClassifierCV
-from tensorflow.keras.models import clone_model
 from tensorflow.keras.backend import clear_session
 from sklearn.base import clone
 import warnings
@@ -27,6 +26,7 @@ def create_base_summary(meta_test_dataframe):
         [df.drop(columns=["labels"], level=0).groupby(level=(0, 1), axis=1).mean() for df in meta_test_dataframe])
     meta_test_averaged_samples["labels"] = labels
     return metric_threshold_dataframes(meta_test_averaged_samples)
+
 
 class MeanAggregation:
     def __init__(self):
@@ -92,11 +92,10 @@ class EnsembleIntegration:
                  sampling_aggregation="mean",
                  n_jobs=-1,
                  random_state=None,
-                 parallel_backend="threading",
+                 parallel_backend="loky",  # change to "threading" if including TensorFlow models in base_predictors
                  project_name="project"):
 
         set_seed(random_state)
-        # set_loky_pickler("dill")  # not working. Attempt to get Parallel working with KerasClassifier()
 
         self.base_predictors = base_predictors
         if meta_models is not None:
@@ -188,25 +187,12 @@ class EnsembleIntegration:
     @ignore_warnings(category=ConvergenceWarning)
     def train_base(self, X, y, base_predictors=None, modality=None):
 
-        if base_predictors is not None:
-            self.base_predictors = base_predictors  # update base predictors
-
-        if modality is not None:
-            print(f"\nWorking on {modality} data...")
-
-        if (self.meta_training_data or self.meta_test_data) is None:
-            self.meta_training_data = self.train_base_inner(X, y, modality)
-            self.meta_test_data = self.train_base_outer(X, y, modality)
-
-        else:
-            self.meta_training_data = append_modality(self.meta_training_data, self.train_base_inner(X, y, modality))
-            self.meta_test_data = append_modality(self.meta_test_data, self.train_base_outer(X, y, modality))
-
-        self.base_summary = create_base_summary(self.meta_test_data)
+        self.train_base_inner(X, y, base_predictors, modality)
+        self.train_base_outer(X, y, base_predictors, modality)
 
         return self
 
-    def train_base_inner(self, X, y, modality):
+    def train_base_inner(self, X, y, base_predictors=None, modality=None):
         """
         Perform a round of (inner) k-fold cross validation on each outer
         training set for generation of training data for the meta-algorithm
@@ -223,8 +209,13 @@ class EnsembleIntegration:
         meta_training_data : List of length k_outer containing Pandas dataframes
         of shape (n_outer_training_samples, n_base_predictors * n_samples)
         """
+        if base_predictors is not None:
+            self.base_predictors = base_predictors  # update base predictors
 
-        print("\nTraining base predictors on inner training sets...")
+        if modality is not None:
+            print(f"\n{modality} modality: training base predictors on inner training sets...")
+        else:
+            print("Training base predictors on inner training sets...")
 
         # dictionaries for meta train/test data for each outer fold
         meta_training_data = []
@@ -248,9 +239,12 @@ class EnsembleIntegration:
                               for sample_state in enumerate(self.random_numbers_for_samples))
             combined_predictions = self.combine_data_inner(output, modality)
             meta_training_data.append(combined_predictions)
-        return meta_training_data
 
-    def train_base_outer(self, X, y, modality):
+        self.meta_training_data = append_modality(self.meta_training_data, meta_training_data)
+
+        return self
+
+    def train_base_outer(self, X, y, base_predictors=None, modality=None):
         """
         Train each base predictor on each outer training set
 
@@ -267,13 +261,18 @@ class EnsembleIntegration:
         meta_test_data : List of length k_outer containing Pandas dataframes
         of shape (n_outer_test_samples, n_base_predictors * n_samples)
         """
+        if base_predictors is not None:
+            self.base_predictors = base_predictors  # update base predictors
+
+        if modality is not None:
+            print(f"\n{modality} modality: training base predictors on outer training sets...")
+        else:
+            print("Training base predictors on outer training sets...")
 
         # define joblib Parallel function
         parallel = Parallel(n_jobs=self.n_jobs, verbose=10, backend=self.parallel_backend)
 
-        print("\nTraining base predictors on outer training sets...")
-
-        # spawn job for each sample, inner_fold and model
+        # spawn job for each sample, outer_fold and model
         output = parallel(delayed(self.train_model_fold_sample)(X=X,
                                                                 y=y,
                                                                 model_params=model_params,
@@ -282,11 +281,12 @@ class EnsembleIntegration:
                           for model_params in self.base_predictors.items()
                           for outer_fold_params in enumerate(self.cv_outer.split(X, y))
                           for sample_state in enumerate(self.random_numbers_for_samples))
-        meta_test_data = self.combine_data_outer(output, modality)
+        # meta_test_data = self.combine_data_outer(output, modality)
 
-        self.base_summary = create_base_summary(meta_test_data)
+        self.meta_test_data = append_modality(self.meta_test_data, self.combine_data_outer(output, modality))
+        self.base_summary = create_base_summary(self.meta_test_data)
 
-        return meta_test_data
+        return self
 
     @ignore_warnings(category=ConvergenceWarning)
     def train_model_fold_sample(self, X, y, model_params, fold_params, sample_state):
