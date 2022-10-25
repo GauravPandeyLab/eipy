@@ -19,6 +19,7 @@ class TFWrapper:
         self.model_new = clone_model(self.tf_model)
         self.model_new.compile(**self.compile_kwargs)
         self.model_new.set_weights(self.initial_weights)  # re-initialises weights for multiple .fit calls
+        self.model_new.compile(**self.compile_kwargs)
         self.model_new.fit(X, y, verbose=0, **self.fit_kwargs)
 
     def predict_proba(self, X):
