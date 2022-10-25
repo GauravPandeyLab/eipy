@@ -9,7 +9,7 @@ from imblearn.over_sampling import RandomOverSampler
 class TFWrapper:
     def __init__(self, tf_model, compile_kwargs, fit_kwargs):
         self.tf_model = tf_model
-        self.initial_weights = self.tf_model.get_weights()
+        self.initial_weights = tf_model.get_weights()
         self.compile_kwargs = compile_kwargs
         self.fit_kwargs = fit_kwargs
 
