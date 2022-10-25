@@ -8,20 +8,21 @@ from tensorflow.keras.models import clone_model
 
 class TFWrapper:
     def __init__(self, tf_model, compile_kwargs, fit_kwargs):
-        self.tf_parent_model = tf_model
-        self.initial_weights = self.tf_parent_model.get_weights()
+        self.tf_model = tf_model
+        self.initial_weights = self.tf_model.get_weights()
         self.compile_kwargs = compile_kwargs
         self.fit_kwargs = fit_kwargs
 
         self.tf_model.compile(**self.compile_kwargs)
 
     def fit(self, X, y):
-        self.tf_model = clone_model(self.tf_parent_model)
-        self.tf_model.set_weights(self.initial_weights)  # re-initialises weights for multiple .fit calls
-        self.tf_model.fit(X, y, verbose=0, **self.fit_kwargs)
+        self.tf_model_new = clone_model(self.tf_model)
+        self.tf_model_new.set_weights(self.initial_weights)  # re-initialises weights for multiple .fit calls
+        self.tf_model_new.fit(X, y, verbose=0, **self.fit_kwargs)
 
     def predict_proba(self, X):
-        return np.squeeze(self.tf_model.predict(X))
+        y_pred = np.squeeze(self.tf_model_new.predict(X))
+        return y_pred
 
 
 def score_threshold_vectors(df, labels):
