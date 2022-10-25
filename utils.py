@@ -4,6 +4,7 @@ import random
 from sklearn.metrics import roc_auc_score, precision_recall_curve, matthews_corrcoef
 from imblearn.under_sampling import RandomUnderSampler
 from imblearn.over_sampling import RandomOverSampler
+import tensorflow as tf
 from joblib import wrap_non_picklable_objects
 
 class TFWrapper:
@@ -13,14 +14,16 @@ class TFWrapper:
         self.compile_kwargs = compile_kwargs
         self.fit_kwargs = fit_kwargs
 
-        self.tf_model.compile(**self.compile_kwargs)
+        # self.tf_model.compile(**self.compile_kwargs)
 
     def fit(self, X, y):
-        self.tf_model.set_weights(self.initial_weights)  # re-initialises weights for multiple .fit calls
-        self.tf_model.fit(X, y, verbose=0, **self.fit_kwargs)
+        self.model_new = tf.keras.models.clone_model(self.tf_model)
+        self.model_new.compile(**self.compile_kwargs)
+        self.model_new.set_weights(self.initial_weights)  # re-initialises weights for multiple .fit calls
+        self.model_new.fit(X, y, verbose=0, **self.fit_kwargs)
 
     def predict_proba(self, X):
-        return np.squeeze(self.tf_model.predict(X))
+        return np.squeeze(self.model_new.predict(X))
 
 
 def score_threshold_vectors(df, labels):
