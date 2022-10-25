@@ -9,7 +9,7 @@ from tensorflow.keras.backend import clear_session
 class TFWrapper:
     def __init__(self, tf_fun, compile_kwargs, fit_kwargs):
         self.tf_fun = tf_fun
-        # self.initial_weights = self.tf_model.get_weights()
+        self.initial_weights = self.tf_fun().get_weights()
         self.compile_kwargs = compile_kwargs
         self.fit_kwargs = fit_kwargs
 
@@ -18,7 +18,7 @@ class TFWrapper:
     def fit(self, X, y):
         self.model = self.tf_fun()
         self.model.compile(**self.compile_kwargs)
-        # self.model.set_weights(self.initial_weights)  # re-initialises weights for multiple .fit calls
+        self.model.set_weights(self.initial_weights)  # re-initialises weights for multiple .fit calls
         self.model.fit(X, y, verbose=0, **self.fit_kwargs)
 
     def predict_proba(self, X):
