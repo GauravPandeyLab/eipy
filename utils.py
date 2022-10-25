@@ -16,9 +16,8 @@ class TFWrapper:
         self.tf_model.compile(**self.compile_kwargs)
 
     def fit(self, X, y):
-        previous_weights = self.tf_model.get_weights()
         self.tf_model.set_weights(self.initial_weights)  # re-initialises weights for multiple .fit calls
-        print("Weights are the same? ", previous_weights == self.tf_model.get_weights())
+        print(self.tf_model.get_weights())
         self.tf_model.fit(X, y, verbose=0, **self.fit_kwargs)
 
     def predict_proba(self, X):
