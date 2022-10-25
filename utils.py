@@ -4,7 +4,6 @@ import random
 from sklearn.metrics import roc_auc_score, precision_recall_curve, matthews_corrcoef
 from imblearn.under_sampling import RandomUnderSampler
 from imblearn.over_sampling import RandomOverSampler
-from tensorflow.keras.backend import clear_session
 
 class TFWrapper:
     def __init__(self, tf_model, compile_kwargs, fit_kwargs):
