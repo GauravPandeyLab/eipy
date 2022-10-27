@@ -140,10 +140,14 @@ def random_integers(n_integers=1):
 
 
 def sample(X, y, random_state, strategy="undersampling"):
+    if strategy == "original":
+        return X, y
+    """define sampler"""
     if strategy == "undersampling":
         sampler = RandomUnderSampler(random_state=random_state)
     if strategy == "oversampling":
         sampler = RandomOverSampler(random_state=random_state)
+    
     if strategy == 'hybrid':
         y_pos = float(sum(y==1))
         y_total = y.shape[0]
