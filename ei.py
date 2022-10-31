@@ -135,8 +135,8 @@ class EnsembleIntegration:
             self.meta_models = meta_models
             self.meta_models = {"S." + k: v for k, v in meta_models.items()}  # suffix denotes stacking
 
-        additional_meta_models = {"Mean": MeanAggregation(),
-                                  "Median": MedianAggregation()}
+        additional_meta_models = {"S.Mean": MeanAggregation(),
+                                  "S.Median": MedianAggregation()}
 
         self.meta_models = {**additional_meta_models, **self.meta_models}
 
