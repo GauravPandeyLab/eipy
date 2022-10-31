@@ -31,6 +31,7 @@ class EI_interpreter:
                  feature_dict=None,
                  n_jobs=-1,
                  n_repeats=10,
+                 random_state=42,
                  ensemble_of_interest='ALL'):
         self.EI = copy.copy(EI_object)
         self.k_outer = self.EI.k_outer
@@ -59,6 +60,7 @@ class EI_interpreter:
         self.n_jobs = n_jobs
         self.n_repeats = n_repeats
         self.ensemble_of_interest = ensemble_of_interest
+        self.random_state = random_state
         self.LFRs = []
         self.LMRs = None
         self.ensemble_feature_ranking = None
@@ -73,19 +75,14 @@ class EI_interpreter:
         feature_names: feature name of X
         """
         if self.base_predictors is not None:
-            self.EI.base_predictors = self.base_predictors  # update base predictors
+            self.base_predictors = self.EI.base_predictors  # update base predictors
 
         if modality is not None:
             print(f"\n Working on {modality} data... \n")
             # EI_obj.base_predictors = update_keys(dictionary=EI_obj.base_predictors,
             #                                      string=modality)  # include modality in model name
-
-        if (self.EI.meta_training_data) is None:
-            self.EI.meta_training_data = self.EI.train_base_outer(X, self.y, modality)
-
-        else:
-            self.EI.meta_training_data = append_modality(self.EI.meta_training_data,
-                                                        self.EI.train_base_outer(X, self.y, modality))
+        
+        self.EI.train_base_outer(X, self.y, self.EI.base_predictors, modality)
 
         lf_pi_list = []
         for model_name, model in self.base_predictors.items():
@@ -95,7 +92,7 @@ class EI_interpreter:
                                                 y=self.y,
                                                 n_repeats=self.n_repeats,
                                                 n_jobs=-1,
-                                                random_state=0,
+                                                random_state=self.random_state,
                                                 scoring=self.metric)
             # pi_df = pd.DataFrame(data=[lf_pi.importances_mean], 
                                 # columns=self.feature_dict[modality], index=[0])
@@ -112,8 +109,9 @@ class EI_interpreter:
     def local_model_rank(self, meta_models_interested):
         X_train_list = []
         y_train_list = []
-        for fold_id in range(self.k_outer):
-            X_train, y_train = retrieve_X_y(labelled_data=self.EI.meta_training_data[fold_id])
+        print(self.EI.meta_training_data)
+        for fold_id in range(self.EI.k_outer):
+            X_train, y_train = retrieve_X_y(labelled_data=self.EI.meta_test_data[fold_id])
             X_train_list.append(X_train)
             y_train_list.append(y_train)
 
@@ -129,7 +127,7 @@ class EI_interpreter:
                                                 y=y_train,
                                                 n_repeats=self.n_repeats,
                                                 n_jobs=-1,
-                                                random_state=0,
+                                                random_state=self.random_state,
                                                 scoring=self.metric)
                 lm_pi = lm_pi.importances_mean
 

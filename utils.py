@@ -135,7 +135,8 @@ def set_seed(random_state=1):
     random.seed(random_state)
 
 
-def random_integers(n_integers=1):
+def random_integers(n_integers=1, seed=42):
+    random.seed(seed)
     return random.sample(range(0, 10000), n_integers)
 
 

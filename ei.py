@@ -89,9 +89,10 @@ class EnsembleIntegration:
                  sampling_strategy="undersampling",
                  sampling_aggregation="mean",
                  n_jobs=-1,
-                 random_state=None,
+                 random_state=42,
                  parallel_backend="loky",  # change to "threading" if including TensorFlow models in base_predictors
-                 project_name="project"):
+                 project_name="project",
+                 calibration=False):
 
         set_seed(random_state)
 
@@ -107,18 +108,20 @@ class EnsembleIntegration:
         self.random_state = random_state
         self.project_name = project_name
         self.parallel_backend = parallel_backend
+        self.calibration = calibration
 
         self.trained_meta_models = {}
         self.trained_base_predictors = {}
 
         if k_outer is not None:
             self.cv_outer = StratifiedKFold(n_splits=self.k_outer, shuffle=True,
-                                            random_state=random_integers(n_integers=1)[0])
+                                            random_state=self.random_state)
         if k_inner is not None:
             self.cv_inner = StratifiedKFold(n_splits=self.k_inner, shuffle=True,
-                                            random_state=random_integers(n_integers=1)[0])
+                                            random_state=self.random_state)
         if n_samples is not None:
-            self.random_numbers_for_samples = random_integers(n_integers=n_samples)
+            self.random_numbers_for_samples = random_integers(n_integers=n_samples, 
+                                                              seed=self.random_state)
 
         self.meta_training_data = None
         self.meta_test_data = None
@@ -151,11 +154,12 @@ class EnsembleIntegration:
         performance_metrics = []
 
         for model_name, model in self.meta_models.items():
-
+            # model.set_params(**{'random_state': self.random_state})
             print("\n{model_name:}...".format(model_name=model_name))
 
-            if model_name[:2] == "S.":  # calibrate stacking classifiers
-                model = CalibratedClassifierCV(model, ensemble=True)
+            if model_name[:2] == "S." and self.calibration:  # calibrate stacking classifiers
+                # model = CalibratedClassifierCV(model, ensemble=False, cv=self.cv_inner)
+                model = CalibratedClassifierCV(model, ensemble=FALSE)
 
             y_pred_combined = []
 
@@ -269,7 +273,6 @@ class EnsembleIntegration:
 
         # define joblib Parallel function
         parallel = Parallel(n_jobs=self.n_jobs, verbose=10, backend=self.parallel_backend)
-
         # spawn job for each sample, outer_fold and model
         output = parallel(delayed(self.train_model_fold_sample)(X=X,
                                                                 y=y,
@@ -289,11 +292,14 @@ class EnsembleIntegration:
     @ignore_warnings(category=ConvergenceWarning)
     def train_model_fold_sample(self, X, y, model_params, fold_params, sample_state):
         model_name, model = model_params
+        # model.set_params(**{'random_state': self.random_state})
+
         fold_id, (train_index, test_index) = fold_params
         sample_id, sample_random_state = sample_state
 
-        if str(model.__class__).find("sklearn") != -1:
-            model = CalibratedClassifierCV(model, ensemble=True)  # calibrate classifiers
+        if str(model.__class__).find("sklearn") != -1 and self.calibration:
+            # model = CalibratedClassifierCV(model, ensemble=False, cv=self.cv_inner)  # calibrate classifiers
+            model = CalibratedClassifierCV(model, ensemble=False)
 
         X_train, X_test = X[train_index], X[test_index]
         y_train, y_test = y[train_index], y[test_index]
