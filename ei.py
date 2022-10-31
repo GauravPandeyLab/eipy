@@ -136,6 +136,13 @@ class EnsembleIntegration:
         if meta_models is not None:
             self.meta_models = meta_models
             self.meta_models = {"S." + k: v for k, v in meta_models.items()}  # suffix denotes stacking
+        
+        meta_models = {}
+        for k, v in self.meta_models.items():
+            if hasattr(v, 'random_state'):
+                v.set_params(**{'random_state': self.random_state})
+            meta_models[k] = v
+        self.meta_models = meta_models
 
         additional_meta_models = {"Mean": MeanAggregation(),
                                   "Median": MedianAggregation()}
@@ -154,12 +161,11 @@ class EnsembleIntegration:
         performance_metrics = []
 
         for model_name, model in self.meta_models.items():
-            # model.set_params(**{'random_state': self.random_state})
             print("\n{model_name:}...".format(model_name=model_name))
 
             if model_name[:2] == "S." and self.calibration:  # calibrate stacking classifiers
                 # model = CalibratedClassifierCV(model, ensemble=False, cv=self.cv_inner)
-                model = CalibratedClassifierCV(model, ensemble=FALSE)
+                model = CalibratedClassifierCV(model, ensemble=False)
 
             y_pred_combined = []
 
@@ -188,9 +194,13 @@ class EnsembleIntegration:
 
     @ignore_warnings(category=ConvergenceWarning)
     def train_base(self, X, y, base_predictors=None, modality=None):
-
-        self.train_base_inner(X, y, base_predictors, modality)
-        self.train_base_outer(X, y, base_predictors, modality)
+        bps = {}
+        for k, v in base_predictors.items():
+            if hasattr(v, 'random_state') and hasattr(v, 'set_params'):
+                v.set_params(**{'random_state': self.random_state})
+            bps[k] = v
+        self.train_base_inner(X, y, bps, modality)
+        self.train_base_outer(X, y, bps, modality)
 
         return self
 
