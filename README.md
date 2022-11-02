@@ -9,7 +9,7 @@ Full citation:
 
 Yan Chak Li, Linhua Wang, Jeffrey N Law, T M Murali, Gaurav Pandey, Integrating multimodal data through interpretable heterogeneous ensembles, Bioinformatics Advances, Volume 2, Issue 1, 2022, vbac065, https://doi.org/10.1093/bioadv/vbac065
 
-This repository is protected by [CC BY-NC 4.0](https://github.com/GauravPandeyLab/ei-python/blob/main/license.md).
+This repository is protected by [CC BY-NC 4.0](/license.md).
 
 Upcoming feature: ensemble selection [Caruana2004] in the ensemble stage.
 
@@ -136,3 +136,7 @@ For PFP, since the raw data is very large (around 2139 * 2GB), we uploaded 5 sam
 For example, you may generate the input data for predicting `GO:0000166` by the following command:
 
 	python processing_scripts/generate_data.py --outcome GO:0000166 
+	
+# Model Interpretation
+
+See the [demostration notebook](/interpretation_demo.ipynb). Note that the implementation is slightly different from getting feature importance from Weka since using different function. The results may vary between two implementations.

@@ -4,7 +4,7 @@ from sklearn.neighbors import KNeighborsClassifier
 from sklearn.linear_model import LogisticRegression
 from sklearn.naive_bayes import GaussianNB
 from sklearn.preprocessing import RobustScaler
-from sklearn.svm import LinearSVC
+from sklearn.svm import LinearSVC, SVC
 from sklearn.neural_network import MLPClassifier
 from xgboost import XGBClassifier
 import sys
@@ -32,7 +32,7 @@ base_predictors = {
     'NB': GaussianNB(),
     'MLP': MLPClassifier(),
     'RF': RandomForestClassifier(),
-    'SVM': LinearSVC(),
+    'SVM': SVC(kernel='linear', probability=True, max_iter=1e4),
     'XGB': XGBClassifier(use_label_encoder=False, eval_metric='error')
 }
 
@@ -44,6 +44,7 @@ EI = EnsembleIntegration(base_predictors=base_predictors,
                          sampling_aggregation="mean",
                          n_jobs=-1,  # set as -1 to use all available CPUs
                          random_state=42,
+                         calibration=True,
                          project_name="demo")
 
 modalities = {"view_0": X_view_0,
@@ -65,7 +66,7 @@ meta_models = {
     "NB": GaussianNB(),
     "MLP": MLPClassifier(),
     "RF": RandomForestClassifier(),
-    "SVM": LinearSVC(tol=1e-2, max_iter=10000),
+    "SVM": SVC(kernel='linear', probability=True, max_iter=1e4),
     "XGB": XGBClassifier(use_label_encoder=False, eval_metric='error')
 }
 

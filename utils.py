@@ -139,15 +139,20 @@ def set_seed(random_state=1):
     random.seed(random_state)
 
 
-def random_integers(n_integers=1):
+def random_integers(n_integers=1, seed=42):
+    random.seed(seed)
     return random.sample(range(0, 10000), n_integers)
 
 
 def sample(X, y, random_state, strategy="undersampling"):
+    if strategy == "original":
+        return X, y
+    """define sampler"""
     if strategy == "undersampling":
         sampler = RandomUnderSampler(random_state=random_state)
     if strategy == "oversampling":
         sampler = RandomOverSampler(random_state=random_state)
+    
     if strategy == 'hybrid':
         y_pos = float(sum(y==1))
         y_total = y.shape[0]
