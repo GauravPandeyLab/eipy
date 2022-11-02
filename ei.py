@@ -14,24 +14,10 @@ from sklearn.model_selection import StratifiedKFold
 from joblib import Parallel, delayed
 from joblib.externals.loky import set_loky_pickler
 import warnings
-from utils import scores, set_seed, random_integers, sample, retrieve_X_y, append_modality, metric_threshold_dataframes
+from utils import scores, set_seed, random_integers, sample, retrieve_X_y, append_modality, metric_threshold_dataframes, create_base_summary, safe_predict_proba
 
 warnings.filterwarnings("ignore", category=DeprecationWarning)
-set_loky_pickler("dill")
-def create_base_summary(meta_test_dataframe):
-    labels = pd.concat([df["labels"] for df in meta_test_dataframe])
-    meta_test_averaged_samples = pd.concat(
-        [df.drop(columns=["labels"], level=0).groupby(level=(0, 1), axis=1).mean() for df in meta_test_dataframe])
-    meta_test_averaged_samples["labels"] = labels
-    return metric_threshold_dataframes(meta_test_averaged_samples)
 
-
-def safe_predict_proba(model, X):  # uses predict_proba method where possible
-    if hasattr(model, "predict_proba"):
-        y_pred = model.predict_proba(X)[:, 1] 
-    else:
-        y_pred = model.predict(X)
-    return y_pred
 
 class MeanAggregation:
     def __init__(self):
@@ -142,12 +128,9 @@ class EnsembleIntegration:
             self.meta_models = meta_models
             self.meta_models = {"S." + k: v for k, v in meta_models.items()}  # suffix denotes stacking
         
-        meta_models = {}
         for k, v in self.meta_models.items():
             if hasattr(v, 'random_state'):
                 v.set_params(**{'random_state': self.random_state})
-            meta_models[k] = v
-        self.meta_models = meta_models
 
         additional_meta_models = {"Mean": MeanAggregation(),
                                   "Median": MedianAggregation()}
@@ -180,7 +163,7 @@ class EnsembleIntegration:
                     X_test = X_test.groupby(level=0, axis=1).mean()
 
                 model.fit(X_train, y_train)
-                y_pred = safe_predict_proba(model, X_test)[:, 1]
+                y_pred = safe_predict_proba(model, X_test)
                 y_pred_combined.extend(y_pred)
 
             meta_predictions[model_name] = y_pred_combined
@@ -199,14 +182,10 @@ class EnsembleIntegration:
         if base_predictors is not None:
             self.base_predictors = base_predictors  # update base predictors
 
-        # bps = {}
         for k, v in self.base_predictors.items():
             if hasattr(v, 'random_state') and hasattr(v, 'set_params'):
                 v.set_params(**{'random_state': self.random_state})
-            # bps[k] = v
-        for k, v in self.base_predictors.items():
-            if hasattr(v, 'random_state') and hasattr(v, 'set_params'):
-                print(v.random_state)
+
         self.train_base_inner(X, y, self.base_predictors, modality)
         self.train_base_outer(X, y, self.base_predictors, modality)
 
@@ -323,7 +302,7 @@ class EnsembleIntegration:
 
         y_pred = safe_predict_proba(model, X_test)
 
-        # if str(model.__class__).find("sklearn") != -1:
+        # if str(model.__class__).find("sklearn") != -1: # was using for TensorFlow models
         #     y_pred = y_pred[:, 1]  # assumes other models are sklearn
 
         metrics = scores(y_test, y_pred)
