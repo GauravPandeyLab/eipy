@@ -206,8 +206,8 @@ def fmax(labels, predictions, thres=None, beta = 1.0, pos_label = 1):
                                                                           pos_label=pos_label)
     f1 = (1 + beta**2) * (precision * recall) / ((beta**2 * precision) + recall)
     # print(threshold)
-    if len(threshold[np.where(f1==np.nanmax(f1))]) > 1:
-        opt_threshold = threshold[np.where(f1==np.nanmax(f1))][0]
+    if len(threshold[np.where(f1 == np.nanmax(f1))]) > 1:
+        opt_threshold = threshold[np.where(f1 == np.nanmax(f1))][0]
     else:
         opt_threshold = threshold[np.where(f1 == np.nanmax(f1))]
     return np.nanmax(f1)
