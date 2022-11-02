@@ -26,6 +26,22 @@ class TFWrapper:
         return np.squeeze(self.model.predict(X))
 
 
+def create_base_summary(meta_test_dataframe):
+    labels = pd.concat([df["labels"] for df in meta_test_dataframe])
+    meta_test_averaged_samples = pd.concat(
+        [df.drop(columns=["labels"], level=0).groupby(level=(0, 1), axis=1).mean() for df in meta_test_dataframe])
+    meta_test_averaged_samples["labels"] = labels
+    return metric_threshold_dataframes(meta_test_averaged_samples)
+
+
+def safe_predict_proba(model, X):  # uses predict_proba method where possible
+    if hasattr(model, "predict_proba"):
+        y_pred = model.predict_proba(X)[:, 1] 
+    else:
+        y_pred = model.predict(X)
+    return y_pred
+
+
 def score_threshold_vectors(df, labels):
     fmax = []
     auc = []
