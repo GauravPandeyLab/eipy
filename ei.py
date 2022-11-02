@@ -13,7 +13,6 @@ from sklearn.exceptions import ConvergenceWarning
 from sklearn.model_selection import StratifiedKFold
 from joblib import Parallel, delayed
 from joblib.externals.loky import set_loky_pickler
-from sklearn.calibration import CalibratedClassifierCV
 import warnings
 from utils import scores, set_seed, random_integers, sample, retrieve_X_y, append_modality, metric_threshold_dataframes
 
@@ -26,6 +25,13 @@ def create_base_summary(meta_test_dataframe):
     meta_test_averaged_samples["labels"] = labels
     return metric_threshold_dataframes(meta_test_averaged_samples)
 
+
+def safe_predict_proba(model, X):  # uses predict_proba method where possible
+    if hasattr(model, "predict_proba"):
+        y_pred = model.predict_proba(X)[:, 1] 
+    else:
+        y_pred = model.predict(X)
+    return y_pred
 
 class MeanAggregation:
     def __init__(self):
@@ -92,8 +98,7 @@ class EnsembleIntegration:
                  n_jobs=-1,
                  random_state=42,
                  parallel_backend="loky",  # change to "threading" if including TensorFlow models in base_predictors
-                 project_name="project",
-                 calibration=False):
+                 project_name="project"):
 
         set_seed(random_state)
 
@@ -109,7 +114,6 @@ class EnsembleIntegration:
         self.random_state = random_state
         self.project_name = project_name
         self.parallel_backend = parallel_backend
-        self.calibration = calibration
 
         self.trained_meta_models = {}
         self.trained_base_predictors = {}
@@ -164,10 +168,6 @@ class EnsembleIntegration:
         for model_name, model in self.meta_models.items():
             print("\n{model_name:}...".format(model_name=model_name))
 
-            if model_name[:2] == "S." and self.calibration:  # calibrate stacking classifiers
-                # model = CalibratedClassifierCV(model, ensemble=False, cv=self.cv_inner)
-                model = CalibratedClassifierCV(model, ensemble=False)
-
             y_pred_combined = []
 
             for fold_id in range(self.k_outer):
@@ -180,7 +180,7 @@ class EnsembleIntegration:
                     X_test = X_test.groupby(level=0, axis=1).mean()
 
                 model.fit(X_train, y_train)
-                y_pred = model.predict_proba(X_test)[:, 1]
+                y_pred = safe_predict_proba(model, X_test)[:, 1]
                 y_pred_combined.extend(y_pred)
 
             meta_predictions[model_name] = y_pred_combined
@@ -195,13 +195,20 @@ class EnsembleIntegration:
 
     @ignore_warnings(category=ConvergenceWarning)
     def train_base(self, X, y, base_predictors=None, modality=None):
-        bps = {}
-        for k, v in base_predictors.items():
+
+        if base_predictors is not None:
+            self.base_predictors = base_predictors  # update base predictors
+
+        # bps = {}
+        for k, v in self.base_predictors.items():
             if hasattr(v, 'random_state') and hasattr(v, 'set_params'):
                 v.set_params(**{'random_state': self.random_state})
-            bps[k] = v
-        self.train_base_inner(X, y, bps, modality)
-        self.train_base_outer(X, y, bps, modality)
+            # bps[k] = v
+        for k, v in self.base_predictors.items():
+            if hasattr(v, 'random_state') and hasattr(v, 'set_params'):
+                print(v.random_state)
+        self.train_base_inner(X, y, self.base_predictors, modality)
+        self.train_base_outer(X, y, self.base_predictors, modality)
 
         return self
 
@@ -308,20 +315,16 @@ class EnsembleIntegration:
         fold_id, (train_index, test_index) = fold_params
         sample_id, sample_random_state = sample_state
 
-        if str(model.__class__).find("sklearn") != -1 and self.calibration:
-            # model = CalibratedClassifierCV(model, ensemble=False, cv=self.cv_inner)  # calibrate classifiers
-            model = CalibratedClassifierCV(model, ensemble=False)
-
         X_train, X_test = X[train_index], X[test_index]
         y_train, y_test = y[train_index], y[test_index]
         X_sample, y_sample = sample(X_train, y_train, strategy=self.sampling_strategy, random_state=sample_random_state)
 
-        if str(model.__class__).find("sklearn") != -1:
-            model.fit(X_sample, y_sample)
-            y_pred = model.predict_proba(X_test)[:, 1]  # assumes other models are sklearn
-        else:
-            model.fit(X_sample, y_sample)
-            y_pred = model.predict_proba(X_test)
+        model.fit(X_sample, y_sample)
+
+        y_pred = safe_predict_proba(model, X_test)
+
+        # if str(model.__class__).find("sklearn") != -1:
+        #     y_pred = y_pred[:, 1]  # assumes other models are sklearn
 
         metrics = scores(y_test, y_pred)
 
