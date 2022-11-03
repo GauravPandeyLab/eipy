@@ -160,16 +160,14 @@ def random_integers(n_integers=1, seed=42):
     return random.sample(range(0, 10000), n_integers)
 
 
-def sample(X, y, random_state, strategy="undersampling"):
-    if strategy == "original":
-        return X, y
-    """define sampler"""
-    if strategy == "undersampling":
+def sample(X, y, strategy, random_state):
+    if strategy is None:
+        X_resampled, y_resampled = X, y
+    elif strategy == "undersampling":  # define sampler
         sampler = RandomUnderSampler(random_state=random_state)
-    if strategy == "oversampling":
+    elif strategy == "oversampling":
         sampler = RandomOverSampler(random_state=random_state)
-    
-    if strategy == 'hybrid':
+    elif strategy == 'hybrid':
         y_pos = float(sum(y==1))
         y_total = y.shape[0]
         if (y_pos/y_total) < 0.5:

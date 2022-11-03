@@ -74,17 +74,18 @@ class EnsembleIntegration:
     """
 
     def __init__(self,
-                 base_predictors=None,
-                 meta_models=None,
-                 k_outer=None,
-                 k_inner=None,
-                 n_samples=None,
-                 sampling_strategy="undersampling",
+                 base_predictors=None,  # dictionary of sklearn models
+                 meta_models=None,  # dictionary of sklearn models
+                 k_outer=None,  # number of outer folds, int
+                 k_inner=None,  # number of inner folds, int
+                 n_samples=None,  # number of samples of training sets to be taken 
+                 sampling_strategy="undersampling",  # sampling method: "undersampling", "oversampling", "hybrid", None
                  sampling_aggregation="mean",
                  n_jobs=-1,
                  random_state=42,
                  parallel_backend="loky",  # change to "threading" if including TensorFlow models in base_predictors
-                 project_name="project"):
+                 project_name="project",
+                 sample_meta_dataset=False):
 
         set_seed(random_state)
 
@@ -98,8 +99,8 @@ class EnsembleIntegration:
         self.sampling_aggregation = sampling_aggregation
         self.n_jobs = n_jobs
         self.random_state = random_state
-        self.project_name = project_name
         self.parallel_backend = parallel_backend
+        self.project_name = project_name
 
         self.trained_meta_models = {}
         self.trained_base_predictors = {}
