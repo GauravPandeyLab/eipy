@@ -48,7 +48,7 @@ class EI_interpreter:
                     """if the data input is dataframe, store the feature name"""
                     self.feature_dict[modal_name] = list(modality.columns)
                     self.modalities[modal_name] = modality.values
-                    print(modal_name, modality.shape)
+                    # print(modal_name, modality.shape)
                 
                 else:
                     """If there is no feature name in input/feature name dictionary"""
@@ -109,7 +109,7 @@ class EI_interpreter:
     def local_model_rank(self, meta_models_interested):
         X_train_list = []
         y_train_list = []
-        print(self.EI.meta_training_data)
+        # print(self.EI.meta_training_data)
         for fold_id in range(self.EI.k_outer):
             X_train, y_train = retrieve_X_y(labelled_data=self.EI.meta_test_data[fold_id])
             X_train_list.append(X_train)
@@ -140,7 +140,7 @@ class EI_interpreter:
             pi_df['LMR'] = pi_df['local_model_PI'].rank(pct=True, ascending=False)
             lm_pi_list.append(pi_df)
         self.LMRs = pd.concat(lm_pi_list)
-        print(self.LMRs)
+        # print(self.LMRs)
 
 
     def rank_product_score(self):
@@ -172,7 +172,7 @@ class EI_interpreter:
             merged_lmr_lfr = pd.merge(lmr_interest, self.LFRs,  
                                         how='right', left_on=['base predictor','modality'], 
                                         right_on = ['base predictor','modality'])
-            print(merged_lmr_lfr)
+            # print(merged_lmr_lfr)
             merged_lmr_lfr['LMR_LFR_product'] = merged_lmr_lfr['LMR']*merged_lmr_lfr['LFR']
             """ take mean of LMR*LFR for each feature """
             RPS_list = {'modality':[],
@@ -191,6 +191,7 @@ class EI_interpreter:
             RPS_df.sort_values(by='feature rank',inplace=True)
             feature_ranking_list[model_name] = RPS_df
         self.ensemble_feature_ranking = feature_ranking_list
+        print('Finished feature ranking of ensemble model(s)!')
 
 def auprc(y_true, y_scores):
     return sklearn.metrics.average_precision_score(y_true, y_scores)
