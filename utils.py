@@ -5,7 +5,7 @@ from sklearn.metrics import roc_auc_score, precision_recall_curve, \
     matthews_corrcoef, precision_recall_fscore_support
 from imblearn.under_sampling import RandomUnderSampler
 from imblearn.over_sampling import RandomOverSampler
-from tensorflow.keras.backend import clear_session
+#from tensorflow.keras.backend import clear_session
 import warnings
 import sklearn
 from sklearn.exceptions import UndefinedMetricWarning
@@ -21,7 +21,7 @@ class TFWrapper:
         # self.tf_model.compile(**self.compile_kwargs)
 
     def fit(self, X, y):
-        clear_session()
+        #clear_session()
         self.model = self.tf_fun()
         self.model.compile(**self.compile_kwargs)
         # self.model.set_weights(self.initial_weights)  # re-initialises weights for multiple .fit calls
