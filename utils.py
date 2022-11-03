@@ -1,10 +1,15 @@
 import pandas as pd
 import numpy as np
 import random
-from sklearn.metrics import roc_auc_score, precision_recall_curve, matthews_corrcoef
+from sklearn.metrics import roc_auc_score, precision_recall_curve, \
+    matthews_corrcoef, precision_recall_fscore_support
 from imblearn.under_sampling import RandomUnderSampler
 from imblearn.over_sampling import RandomOverSampler
 from tensorflow.keras.backend import clear_session
+import warnings
+import sklearn
+from sklearn.exceptions import UndefinedMetricWarning
+warnings.filterwarnings(action='ignore', category=UndefinedMetricWarning)
 
 class TFWrapper:
     def __init__(self, tf_fun, compile_kwargs, fit_kwargs):
@@ -43,17 +48,17 @@ def safe_predict_proba(model, X):  # uses predict_proba method where possible
 
 
 def score_threshold_vectors(df, labels):
-    fmax = []
-    auc = []
-    mcc = []
+    scores_dict = {}
     for column in df.columns:
         column_temp = df[column]
         metrics = scores(labels, column_temp)
         metric_names = list(metrics.keys())
-        fmax.append(metrics[metric_names[0]])
-        auc.append(metrics[metric_names[1]])
-        mcc.append(metrics[metric_names[2]])
-    return fmax, auc, mcc
+        for m in metric_names:
+            if not (m in scores_dict):
+                scores_dict[m] = [metrics[m]]
+            else:
+                scores_dict[m].append(metrics[m])
+    return scores_dict
 
 
 # def score_vector_split(list_of_tuples): # don't think this is needed anymore
@@ -66,15 +71,12 @@ def score_threshold_vectors(df, labels):
 
 
 def metrics_per_fold(df, labels):
-    fmax, auc, mcc = score_threshold_vectors(df, labels)
+    scores_dict = score_threshold_vectors(df, labels)
 
     metrics_df = pd.DataFrame(columns=df.columns)
     thresholds_df = pd.DataFrame(columns=df.columns)
-
-    metrics_df.loc["fmax score"], thresholds_df.loc["fmax score"] = list(zip(*fmax))
-    metrics_df.loc["AUC score"], thresholds_df.loc["AUC score"] = list(zip(*auc))
-    metrics_df.loc["MCC score"], thresholds_df.loc["MCC score"] = list(zip(*mcc))
-
+    for k, val in scores_dict.items():
+        metrics_df.loc[k], thresholds_df.loc[k] = list(zip(*val))
     return metrics_df, thresholds_df
 
 
@@ -98,6 +100,39 @@ def fmax_score(y_true, y_pred, beta=1):
 
     return fmax, max_fmax_threshold
 
+def fmeasure_score(labels, predictions, thres=None, 
+                    beta = 1.0, pos_label = 1):
+    """
+        Radivojac, P. et al. (2013). A Large-Scale Evaluation of Computational Protein Function Prediction. Nature Methods, 10(3), 221-227.
+        Manning, C. D. et al. (2008). Evaluation in Information Retrieval. In Introduction to Information Retrieval. Cambridge University Press.
+    """
+    np.seterr(divide='ignore', invalid='ignore')
+    if thres is None:
+        np.seterr(divide='ignore', invalid='ignore')
+        precision, recall, threshold = sklearn.metrics.precision_recall_curve(labels, predictions,
+                                                                              pos_label=pos_label)
+
+        fs = (1 + beta ** 2) * (precision * recall) / ((beta ** 2 * precision) + recall)
+        fmax_point = np.where(fs==np.nanmax(fs))[0]
+        p_maxes = precision[fmax_point]
+        r_maxes = recall[fmax_point]
+        pr_diff = np.abs(p_maxes - r_maxes)
+        balance_fmax_point = np.where(pr_diff == min(pr_diff))[0]
+        p_max = p_maxes[balance_fmax_point[0]]
+        r_max = r_maxes[balance_fmax_point[0]]
+        opt_threshold = threshold[fmax_point][balance_fmax_point[0]]
+
+        return {'F':np.nanmax(fs), 'thres':opt_threshold, 'P':p_max, 'R':r_max, 'PR-curve': [precision, recall]}
+
+    else:
+        binary_predictions = np.array(predictions)
+        binary_predictions[binary_predictions >= thres] = 1.0
+        binary_predictions[binary_predictions < thres] = 0.0
+        precision, recall, fmeasure, _ = precision_recall_fscore_support(labels,
+                                                                        binary_predictions, 
+                                                                        average='binary',
+                                                                        pos_label=pos_label)
+        return {'P':precision, 'R':recall, 'F':fmeasure}
 
 def matthews_max_score(y_true, y_pred):
     thresholds = np.arange(0, 1, 0.01)
@@ -117,13 +152,24 @@ def matthews_max_score(y_true, y_pred):
 
 
 def scores(y_true, y_pred, beta=1, metric_to_maximise="fscore", display=False):
-    fmax = fmax_score(y_true, y_pred, beta=1)
+    if np.bincount(y_true)[0] < np.bincount(y_true)[1]:
+        minor_class = 0
+        major_class = 1
+    else:
+        minor_class = 1
+        major_class = 0
+    
+    # fmax = fmax_score(y_true, y_pred, beta=1)
+    f_measure_minor = fmeasure_score(y_true, y_pred, pos_label=minor_class)
+    f_measure_major = fmeasure_score(y_true, y_pred, pos_label=major_class,
+                                    thres=f_measure_minor['thres'])
 
     max_mmc = matthews_max_score(y_true, y_pred)
 
     auc = roc_auc_score(y_true, y_pred)
 
-    scores_threshold_dict = {"fmax score (positive class)": fmax,
+    scores_threshold_dict = {"fmax score (minority class)": (f_measure_minor['F'], f_measure_minor['thres']),
+                            "fmax score (majority class)": (f_measure_major['F'], f_measure_minor['thres']),
                              "AUC score": (auc, np.nan),
                              "Matthew's correlation coefficient": max_mmc
                              }  # dictionary of (score, threshold)
