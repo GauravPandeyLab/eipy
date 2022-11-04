@@ -6,6 +6,7 @@ from sklearn.naive_bayes import GaussianNB
 from sklearn.preprocessing import RobustScaler
 from sklearn.svm import LinearSVC, SVC
 from sklearn.neural_network import MLPClassifier
+from ens_selection import CES
 from xgboost import XGBClassifier
 import sys
 
@@ -24,10 +25,10 @@ X_view_2 = X[:, 10:15]
 X_view_3 = X[:, 15:]
 
 base_predictors = {
-    'AdaBoost': AdaBoostClassifier(base_estimator=DecisionTreeClassifier(max_depth=3)),
-    'DT': DecisionTreeClassifier(max_depth=3),
+    'AdaBoost': AdaBoostClassifier(),
+    'DT': DecisionTreeClassifier(),
     'GradientBoosting': GradientBoostingClassifier(),
-    'KNN': KNeighborsClassifier(n_neighbors=21),
+    'KNN': KNeighborsClassifier(),
     'LR': LogisticRegression(),
     'NB': GaussianNB(),
     'MLP': MLPClassifier(),
@@ -44,7 +45,6 @@ EI = EnsembleIntegration(base_predictors=base_predictors,
                          sampling_aggregation="mean",
                          n_jobs=-1,  # set as -1 to use all available CPUs
                          random_state=42,
-                         calibration=True,
                          project_name="demo")
 
 modalities = {"view_0": X_view_0,
@@ -59,15 +59,16 @@ EI.save() # save EI as EI.demo
 
 meta_models = {
     "AdaBoost": AdaBoostClassifier(),
-    "DT": DecisionTreeClassifier(max_depth=5),
+    "DT": DecisionTreeClassifier(),
     "GradientBoosting": GradientBoostingClassifier(),
-    "KNN": KNeighborsClassifier(n_neighbors=21),
+    "KNN": KNeighborsClassifier(),
     "LR": LogisticRegression(),
     "NB": GaussianNB(),
     "MLP": MLPClassifier(),
     "RF": RandomForestClassifier(),
     "SVM": SVC(kernel='linear', probability=True, max_iter=1e4),
-    "XGB": XGBClassifier(use_label_encoder=False, eval_metric='error')
+    "XGB": XGBClassifier(use_label_encoder=False),
+    "CES": CES()
 }
 
 EI = EnsembleIntegration().load("EI.demo")  # load models from disk
