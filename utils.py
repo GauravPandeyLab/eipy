@@ -2,12 +2,13 @@ import pandas as pd
 import numpy as np
 import random
 from sklearn.metrics import roc_auc_score, precision_recall_curve, \
-    matthews_corrcoef, precision_recall_fscore_support
+    matthews_corrcoef, precision_recall_fscore_support, make_scorer
 from imblearn.under_sampling import RandomUnderSampler
 from imblearn.over_sampling import RandomOverSampler
-from tensorflow.keras.backend import clear_session
+#from tensorflow.keras.backend import clear_session
 import warnings
 import sklearn
+import sklearn.metrics
 from sklearn.exceptions import UndefinedMetricWarning
 warnings.filterwarnings(action='ignore', category=UndefinedMetricWarning)
 
@@ -21,7 +22,7 @@ class TFWrapper:
         # self.tf_model.compile(**self.compile_kwargs)
 
     def fit(self, X, y):
-        clear_session()
+        #clear_session()
         self.model = self.tf_fun()
         self.model.compile(**self.compile_kwargs)
         # self.model.set_weights(self.initial_weights)  # re-initialises weights for multiple .fit calls
@@ -259,3 +260,18 @@ def append_modality(current_data, modality_data):
             combined_dataframe.append(pd.concat((dataframe.iloc[:, :-1],
                                                  modality_data[fold]), axis=1))
     return combined_dataframe
+
+
+def auprc(y_true, y_scores):
+    return sklearn.metrics.average_precision_score(y_true, y_scores)
+
+auprc_sklearn = make_scorer(auprc, greater_is_better=True, needs_proba=True)
+
+def f_minority_score(y_true, y_pred):
+    if np.bincount(y_true)[0] < np.bincount(y_true)[1]:
+        minor_class = 0
+    else:
+        minor_class = 1
+    return fmeasure_score(y_true, y_pred, pos_label=minor_class)['F']
+
+f_minor_sklearn = make_scorer(f_minority_score, greater_is_better=True, needs_proba=True)
