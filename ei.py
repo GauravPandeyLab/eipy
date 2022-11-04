@@ -159,8 +159,8 @@ class EnsembleIntegration:
                 X_test, _ = retrieve_X_y(labelled_data=self.meta_test_data[fold_id])
 
                 if self.sampling_aggregation == "mean":
-                    X_train = X_train.groupby(level=0, axis=1).mean()
-                    X_test = X_test.groupby(level=0, axis=1).mean()
+                    X_train = X_train.groupby(level=[0, 1], axis=1).mean()
+                    X_test = X_test.groupby(level=[0, 1], axis=1).mean()
 
                 model.fit(X_train, y_train)
                 y_pred = safe_predict_proba(model, X_test)

@@ -1,17 +1,18 @@
 from utils import scores, set_seed, \
     random_integers, sample, \
-    retrieve_X_y, append_modality
+    retrieve_X_y, append_modality, f_minor_sklearn, f_minority_score
 
 from numpy.random import choice, seed
 from numpy import argmax, argmin, argsort, corrcoef, mean, nanmax, sqrt, triu_indices_from, where
 import pandas as pd
+
 
 class CES:
     """
     Caruana et al's Ensemble Selection
     """
     def __init__(self,
-                 scoring_func,
+                 scoring_func=f_minority_score,
                  max_ensemble_size=50,
                  random_state=0,
                  greater_is_better=True
@@ -29,7 +30,8 @@ class CES:
     def fit(self, X, y):
         self.selected_ensemble = []
         self.train_performance = []
-        best_classifiers = X.apply(lambda x: self.scoring_func(y, x).sort_values(ascending=self.greater_is_better))
+        # print(X, y)
+        best_classifiers = X.apply(lambda x: self.scoring_func(y, x)).sort_values(ascending=self.greater_is_better)
         for i in range(min(self.max_ensemble_size, len(best_classifiers))):
             best_candidate = self.select_candidate_enhanced(X, y, best_classifiers, self.selected_ensemble, i)
             self.selected_ensemble.append(best_candidate)
@@ -38,9 +40,10 @@ class CES:
         train_performance_df = pd.DataFrame.from_records(self.train_performance)
         best_ensemble_size = self.get_best_performer(train_performance_df)['ensemble_size'].values
         self.best_ensemble = train_performance_df['ensemble'][:best_ensemble_size.item(0) + 1]
+        # print(self.best_ensemble)
 
 
-    def predict_proba(self, X):
+    def predict(self, X):
         ces_bp_df = X[self.best_ensemble]
         return ces_bp_df.mean(axis=1).values
 
@@ -87,14 +90,4 @@ class CES:
 #
 #     def fit(self, X, y):
 #
-
-class MeanAggregation:
-    def __init__(self):
-        pass
-
-    def fit(self, X, y):
-        pass
-
-    def predict_proba(self, X):
-        return X.mean(axis=1)
 
