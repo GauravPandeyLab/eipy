@@ -133,7 +133,7 @@ class EnsembleIntegration:
                 v.set_params(**{'random_state': self.random_state})
 
         additional_meta_models = {"Mean": MeanAggregation(),
-                                  "Median": MedianAggregation()
+                                  "Median": MedianAggregation(),
                                   "CES": CES()}
 
         self.meta_models = {**additional_meta_models, **self.meta_models}
