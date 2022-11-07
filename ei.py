@@ -15,7 +15,7 @@ from joblib import Parallel, delayed
 from joblib.externals.loky import set_loky_pickler
 import warnings
 from utils import scores, set_seed, random_integers, sample, retrieve_X_y, append_modality, metric_threshold_dataframes, create_base_summary, safe_predict_proba
-
+from ens_selection import CES
 warnings.filterwarnings("ignore", category=DeprecationWarning)
 
 
@@ -133,7 +133,8 @@ class EnsembleIntegration:
                 v.set_params(**{'random_state': self.random_state})
 
         additional_meta_models = {"Mean": MeanAggregation(),
-                                  "Median": MedianAggregation()}
+                                  "Median": MedianAggregation()
+                                  "CES": CES()}
 
         self.meta_models = {**additional_meta_models, **self.meta_models}
 
