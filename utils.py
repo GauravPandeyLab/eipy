@@ -237,7 +237,8 @@ def sample(X, y, strategy, random_state):
         y_min = y_min[y_min!=maj_class]
         X_resampled = np.concatenate([X_maj, X_min])
         y_resampled = np.concatenate([y_maj, y_min])
-    else:
+    
+    if strategy is not None:
         X_resampled, y_resampled = sampler.fit_resample(X=X, y=y)
     return X_resampled, y_resampled
 
