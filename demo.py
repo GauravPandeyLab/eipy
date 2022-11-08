@@ -68,7 +68,6 @@ meta_models = {
     "RF": RandomForestClassifier(),
     "SVM": SVC(kernel='linear', probability=True, max_iter=1e4),
     "XGB": XGBClassifier(use_label_encoder=False),
-    "CES": CES()
 }
 
 EI = EnsembleIntegration().load("EI.demo")  # load models from disk
