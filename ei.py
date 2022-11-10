@@ -18,6 +18,25 @@ from utils import scores, set_seed, random_integers, sample, retrieve_X_y, appen
 from ens_selection import CES
 warnings.filterwarnings("ignore", category=DeprecationWarning)
 
+def remove_correlated_features(df_train, df_test, correlation_removal_threshold=0.95):
+
+    df = pd.concat([df_train, df_test], axis=0)
+    df = df.drop("labels", level=0, axis=1)
+    # Create correlation matrix
+    corr_matrix = df.corr().abs()
+
+    # Select upper triangle of correlation matrix
+    upper = corr_matrix.where(np.triu(np.ones(corr_matrix.shape), k=1).astype(np.bool))
+
+    # Find features with correlation greater than 0.95
+    to_drop = [column for column in upper.columns if any(upper[column] > correlation_removal_threshold)]
+
+    # Drop features 
+    df_train_new = df_train.drop(to_drop, axis=1)
+    df_test_new = df_test.drop(to_drop, axis=1)
+
+    return df_train_new, df_test_new
+
 
 class MeanAggregation:
     def __init__(self):
@@ -76,16 +95,18 @@ class EnsembleIntegration:
     def __init__(self,
                  base_predictors=None,  # dictionary of sklearn models
                  meta_models=None,  # dictionary of sklearn models
-                 k_outer=None,  # number of outer folds, int
-                 k_inner=None,  # number of inner folds, int
-                 n_samples=None,  # number of samples of training sets to be taken 
+                 k_outer=5,  # number of outer folds, int
+                 k_inner=5,  # number of inner folds, int
+                 n_samples=1,  # number of samples of training sets to be taken 
                  sampling_strategy="undersampling",  # sampling method: "undersampling", "oversampling", "hybrid", None
                  sampling_aggregation="mean",
                  n_jobs=-1,
-                 random_state=42,
+                 random_state=None,
                  parallel_backend="loky",  # change to "threading" if including TensorFlow models in base_predictors
                  project_name="project",
-                 sample_meta_dataset=False):
+                 additional_ensemble_methods=["Mean", "Median", "CES"],
+                 correlation_removal_threshold=1):  # remove features in meta_training_data and meta_test_data with correlation > correlation_removal_threshold
+                                                    # default is 1 (no removal). Typical value would be 0.95. NEEDS REMOVING BEFORE PUSH
 
         set_seed(random_state)
 
@@ -101,18 +122,19 @@ class EnsembleIntegration:
         self.random_state = random_state
         self.parallel_backend = parallel_backend
         self.project_name = project_name
+        self.additional_ensemble_methods = additional_ensemble_methods
+        self.correlation_removal_threshold = correlation_removal_threshold
 
         self.trained_meta_models = {}
         self.trained_base_predictors = {}
 
-        if k_outer is not None:
-            self.cv_outer = StratifiedKFold(n_splits=self.k_outer, shuffle=True,
+        self.cv_outer = StratifiedKFold(n_splits=self.k_outer, shuffle=True,
                                             random_state=self.random_state)
-        if k_inner is not None:
-            self.cv_inner = StratifiedKFold(n_splits=self.k_inner, shuffle=True,
+
+        self.cv_inner = StratifiedKFold(n_splits=self.k_inner, shuffle=True,
                                             random_state=self.random_state)
-        if n_samples is not None:
-            self.random_numbers_for_samples = random_integers(n_integers=n_samples, 
+
+        self.random_numbers_for_samples = random_integers(n_integers=n_samples, 
                                                               seed=self.random_state)
 
         self.meta_training_data = None
@@ -137,6 +159,8 @@ class EnsembleIntegration:
                                   "Median": MedianAggregation(),
                                   "CES": CES()}
 
+        additional_meta_models = dict((k, additional_meta_models[k]) for k in self.additional_ensemble_methods)
+
         self.meta_models = {**additional_meta_models, **self.meta_models}
 
         print("\nWorking on meta models")
@@ -156,9 +180,12 @@ class EnsembleIntegration:
             y_pred_combined = []
 
             for fold_id in range(self.k_outer):
+                meta_training_data, meta_test_data = remove_correlated_features(self.meta_training_data[fold_id], 
+                                                                                self.meta_test_data[fold_id], 
+                                                                                self.correlation_removal_threshold)
 
-                X_train, y_train = retrieve_X_y(labelled_data=self.meta_training_data[fold_id])
-                X_test, _ = retrieve_X_y(labelled_data=self.meta_test_data[fold_id])
+                X_train, y_train = retrieve_X_y(labelled_data=meta_training_data)
+                X_test, _ = retrieve_X_y(labelled_data=meta_test_data)
 
                 if self.sampling_aggregation == "mean":
                     X_train = X_train.groupby(level=[0, 1], axis=1).mean()
