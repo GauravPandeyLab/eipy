@@ -105,9 +105,11 @@ class EnsembleIntegration:
                  parallel_backend="loky",  # change to "threading" if including TensorFlow models in base_predictors
                  project_name="project",
                  additional_ensemble_methods=["Mean", "Median", "CES"],
-                 correlation_removal_threshold=1):  # remove features in meta_training_data and meta_test_data with correlation > correlation_removal_threshold
+                 calibration_model=None,  # calibration model to be applied to base predictors. Intended to be sklearn's CalibratedClassifierCV
+                 correlation_removal_threshold=1,  # remove features in meta_training_data and meta_test_data with correlation > correlation_removal_threshold
                                                     # default is 1 (no removal). Typical value would be 0.95. NEEDS REMOVING BEFORE PUSH
-
+                 save_models=True,  # save models to disk                               
+                                                ):
         set_seed(random_state)
 
         self.base_predictors = base_predictors
@@ -123,6 +125,7 @@ class EnsembleIntegration:
         self.parallel_backend = parallel_backend
         self.project_name = project_name
         self.additional_ensemble_methods = additional_ensemble_methods
+        self.calibration_model = calibration_model
         self.correlation_removal_threshold = correlation_removal_threshold
 
         self.trained_meta_models = {}
@@ -143,6 +146,10 @@ class EnsembleIntegration:
 
         self.meta_predictions = None
         self.meta_summary = None
+
+    # @ignore_warnings(category=ConvergenceWarning)
+    # def build_model(self, ensemble="best"):
+
 
     @ignore_warnings(category=ConvergenceWarning)
     def train_meta(self, meta_models=None, display_metrics=True):
@@ -326,6 +333,10 @@ class EnsembleIntegration:
         X_train, X_test = X[train_index], X[test_index]
         y_train, y_test = y[train_index], y[test_index]
         X_sample, y_sample = sample(X_train, y_train, strategy=self.sampling_strategy, random_state=sample_random_state)
+
+        if self.calibration_model is not None:
+            self.calibration_model.base_estimator = model
+            model = self.calibration_model.base_estimator
 
         model.fit(X_sample, y_sample)
 
