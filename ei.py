@@ -108,7 +108,7 @@ class EnsembleIntegration:
                  calibration_model=None,  # calibration model to be applied to base predictors. Intended to be sklearn's CalibratedClassifierCV
                  correlation_removal_threshold=1,  # remove features in meta_training_data and meta_test_data with correlation > correlation_removal_threshold
                                                     # default is 1 (no removal). Typical value would be 0.95. NEEDS REMOVING BEFORE PUSH
-                 save_models=True,  # save models to disk                               
+                 save_models=True,  # save models to disk. Not implemented yet.                               
                                                 ):
         set_seed(random_state)
 
@@ -146,9 +146,6 @@ class EnsembleIntegration:
 
         self.meta_predictions = None
         self.meta_summary = None
-
-    # @ignore_warnings(category=ConvergenceWarning)
-    # def build_model(self, ensemble="best"):
 
 
     @ignore_warnings(category=ConvergenceWarning)
