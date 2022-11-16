@@ -102,16 +102,25 @@ def fmax_score(y_true, y_pred, beta=1):
     return fmax, max_fmax_threshold
 
 def fmeasure_score(labels, predictions, thres=None, 
-                    beta = 1.0, pos_label = 1):
+                    beta = 1.0, pos_label = 1, thres_same_cls = False):
     """
         Radivojac, P. et al. (2013). A Large-Scale Evaluation of Computational Protein Function Prediction. Nature Methods, 10(3), 221-227.
         Manning, C. D. et al. (2008). Evaluation in Information Retrieval. In Introduction to Information Retrieval. Cambridge University Press.
     """
     np.seterr(divide='ignore', invalid='ignore')
+    if pos_label == 0:
+        labels = 1-np.array(labels)
+        predictions = 1-np.array(predictions)
+        # if not(thres is None):
+        #     thres = 1-thres
+    # else:
+
+
     if thres is None:
         np.seterr(divide='ignore', invalid='ignore')
         precision, recall, threshold = sklearn.metrics.precision_recall_curve(labels, predictions,
-                                                                              pos_label=pos_label)
+                                                                            #   pos_label=pos_label
+                                                                              )
 
         fs = (1 + beta ** 2) * (precision * recall) / ((beta ** 2 * precision) + recall)
         fmax_point = np.where(fs==np.nanmax(fs))[0]
@@ -127,12 +136,17 @@ def fmeasure_score(labels, predictions, thres=None,
 
     else:
         binary_predictions = np.array(predictions)
-        binary_predictions[binary_predictions >= thres] = 1.0
-        binary_predictions[binary_predictions < thres] = 0.0
+        if thres_same_cls:
+            binary_predictions[binary_predictions >= thres] = 1.0
+            binary_predictions[binary_predictions < thres] = 0.0
+        else:
+            binary_predictions[binary_predictions > thres] = 1.0
+            binary_predictions[binary_predictions <= thres] = 0.0
         precision, recall, fmeasure, _ = precision_recall_fscore_support(labels,
                                                                         binary_predictions, 
                                                                         average='binary',
-                                                                        pos_label=pos_label)
+                                                                        # pos_label=pos_label
+                                                                        )
         return {'P':precision, 'R':recall, 'F':fmeasure}
 
 def matthews_max_score(y_true, y_pred):
@@ -162,8 +176,12 @@ def scores(y_true, y_pred, beta=1, metric_to_maximise="fscore", display=False):
     
     # fmax = fmax_score(y_true, y_pred, beta=1)
     f_measure_minor = fmeasure_score(y_true, y_pred, pos_label=minor_class)
+    # f_measure_minor_0 = fmeasure_score(y_true, y_pred, pos_label=minor_class,
+                                            # thres=f_measure_minor['thres'])
+    # print('without thres', f_measure_minor)
+    # print('with thres', f_measure_minor_0)
     f_measure_major = fmeasure_score(y_true, y_pred, pos_label=major_class,
-                                    thres=f_measure_minor['thres'])
+                                    thres=1-f_measure_minor['thres'])
 
     max_mmc = matthews_max_score(y_true, y_pred)
 
