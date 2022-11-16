@@ -294,4 +294,4 @@ def f_minority_score(y_true, y_pred):
         minor_class = 1
     return fmeasure_score(y_true, y_pred, pos_label=minor_class)['F']
 
-f_minor_sklearn = make_scorer(f_minority_score, greater_is_better=True, needs_proba=True)
+f_minor_sklearn = make_scorer(f_minority_score, greater_is_better=True)
