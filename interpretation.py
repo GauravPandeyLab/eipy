@@ -88,12 +88,12 @@ class EI_interpreter:
         for model_name, model in self.base_predictors.items():
             model.fit(X, self.y)
             lf_pi = permutation_importance(estimator=model,
-                                                X=X,
-                                                y=self.y,
-                                                n_repeats=self.n_repeats,
-                                                n_jobs=-1,
-                                                random_state=self.random_state,
-                                                scoring=self.metric)
+                                           X=X,
+                                           y=self.y,
+                                           n_repeats=self.n_repeats,
+                                           n_jobs=-1,
+                                           random_state=self.random_state,
+                                           scoring=self.metric)
             # pi_df = pd.DataFrame(data=[lf_pi.importances_mean], 
                                 # columns=self.feature_dict[modality], index=[0])
             pi_df = pd.DataFrame({'local_feat_PI': lf_pi.importances_mean, 
