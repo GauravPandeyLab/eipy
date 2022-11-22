@@ -277,10 +277,10 @@ class EI_interpreter:
 
         """Add mean/median aggregation here"""
         meta_models = {"S." + k: v for k, v in self.meta_models.items() if not (k in ["Mean", "Median"])}
-        if self.ensemble_of_interest == "All":
-            if not ("Mean" in meta_models):
+        if self.ensemble_of_interest == "ALL":
+            if not ("Mean" in meta_models.keys()):
                 meta_models["Mean"] = MeanAggregation()
-            elif not ("Median" in meta_models):
+            elif not ("Median" in meta_models.keys()):
                 meta_models["Median"] = MedianAggregation()
             # elif not ("CES" in meta_models):
             #     meta_models["CES"] = CES()
@@ -321,3 +321,4 @@ class EI_interpreter:
             feature_ranking_list[model_name] = RPS_df
         self.ensemble_feature_ranking = feature_ranking_list
         print('Finished feature ranking of ensemble model(s)!')
+        return self
