@@ -105,14 +105,14 @@ class EI_interpreter:
                 X_test, y_test = retrieve_X_y(labelled_data=self.EI.meta_test_data[fold_id])
                 # X_train_list.append(X_train)
                 # y_train_list.append(y_train)
-                if ('Mean' in model_name) or ('Median' in model_name):
-                    lm_pi = np.ones((len(X_train.columns), 1))
+                if (model_name == "Mean") or (model_name == "Median"):
+                    lm_pi = np.ones((len(X_train.columns), self.n_repeats))
                     # print(model_name, X_train.columns)
                 
                 elif 'CES' == model_name:
                     model.fit(X_train, y_train)
                     """TODO"""
-                    lm_pi = np.zeros((len(X_train.columns), 1))
+                    lm_pi = np.zeros((len(X_train.columns), self.n_repeats))
                     # model.best_ensemble
                 else:
                     model.fit(X_train, y_train)
