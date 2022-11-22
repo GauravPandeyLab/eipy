@@ -321,4 +321,4 @@ class EI_interpreter:
             feature_ranking_list[model_name] = RPS_df
         self.ensemble_feature_ranking = feature_ranking_list
         print('Finished feature ranking of ensemble model(s)!')
-        return self
+        # return self
