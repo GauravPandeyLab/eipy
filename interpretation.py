@@ -280,7 +280,7 @@ class EI_interpreter:
         if self.ensemble_of_interest == "ALL":
             if not ("Mean" in meta_models.keys()):
                 meta_models["Mean"] = MeanAggregation()
-            elif not ("Median" in meta_models.keys()):
+            if not ("Median" in meta_models.keys()):
                 meta_models["Median"] = MedianAggregation()
             # elif not ("CES" in meta_models):
             #     meta_models["CES"] = CES()
