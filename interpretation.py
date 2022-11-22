@@ -137,7 +137,7 @@ class EI_interpreter:
                 pi_df['ensemble_method'] = model_name
                 pi_df = pd.melt(pi_df, id_vars=['base predictor', 'fold',
                                                 'modality', 'sample_id', 'ensemble_method'],
-                                    value_vars=range(self.n_repeats),
+                                    value_vars=lm_pi.shape[1],
                                     var_name='iteration', value_name='local_model_PI')
                 # print(pi_df.shape)
 
