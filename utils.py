@@ -116,7 +116,7 @@ def fmeasure_score(labels, predictions, thres=None,
     # else:
 
 
-    if thres is None:
+    if thres is None:  # calculate fmax here
         np.seterr(divide='ignore', invalid='ignore')
         precision, recall, threshold = sklearn.metrics.precision_recall_curve(labels, predictions,
                                                                             #   pos_label=pos_label
@@ -134,7 +134,7 @@ def fmeasure_score(labels, predictions, thres=None,
 
         return {'F':np.nanmax(fs), 'thres':opt_threshold, 'P':p_max, 'R':r_max, 'PR-curve': [precision, recall]}
 
-    else:
+    else:  # calculate fmeasure for specific threshold
         binary_predictions = np.array(predictions)
         if thres_same_cls:
             binary_predictions[binary_predictions >= thres] = 1.0
@@ -187,10 +187,10 @@ def scores(y_true, y_pred, beta=1, metric_to_maximise="fscore", display=False):
 
     auc = roc_auc_score(y_true, y_pred)
 
-    scores_threshold_dict = {"fmax score (minority class)": (f_measure_minor['F'], f_measure_minor['thres']),
-                            "fmax score (majority class)": (f_measure_major['F'], f_measure_minor['thres']),
-                             "AUC score": (auc, np.nan),
-                             "Matthew's correlation coefficient": max_mmc
+    scores_threshold_dict = {"fmax (minority)": (f_measure_minor['F'], f_measure_minor['thres']),
+                            "f (majority)": (f_measure_major['F'], f_measure_minor['thres']),
+                             "AUC": (auc, np.nan),
+                             "max MMC": max_mmc
                              }  # dictionary of (score, threshold)
 
     if display:
