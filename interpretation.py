@@ -7,6 +7,7 @@ from joblib import Parallel, delayed
 import pandas as pd
 import numpy as np
 from ei import MedianAggregation, MeanAggregation
+from ens_selection import CES
 import copy
 import sklearn.metrics
 from sklearn.metrics import fbeta_score, make_scorer
@@ -120,6 +121,10 @@ class EI_interpreter:
             if ('Mean' in model_name) or ('Median' in model_name):
                 lm_pi = np.ones(len(X_train.columns))
                 # print(model_name, X_train.columns)
+            
+            elif 'CES' == model_name:
+                model.fit(X_train, y_train)
+                """TODO"""
             else:
                 model.fit(X_train, y_train)
                 lm_pi = permutation_importance(estimator=model,
@@ -155,6 +160,8 @@ class EI_interpreter:
                 meta_models["Mean"] = MeanAggregation()
             elif not ("Median" in meta_models):
                 meta_models["Median"] = MedianAggregation()
+            # elif not ("CES" in meta_models):
+            #     meta_models["CES"] = CES()
         self.meta_models = meta_models
 
 
