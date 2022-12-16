@@ -18,6 +18,9 @@ import warnings
 from utils import scores, set_seed, random_integers, sample, retrieve_X_y, append_modality, metric_threshold_dataframes, create_base_summary, safe_predict_proba, dummy_cv
 from ens_selection import CES
 warnings.filterwarnings("ignore", category=DeprecationWarning)
+from sklearn.pipeline import Pipeline
+from sklearn.tree import DecisionTreeClassifier
+from sklearn.pipeline import make_pipeline
 
 # def remove_correlated_features(df_train, df_test, correlation_removal_threshold=0.95):  # not used at this point
 
@@ -186,6 +189,10 @@ class EnsembleIntegration:
             self.meta_models = {"S." + k: v for k, v in meta_models.items()}
 
         for k, v in self.meta_models.items():
+            if type(v)==Pipeline:
+                est_ = list(v.named_steps)[-1]
+                if hasattr(v[est_], 'random_state') and hasattr(v[est_], 'set_params'):
+                    v.set_params(**{'{}__random_state'.format(est_):self.random_state})
             if hasattr(v, 'random_state'):
                 v.set_params(**{'random_state': self.random_state})
 
@@ -282,6 +289,10 @@ class EnsembleIntegration:
             self.base_predictors = base_predictors  # update base predictors
 
         for k, v in self.base_predictors.items():
+            if type(v)==Pipeline:
+                est_ = list(v.named_steps)[-1]
+                if hasattr(v[est_], 'random_state') and hasattr(v[est_], 'set_params'):
+                    v.set_params(**{'{}__random_state'.format(est_):self.random_state})
             if hasattr(v, 'random_state') and hasattr(v, 'set_params'):
                 v.set_params(**{'random_state': self.random_state})
 
@@ -446,7 +457,6 @@ class EnsembleIntegration:
     @ignore_warnings(category=ConvergenceWarning)
     def train_model_fold_sample(self, X, y, model_params, fold_params, sample_state, model_building=False):
         model_name, model = model_params
-        # model.set_params(**{'random_state': self.random_state})
 
         model = clone(model)
 
@@ -461,6 +471,8 @@ class EnsembleIntegration:
         if self.calibration_model is not None:
             self.calibration_model.base_estimator = model
             model = self.calibration_model
+
+        
 
         model.fit(X_sample, y_sample)
 
@@ -534,3 +546,5 @@ class EnsembleIntegration:
     def load(cls, filename):
         with open(filename, 'rb') as f:
             return pickle.load(f)
+
+    
