@@ -89,12 +89,12 @@ class EI_interpreter:
         for model_name, model in self.base_predictors.items():
             model.fit(X, self.y)
             lf_pi = permutation_importance(estimator=model,
-                                                X=X,
-                                                y=self.y,
-                                                n_repeats=self.n_repeats,
-                                                n_jobs=-1,
-                                                random_state=self.random_state,
-                                                scoring=self.metric)
+                                           X=X,
+                                           y=self.y,
+                                           n_repeats=self.n_repeats,
+                                           n_jobs=-1,
+                                           random_state=self.random_state,
+                                           scoring=self.metric)
             # pi_df = pd.DataFrame(data=[lf_pi.importances_mean], 
                                 # columns=self.feature_dict[modality], index=[0])
             pi_df = pd.DataFrame({'local_feat_PI': lf_pi.importances_mean, 
@@ -155,7 +155,7 @@ class EI_interpreter:
 
         """Add mean/median aggregation here"""
         meta_models = {"S." + k: v for k, v in self.meta_models.items() if not (k in ["Mean", "Median"])}
-        if self.ensemble_of_interest == "All":
+        if self.ensemble_of_interest == "ALL":
             if not ("Mean" in meta_models):
                 meta_models["Mean"] = MeanAggregation()
             elif not ("Median" in meta_models):

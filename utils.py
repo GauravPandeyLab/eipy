@@ -116,7 +116,7 @@ def fmeasure_score(labels, predictions, thres=None,
     # else:
 
 
-    if thres is None:
+    if thres is None:  # calculate fmax here
         np.seterr(divide='ignore', invalid='ignore')
         precision, recall, threshold = sklearn.metrics.precision_recall_curve(labels, predictions,
                                                                             #   pos_label=pos_label
@@ -134,7 +134,7 @@ def fmeasure_score(labels, predictions, thres=None,
 
         return {'F':np.nanmax(fs), 'thres':opt_threshold, 'P':p_max, 'R':r_max, 'PR-curve': [precision, recall]}
 
-    else:
+    else:  # calculate fmeasure for specific threshold
         binary_predictions = np.array(predictions)
         if thres_same_cls:
             binary_predictions[binary_predictions >= thres] = 1.0
@@ -187,10 +187,10 @@ def scores(y_true, y_pred, beta=1, metric_to_maximise="fscore", display=False):
 
     auc = roc_auc_score(y_true, y_pred)
 
-    scores_threshold_dict = {"fmax score (minority class)": (f_measure_minor['F'], f_measure_minor['thres']),
-                            "fmax score (majority class)": (f_measure_major['F'], f_measure_minor['thres']),
-                             "AUC score": (auc, np.nan),
-                             "Matthew's correlation coefficient": max_mmc
+    scores_threshold_dict = {"fmax (minority)": (f_measure_minor['F'], f_measure_minor['thres']),
+                            "f (majority)": (f_measure_major['F'], f_measure_minor['thres']),
+                             "AUC": (auc, np.nan),
+                             "max MMC": max_mmc
                              }  # dictionary of (score, threshold)
 
     if display:
@@ -225,16 +225,14 @@ def random_integers(n_integers=1, seed=42):
     return random.sample(range(0, 10000), n_integers)
 
 
-def sample(X, y, random_state, strategy="undersampling"):
-    if strategy == "original":
-        return X, y
-    """define sampler"""
-    if strategy == "undersampling":
+def sample(X, y, strategy, random_state):
+    if strategy is None:
+        X_resampled, y_resampled = X, y
+    elif strategy == "undersampling":  # define sampler
         sampler = RandomUnderSampler(random_state=random_state)
-    if strategy == "oversampling":
+    elif strategy == "oversampling":
         sampler = RandomOverSampler(random_state=random_state)
-    
-    if strategy == 'hybrid':
+    elif strategy == 'hybrid':
         y_pos = float(sum(y==1))
         y_total = y.shape[0]
         if (y_pos/y_total) < 0.5:
@@ -257,7 +255,8 @@ def sample(X, y, random_state, strategy="undersampling"):
         y_min = y_min[y_min!=maj_class]
         X_resampled = np.concatenate([X_maj, X_min])
         y_resampled = np.concatenate([y_maj, y_min])
-    else:
+    
+    if strategy is not None:
         X_resampled, y_resampled = sampler.fit_resample(X=X, y=y)
     return X_resampled, y_resampled
 
