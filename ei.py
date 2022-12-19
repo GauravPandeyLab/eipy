@@ -3,24 +3,20 @@ Ensemble Integration
 
 @author: Jamie Bennett, Yan Chak (Richard) Li
 """
-import gc
 import pandas as pd
 import numpy as np
-# from copy import copy
-import dill as pickle
+import pickle
+import copy
 from sklearn.utils._testing import ignore_warnings
 from sklearn.exceptions import ConvergenceWarning
 from sklearn.model_selection import StratifiedKFold
 from sklearn.base import clone
 from joblib import Parallel, delayed
-# from joblib.externals.loky import set_loky_pickler
 import warnings
 from utils import scores, set_seed, random_integers, sample, retrieve_X_y, append_modality, metric_threshold_dataframes, create_base_summary, safe_predict_proba, dummy_cv
 from ens_selection import CES
 warnings.filterwarnings("ignore", category=DeprecationWarning)
 from sklearn.pipeline import Pipeline
-from sklearn.tree import DecisionTreeClassifier
-from sklearn.pipeline import make_pipeline
 
 # def remove_correlated_features(df_train, df_test, correlation_removal_threshold=0.95):  # not used at this point
 
@@ -156,22 +152,43 @@ class EnsembleIntegration:
         self.meta_predictions = None
         self.meta_summary = None
 
-        self.modality_keys = []
+        self.modality_names = []
         self.n_features_per_modality = []
 
-    def predict(self, X_dictionary, meta_key):
+    def predict(self, X_dictionary, meta_model_key):
 
-        base_predictions = []
-        for i, key, X in enumerate(X_dictionary.items):
-            assert key == self.modality_keys, f"Modality key, {key}, does not match the one used during training!"
-            assert X.shape[1] == self.n_features_per_modality[
-                i], f"{X.shape[1]} features were given for {key} modality, but {self.n_features_per_modality[i]} were used during training!"
+        meta_prediction_data = None
 
-            base_predictions = []
-            base_models = self.final_models["base models"]["key"]
-            for base_model in base_models:
-                y_pred = safe_predict_proba(X)
-                base_predictions.append(y_pred)
+        for i in range(len(self.modality_names)):
+            modality_name = self.modality_names[i]
+            n_features = self.n_features_per_modality[i]
+            X = X_dictionary[modality_name]
+            
+            # check number of features is the same 
+            assert X.shape[1] == n_features, f"{X.shape[1]} features were given for {modality_name} modality, but {n_features} were used during training."
+
+            base_models = copy.copy(self.final_models["base models"][modality_name])
+            for base_model_dict in base_models:
+                pickled_base_model = base_model_dict["pickled model"]
+                y_pred = safe_predict_proba(pickle.loads(pickled_base_model), X)
+
+                base_model_dict["fold id"] = 0
+                base_model_dict["y_pred"] = y_pred
+            
+            combined_predictions = self.combine_predictions_outer(base_models, modality_name, model_building=True)
+            meta_prediction_data = append_modality(meta_prediction_data, combined_predictions, model_building=True)
+
+        if self.sampling_aggregation == "mean":
+            meta_prediction_data  = meta_prediction_data[0].groupby(level=[0, 1], axis=1).mean()
+
+
+        pickled_meta_model = self.final_models["meta models"][meta_model_key]
+        y_pred = safe_predict_proba(pickle.loads(pickled_meta_model), meta_prediction_data)
+
+        return y_pred
+
+
+        ############################ Continue here. Need to convert base_predictions list to dataframe and predict with meta model.
 
     @ignore_warnings(category=ConvergenceWarning)
     def train_meta(self, meta_models=None):
@@ -263,7 +280,7 @@ class EnsembleIntegration:
 
                 model.fit(X_train, y_train)
 
-                self.final_models["meta models"][model_name] = model
+                self.final_models["meta models"][model_name] = pickle.dumps(model)
 
         print(("Model building: final meta models have been saved to \"final_models\" attribute."))
 
@@ -282,7 +299,7 @@ class EnsembleIntegration:
         print(text)
         print("#" * len(text), "\n")
 
-        self.modality_keys.append(modality)
+        self.modality_names.append(modality)
         self.n_features_per_modality.append(X.shape[1])
 
         if base_predictors is not None:
@@ -472,32 +489,29 @@ class EnsembleIntegration:
             self.calibration_model.base_estimator = model
             model = self.calibration_model
 
-        
-
         model.fit(X_sample, y_sample)
 
         if model_building:
 
             results_dict = {
-                "model_name": model_name,
-                "sample_id": sample_id,
-                "pickled_model": pickle.dumps(model)  # we pickle model to reduce memory usage. use pickle.loads() to de-serialize
+                "model name": model_name,
+                "sample id": sample_id,
+                "pickled model": pickle.dumps(model)  # pickle model to reduce memory usage. use pickle.loads() to de-serialize
             }
 
         else:
             y_pred = safe_predict_proba(model, X_test)
 
             results_dict = {
-                "model_name": model_name,
-                "sample_id": sample_id,
-                "fold_id": fold_id,
+                "model name": model_name,
+                "sample id": sample_id,
+                "fold id": fold_id,
                 "y_pred": y_pred,
                 "labels": y_test
             }
 
         return results_dict
 
-    # we don't save the models trained here
     def combine_predictions_inner(self, list_of_dicts, modality):
         # dictionary to store predictions
         combined_predictions = {}
@@ -506,33 +520,44 @@ class EnsembleIntegration:
             for sample_id in range(self.n_samples):
                 model_predictions = np.concatenate(
                     list(d["y_pred"] for d in list_of_dicts if
-                         d["model_name"] == model_name and d["sample_id"] == sample_id))
+                         d["model name"] == model_name and d["sample id"] == sample_id))
                 combined_predictions[modality, model_name,
                                      sample_id] = model_predictions
         labels = np.concatenate(list(d["labels"] for d in list_of_dicts if
-                                     d["model_name"] == list(self.base_predictors.keys())[0] and d["sample_id"] == 0))
+                                     d["model name"] == list(self.base_predictors.keys())[0] and d["sample id"] == 0))
         combined_predictions = pd.DataFrame(combined_predictions).rename_axis(["modality", "base predictor", "sample"],
                                                                               axis=1)
         combined_predictions["labels"] = labels
         return combined_predictions
 
-    def combine_predictions_outer(self, list_of_dicts, modality):
+    def combine_predictions_outer(self, list_of_dicts, modality, model_building=False):
+
+        if model_building:
+            k_outer = 1
+        else:
+            k_outer = self.k_outer
+
         combined_predictions = []
-        for fold_id in range(self.k_outer):
+
+        for fold_id in range(k_outer):
             predictions = {}
             for model_name in self.base_predictors.keys():
                 for sample_id in range(self.n_samples):
                     model_predictions = list(d["y_pred"] for d in list_of_dicts if
-                                             d["fold_id"] == fold_id and d["model_name"] == model_name and d["sample_id"] == sample_id)
+                                             d["fold id"] == fold_id and d["model name"] == model_name and d["sample id"] == sample_id)
                     predictions[modality, model_name,
                                 sample_id] = model_predictions[0]
-            labels = [d["labels"] for d in list_of_dicts if
-                      d["fold_id"] == fold_id and d["model_name"] == list(self.base_predictors.keys())[0] and d[
-                          "sample_id"] == 0]
             predictions = pd.DataFrame(predictions)
-            predictions["labels"] = labels[0]
+
+            if not model_building:
+                labels = [d["labels"] for d in list_of_dicts if
+                        d["fold id"] == fold_id and d["model name"] == list(self.base_predictors.keys())[0] and d[
+                            "sample id"] == 0]
+                predictions["labels"] = labels[0]
+
             combined_predictions.append(predictions.rename_axis(
                 ["modality", "base predictor", "sample"], axis=1))
+
         return combined_predictions
 
     def save(self, path=None):

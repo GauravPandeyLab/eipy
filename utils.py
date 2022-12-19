@@ -291,17 +291,21 @@ def retrieve_X_y(labelled_data):
     return X, y
 
 
-def append_modality(current_data, modality_data):
+def append_modality(current_data, modality_data, model_building=False):
     if current_data is None:
         combined_dataframe = modality_data
     else:
         combined_dataframe = []
         for fold, dataframe in enumerate(current_data):
-            if (dataframe.iloc[:, -1].to_numpy() != modality_data[fold].iloc[:, -1].to_numpy()).all():
-                print("Error: something is wrong. Labels do not match across modalities")
-                break
-            combined_dataframe.append(pd.concat((dataframe.iloc[:, :-1],
-                                                 modality_data[fold]), axis=1))
+            if not model_building:
+                if (dataframe.iloc[:, -1].to_numpy() != modality_data[fold].iloc[:, -1].to_numpy()).all():
+                    print("Error: something is wrong. Labels do not match across modalities")
+                    break
+                combined_dataframe.append(pd.concat((dataframe.iloc[:, :-1],
+                                                    modality_data[fold]), axis=1))
+            else:
+                combined_dataframe.append(pd.concat((dataframe.iloc[:, :],
+                                                    modality_data[fold]), axis=1))
     return combined_dataframe
 
 
