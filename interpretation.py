@@ -38,7 +38,8 @@ class EI_interpreter:
         self.k_outer = self.EI.k_outer
         self.base_predictors = copy.copy(base_predictors)
         self.meta_models = copy.copy(meta_models)
-        
+        self.meta_test_int = None
+
         self.y = y
         self.metric = metric
         if feature_dict is None:
@@ -83,7 +84,9 @@ class EI_interpreter:
             # EI_obj.base_predictors = update_keys(dictionary=EI_obj.base_predictors,
             #                                      string=modality)  # include modality in model name
         
-        self.EI.train_base_outer(X, self.y, self.EI.base_predictors, modality)
+        meta_test_temp = self.EI.train_base_outer(X, self.y, self.EI.cv_outer, self.EI.base_predictors, modality)
+        
+        self.meta_test_int = append_modality(self.meta_test_int, meta_test_temp)
 
         lf_pi_list = []
         for model_name, model in self.base_predictors.items():
@@ -115,24 +118,27 @@ class EI_interpreter:
         y_train_list = []
         # print(self.EI.meta_training_data)
         for fold_id in range(self.EI.k_outer):
-            X_train, y_train = retrieve_X_y(labelled_data=self.EI.meta_test_data[fold_id])
+            X_train, y_train = retrieve_X_y(labelled_data=self.meta_test_int[fold_id])
             X_train_list.append(X_train)
             y_train_list.append(y_train)
 
+        meta_X_train = pd.concat(X_train_list)
+        meta_y_train = np.concatenate(y_train_list)
+        print(meta_X_train.shape, meta_y_train)
         lm_pi_list = []
         for model_name, model in meta_models_interested.items():
             if ('Mean' in model_name) or ('Median' in model_name):
-                lm_pi = np.ones(len(X_train.columns))
+                lm_pi = np.ones(len(meta_X_train.columns))
                 # print(model_name, X_train.columns)
             
             elif 'CES' == model_name:
-                model.fit(X_train, y_train)
+                model.fit(meta_X_train, meta_y_train)
                 """TODO"""
             else:
-                model.fit(X_train, y_train)
+                model.fit(meta_X_train, meta_y_train)
                 lm_pi = permutation_importance(estimator=model,
-                                                X=X_train,
-                                                y=y_train,
+                                                X=meta_X_train,
+                                                y=meta_y_train,
                                                 n_repeats=self.n_repeats,
                                                 n_jobs=-1,
                                                 random_state=self.random_state,
@@ -140,9 +146,9 @@ class EI_interpreter:
                 lm_pi = lm_pi.importances_mean
 
             pi_df = pd.DataFrame({'local_model_PI': lm_pi,
-                                    'base predictor': [i[1] for i in X_train.columns],
-                                    'modality': [i[0] for i in X_train.columns],
-                                    'sample': [i[2] for i in X_train.columns]})
+                                    'base predictor': [i[1] for i in meta_X_train.columns],
+                                    'modality': [i[0] for i in meta_X_train.columns],
+                                    'sample': [i[2] for i in meta_X_train.columns]})
             
             pi_df['ensemble_method'] = model_name
             pi_df['LMR'] = pi_df['local_model_PI'].rank(pct=True, ascending=False)
@@ -188,6 +194,7 @@ class EI_interpreter:
             RPS_list = {'modality':[],
                         'feature': [],
                         'RPS': []}
+            print(merged_lmr_lfr)
             for modal in merged_lmr_lfr['modality'].unique():
                 merged_lmr_lfr_modal = merged_lmr_lfr.loc[merged_lmr_lfr['modality']==modal]
                 for feat in merged_lmr_lfr_modal['local_feat_name'].unique():
