@@ -83,7 +83,7 @@ class EI_interpreter:
             # EI_obj.base_predictors = update_keys(dictionary=EI_obj.base_predictors,
             #                                      string=modality)  # include modality in model name
         
-        self.EI.train_base_outer(X, self.y, self.EI.base_predictors, modality)
+        self.EI.train_base_outer(X, self.y, self.EI.cv_outer, self.EI.base_predictors, modality)
 
         lf_pi_list = []
         for model_name, model in self.base_predictors.items():
