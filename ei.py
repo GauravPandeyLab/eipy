@@ -194,7 +194,7 @@ class EnsembleIntegration:
     def train_meta(self, meta_models=None):
 
         separator = "#" * 40
-        text = f"{separator} Analysis of ensembles {separator}"
+        text = f"{separator} Analysing ensembles {separator}"
         print("\n")
         print("#" * len(text))
         print(text)
@@ -233,8 +233,8 @@ class EnsembleIntegration:
         performance_metrics = []
 
         for model_name, model in self.meta_models.items():
-            if self.verbose > 0:
-                print("\n{model_name:}...".format(model_name=model_name))
+
+            print("\n{model_name:}...".format(model_name=model_name))
 
             y_pred_combined = []
 
