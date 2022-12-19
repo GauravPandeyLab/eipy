@@ -7,6 +7,7 @@ from joblib import Parallel, delayed
 import pandas as pd
 import numpy as np
 from ei import MedianAggregation, MeanAggregation
+from ens_selection import CES
 import copy
 import sklearn.metrics
 from sklearn.metrics import fbeta_score, make_scorer
@@ -86,6 +87,9 @@ class EI_interpreter:
 
         lf_pi_list = []
         for model_name, model in self.base_predictors.items():
+            if self.EI.calibration_model is not None:
+                self.EI.calibration_model.base_estimator = model
+                model = self.EI.calibration_model
             model.fit(X, self.y)
             lf_pi = permutation_importance(estimator=model,
                                            X=X,
@@ -120,6 +124,10 @@ class EI_interpreter:
             if ('Mean' in model_name) or ('Median' in model_name):
                 lm_pi = np.ones(len(X_train.columns))
                 # print(model_name, X_train.columns)
+            
+            elif 'CES' == model_name:
+                model.fit(X_train, y_train)
+                """TODO"""
             else:
                 model.fit(X_train, y_train)
                 lm_pi = permutation_importance(estimator=model,
@@ -150,11 +158,13 @@ class EI_interpreter:
 
         """Add mean/median aggregation here"""
         meta_models = {"S." + k: v for k, v in self.meta_models.items() if not (k in ["Mean", "Median"])}
-        if self.ensemble_of_interest == "All":
+        if self.ensemble_of_interest == "ALL":
             if not ("Mean" in meta_models):
                 meta_models["Mean"] = MeanAggregation()
             elif not ("Median" in meta_models):
                 meta_models["Median"] = MedianAggregation()
+            # elif not ("CES" in meta_models):
+            #     meta_models["CES"] = CES()
         self.meta_models = meta_models
 
 
