@@ -121,8 +121,8 @@ class EnsembleIntegration:
         self.k_outer = k_outer
         self.k_inner = k_inner
         self.n_samples = n_samples
-        self.sampling_strategy = sampling_strategy.lower()
-        self.sampling_aggregation = sampling_aggregation.lower()
+        self.sampling_strategy = sampling_strategy
+        self.sampling_aggregation = sampling_aggregation
         self.n_jobs = n_jobs
         self.random_state = random_state
         self.parallel_backend = parallel_backend
