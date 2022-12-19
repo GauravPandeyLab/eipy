@@ -31,6 +31,30 @@ class TFWrapper:
     def predict_proba(self, X):
         return np.squeeze(self.model.predict(X))
 
+        separator = "#" * 40
+        if modality is None:
+            text = separator * 2
+        else:
+            text = f"{separator} {modality} modality {separator}"
+
+def fancy_print(text=None, length=None):
+    print("\n")
+    print("#" * len(text))
+    print(f"{separator} {text} {separator}")
+    print("#" * len(text), "\n")
+
+
+class dummy_cv:
+    def __init__(self, n_splits=1):
+        self.n_splits = n_splits
+
+    def split(self, X, y, groups=None):
+        indices = np.arange(0, len(X), 1)
+        yield indices, []
+
+    def get_n_splits(self, X, y, groups=None):
+        return self.n_splits
+
 
 def create_base_summary(meta_test_dataframe):
     labels = pd.concat([df["labels"] for df in meta_test_dataframe])
@@ -166,7 +190,7 @@ def matthews_max_score(y_true, y_pred):
     return max_mcc, max_mcc_threshold
 
 
-def scores(y_true, y_pred, beta=1, metric_to_maximise="fscore", display=False):
+def scores(y_true, y_pred, beta=1, metric_to_maximise="fscore", verbose=0):
     if np.bincount(y_true)[0] < np.bincount(y_true)[1]:
         minor_class = 0
         major_class = 1
@@ -193,7 +217,7 @@ def scores(y_true, y_pred, beta=1, metric_to_maximise="fscore", display=False):
                              "max MMC": max_mmc
                              }  # dictionary of (score, threshold)
 
-    if display:
+    if verbose > 0:
         for metric_name, score in scores_threshold_dict.items():
             print(metric_name + ": ", score[0])
 
@@ -267,17 +291,21 @@ def retrieve_X_y(labelled_data):
     return X, y
 
 
-def append_modality(current_data, modality_data):
+def append_modality(current_data, modality_data, model_building=False):
     if current_data is None:
         combined_dataframe = modality_data
     else:
         combined_dataframe = []
         for fold, dataframe in enumerate(current_data):
-            if (dataframe.iloc[:, -1].to_numpy() != modality_data[fold].iloc[:, -1].to_numpy()).all():
-                print("Error: something is wrong. Labels do not match across modalities")
-                break
-            combined_dataframe.append(pd.concat((dataframe.iloc[:, :-1],
-                                                 modality_data[fold]), axis=1))
+            if not model_building:
+                if (dataframe.iloc[:, -1].to_numpy() != modality_data[fold].iloc[:, -1].to_numpy()).all():
+                    print("Error: something is wrong. Labels do not match across modalities")
+                    break
+                combined_dataframe.append(pd.concat((dataframe.iloc[:, :-1],
+                                                    modality_data[fold]), axis=1))
+            else:
+                combined_dataframe.append(pd.concat((dataframe.iloc[:, :],
+                                                    modality_data[fold]), axis=1))
     return combined_dataframe
 
 
@@ -293,4 +321,4 @@ def f_minority_score(y_true, y_pred):
         minor_class = 1
     return fmeasure_score(y_true, y_pred, pos_label=minor_class)['F']
 
-f_minor_sklearn = make_scorer(f_minority_score, greater_is_better=True)
+f_minor_sklearn = make_scorer(f_minority_score, greater_is_better=True, needs_proba=False)

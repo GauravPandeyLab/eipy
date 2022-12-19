@@ -87,6 +87,9 @@ class EI_interpreter:
 
         lf_pi_list = []
         for model_name, model in self.base_predictors.items():
+            if self.EI.calibration_model is not None:
+                self.EI.calibration_model.base_estimator = model
+                model = self.EI.calibration_model
             model.fit(X, self.y)
             lf_pi = permutation_importance(estimator=model,
                                            X=X,

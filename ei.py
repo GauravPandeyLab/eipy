@@ -3,42 +3,39 @@ Ensemble Integration
 
 @author: Jamie Bennett, Yan Chak (Richard) Li
 """
-
 import pandas as pd
 import numpy as np
-from copy import copy
-import dill as pickle
+import pickle
+import copy
 from sklearn.utils._testing import ignore_warnings
 from sklearn.exceptions import ConvergenceWarning
 from sklearn.model_selection import StratifiedKFold
+from sklearn.base import clone
 from joblib import Parallel, delayed
-from joblib.externals.loky import set_loky_pickler
 import warnings
-from utils import scores, set_seed, random_integers, sample, retrieve_X_y, append_modality, metric_threshold_dataframes, create_base_summary, safe_predict_proba
+from utils import scores, set_seed, random_integers, sample, retrieve_X_y, append_modality, metric_threshold_dataframes, create_base_summary, safe_predict_proba, dummy_cv
 from ens_selection import CES
 warnings.filterwarnings("ignore", category=DeprecationWarning)
 from sklearn.pipeline import Pipeline
-from sklearn.tree import DecisionTreeClassifier
-from sklearn.pipeline import make_pipeline
 
-def remove_correlated_features(df_train, df_test, correlation_removal_threshold=0.95):
+# def remove_correlated_features(df_train, df_test, correlation_removal_threshold=0.95):  # not used at this point
 
-    df = pd.concat([df_train, df_test], axis=0)
-    df = df.drop("labels", level=0, axis=1)
-    # Create correlation matrix
-    corr_matrix = df.corr().abs()
+#     df = pd.concat([df_train, df_test], axis=0)
+#     df = df.drop("labels", level=0, axis=1)
+#     # Create correlation matrix
+#     corr_matrix = df.corr().abs()
 
-    # Select upper triangle of correlation matrix
-    upper = corr_matrix.where(np.triu(np.ones(corr_matrix.shape), k=1).astype(np.bool))
+#     # Select upper triangle of correlation matrix
+#     upper = corr_matrix.where(np.triu(np.ones(corr_matrix.shape), k=1).astype(np.bool))
 
-    # Find features with correlation greater than 0.95
-    to_drop = [column for column in upper.columns if any(upper[column] > correlation_removal_threshold)]
+#     # Find features with correlation greater than 0.95
+#     to_drop = [column for column in upper.columns if any(upper[column] > correlation_removal_threshold)]
 
-    # Drop features 
-    df_train_new = df_train.drop(to_drop, axis=1)
-    df_test_new = df_test.drop(to_drop, axis=1)
+#     # Drop features
+#     df_train_new = df_train.drop(to_drop, axis=1)
+#     df_test_new = df_test.drop(to_drop, axis=1)
 
-    return df_train_new, df_test_new
+#     return df_train_new, df_test_new
 
 
 class MeanAggregation:
@@ -100,48 +97,53 @@ class EnsembleIntegration:
                  meta_models=None,  # dictionary of sklearn models
                  k_outer=5,  # number of outer folds, int
                  k_inner=5,  # number of inner folds, int
-                 n_samples=1,  # number of samples of training sets to be taken 
-                 sampling_strategy="undersampling",  # sampling method: "undersampling", "oversampling", "hybrid", None
+                 n_samples=1,  # number of samples of training sets to be taken
+                 # sampling method: "undersampling", "oversampling", "hybrid", None
+                 sampling_strategy="undersampling",
                  sampling_aggregation="mean",
                  n_jobs=-1,
                  random_state=None,
-                 parallel_backend="loky",  # change to "threading" if including TensorFlow models in base_predictors
+                 # change to "threading" if including TensorFlow models in base_predictors
+                 parallel_backend="loky",
                  project_name="project",
                  additional_ensemble_methods=["Mean", "Median", "CES"],
-                 calibration_model=None,  # calibration model to be applied to base predictors. Intended to be sklearn's CalibratedClassifierCV
-                 correlation_removal_threshold=1,  # remove features in meta_training_data and meta_test_data with correlation > correlation_removal_threshold
-                                                    # default is 1 (no removal). Typical value would be 0.95. NEEDS REMOVING BEFORE PUSH
-                 save_models=True,  # save models to disk. Not implemented yet.                               
-                                                ):
+                 # calibration model to be applied to base predictors. Intended for use with sklearn's CalibratedClassifierCV
+                 calibration_model=None,
+                 model_building=False,
+                 verbose=0
+                 ):
         set_seed(random_state)
 
         self.base_predictors = base_predictors
         if meta_models is not None:
-            self.meta_models = {"S." + k: v for k, v in meta_models.items()}  # suffix denotes stacking
+            # suffix denotes stacking
+            self.meta_models = {"S." + k: v for k, v in meta_models.items()}
         self.k_outer = k_outer
         self.k_inner = k_inner
         self.n_samples = n_samples
-        self.sampling_strategy = sampling_strategy
-        self.sampling_aggregation = sampling_aggregation
+        self.sampling_strategy = sampling_strategy.lower()
+        self.sampling_aggregation = sampling_aggregation.lower()
         self.n_jobs = n_jobs
         self.random_state = random_state
         self.parallel_backend = parallel_backend
         self.project_name = project_name
         self.additional_ensemble_methods = additional_ensemble_methods
         self.calibration_model = calibration_model
-        self.correlation_removal_threshold = correlation_removal_threshold
+        self.model_building = model_building
+        self.verbose = verbose
 
-        self.trained_meta_models = {}
-        self.trained_base_predictors = {}
+        self.final_models = {"base models": {},  # for final model
+                             "meta models": {}}
+        self.meta_training_data_final = None  # for final model
 
         self.cv_outer = StratifiedKFold(n_splits=self.k_outer, shuffle=True,
-                                            random_state=self.random_state)
+                                        random_state=self.random_state)
 
         self.cv_inner = StratifiedKFold(n_splits=self.k_inner, shuffle=True,
-                                            random_state=self.random_state)
+                                        random_state=self.random_state)
 
-        self.random_numbers_for_samples = random_integers(n_integers=n_samples, 
-                                                              seed=self.random_state)
+        self.random_numbers_for_samples = random_integers(n_integers=n_samples,
+                                                          seed=self.random_state)
 
         self.meta_training_data = None
         self.meta_test_data = None
@@ -150,14 +152,59 @@ class EnsembleIntegration:
         self.meta_predictions = None
         self.meta_summary = None
 
+        self.modality_names = []
+        self.n_features_per_modality = []
+
+    def predict(self, X_dictionary, meta_model_key):
+
+        meta_prediction_data = None
+
+        for i in range(len(self.modality_names)):
+            modality_name = self.modality_names[i]
+            n_features = self.n_features_per_modality[i]
+            X = X_dictionary[modality_name]
+            
+            # check number of features is the same 
+            assert X.shape[1] == n_features, f"{X.shape[1]} features were given for {modality_name} modality, but {n_features} were used during training."
+
+            base_models = copy.copy(self.final_models["base models"][modality_name])
+            for base_model_dict in base_models:
+                pickled_base_model = base_model_dict["pickled model"]
+                y_pred = safe_predict_proba(pickle.loads(pickled_base_model), X)
+
+                base_model_dict["fold id"] = 0
+                base_model_dict["y_pred"] = y_pred
+            
+            combined_predictions = self.combine_predictions_outer(base_models, modality_name, model_building=True)
+            meta_prediction_data = append_modality(meta_prediction_data, combined_predictions, model_building=True)
+
+        if self.sampling_aggregation == "mean":
+            meta_prediction_data  = meta_prediction_data[0].groupby(level=[0, 1], axis=1).mean()
+
+
+        pickled_meta_model = self.final_models["meta models"][meta_model_key]
+        y_pred = safe_predict_proba(pickle.loads(pickled_meta_model), meta_prediction_data)
+
+        return y_pred
+
+
+        ############################ Continue here. Need to convert base_predictions list to dataframe and predict with meta model.
 
     @ignore_warnings(category=ConvergenceWarning)
-    def train_meta(self, meta_models=None, display_metrics=True):
+    def train_meta(self, meta_models=None):
+
+        separator = "#" * 40
+        text = f"{separator} Analysis of ensembles {separator}"
+        print("\n")
+        print("#" * len(text))
+        print(text)
+        print("#" * len(text), "\n")
 
         if meta_models is not None:
             self.meta_models = meta_models
-            self.meta_models = {"S." + k: v for k, v in meta_models.items()}  # suffix denotes stacking
-        
+            # suffix denotes stacking
+            self.meta_models = {"S." + k: v for k, v in meta_models.items()}
+
         for k, v in self.meta_models.items():
             if type(v)==Pipeline:
                 est_ = list(v.named_steps)[-1]
@@ -170,33 +217,33 @@ class EnsembleIntegration:
                                   "Median": MedianAggregation(),
                                   "CES": CES()}
 
-        additional_meta_models = dict((k, additional_meta_models[k]) for k in self.additional_ensemble_methods)
+        additional_meta_models = dict(
+            (k, additional_meta_models[k]) for k in self.additional_ensemble_methods)
 
         self.meta_models = {**additional_meta_models, **self.meta_models}
-
-        print("\nWorking on meta models")
 
         y_test_combined = []
 
         for fold_id in range(self.k_outer):
-            _, y_test = retrieve_X_y(labelled_data=self.meta_test_data[fold_id])
+            _, y_test = retrieve_X_y(
+                labelled_data=self.meta_test_data[fold_id])
             y_test_combined.extend(y_test)
 
         meta_predictions = {}
         performance_metrics = []
 
         for model_name, model in self.meta_models.items():
-            print("\n{model_name:}...".format(model_name=model_name))
+            if self.verbose > 0:
+                print("\n{model_name:}...".format(model_name=model_name))
 
             y_pred_combined = []
 
             for fold_id in range(self.k_outer):
-                meta_training_data, meta_test_data = remove_correlated_features(self.meta_training_data[fold_id], 
-                                                                                self.meta_test_data[fold_id], 
-                                                                                self.correlation_removal_threshold)
 
-                X_train, y_train = retrieve_X_y(labelled_data=meta_training_data)
-                X_test, _ = retrieve_X_y(labelled_data=meta_test_data)
+                X_train, y_train = retrieve_X_y(
+                    labelled_data=self.meta_training_data[fold_id])
+                X_test, _ = retrieve_X_y(
+                    labelled_data=self.meta_test_data[fold_id])
 
                 if self.sampling_aggregation == "mean":
                     X_train = X_train.groupby(level=[0, 1], axis=1).mean()
@@ -207,17 +254,53 @@ class EnsembleIntegration:
                 y_pred_combined.extend(y_pred)
 
             meta_predictions[model_name] = y_pred_combined
-            performance_metrics.append(scores(y_test_combined, y_pred_combined, display=display_metrics))
+            performance_metrics.append(
+                scores(y_test_combined, y_pred_combined, verbose=1))
 
         meta_predictions["labels"] = y_test_combined
 
         self.meta_predictions = pd.DataFrame.from_dict(meta_predictions)
         self.meta_summary = metric_threshold_dataframes(self.meta_predictions)
 
+        print(("\n"
+               "Analysis complete: performance summary of ensemble algorithms can be found in \"meta_summary\" attribute."))
+
+        if self.model_building:
+
+            print("\nTraining meta predictors for final ensemble...")
+
+            for model_name, model in self.meta_models.items():
+
+                X_train, y_train = retrieve_X_y(
+                    labelled_data=self.meta_training_data_final[0])
+
+                if self.sampling_aggregation == "mean":
+                    X_train = X_train.groupby(level=[0, 1], axis=1).mean()
+                    X_test = X_test.groupby(level=[0, 1], axis=1).mean()
+
+                model.fit(X_train, y_train)
+
+                self.final_models["meta models"][model_name] = pickle.dumps(model)
+
+        print(("Model building: final meta models have been saved to \"final_models\" attribute."))
+
         return self
 
-    @ignore_warnings(category=ConvergenceWarning)
     def train_base(self, X, y, base_predictors=None, modality=None):
+
+        separator = "#" * 40
+        if modality is None:
+            text = separator * 2
+        else:
+            text = f"{separator} {modality} modality {separator}"
+
+        print("\n")
+        print("#" * len(text))
+        print(text)
+        print("#" * len(text), "\n")
+
+        self.modality_names.append(modality)
+        self.n_features_per_modality.append(X.shape[1])
 
         if base_predictors is not None:
             self.base_predictors = base_predictors  # update base predictors
@@ -230,12 +313,73 @@ class EnsembleIntegration:
             if hasattr(v, 'random_state') and hasattr(v, 'set_params'):
                 v.set_params(**{'random_state': self.random_state})
 
-        self.train_base_inner(X, y, self.base_predictors, modality)
-        self.train_base_outer(X, y, self.base_predictors, modality)
+        print("\nTraining base predictors and generating data for analysis...")
+
+        meta_training_data_modality = self.train_base_inner(X=X,
+                                                            y=y,
+                                                            cv_outer=self.cv_outer,
+                                                            cv_inner=self.cv_inner,
+                                                            base_predictors=self.base_predictors,
+                                                            modality=modality)
+
+        self.meta_training_data = append_modality(
+            self.meta_training_data, meta_training_data_modality)
+
+        meta_test_data_modality = self.train_base_outer(X=X,
+                                                        y=y,
+                                                        cv_outer=self.cv_outer,
+                                                        base_predictors=self.base_predictors,
+                                                        modality=modality)
+
+        self.meta_test_data = append_modality(
+            self.meta_test_data, meta_test_data_modality)  # append data to dataframe
+        # create a summary of base predictor performance
+        self.base_summary = create_base_summary(self.meta_test_data)
+
+        print(("\n"
+               "Base predictor training is complete: see \"base_summary\" attribute for a summary of base predictor performance."
+               " Meta training data can be found in \"meta_training_data\" and \"meta_test_data\" attributes."
+               " Run \"train_meta\" method for analysis of ensemble algorithms."))
+
+        if self.model_building:
+            self.train_base_final(X=X,
+                                  y=y,
+                                  modality=modality)
+
+            print(("\n"
+                   "Model building: meta training data for the final model has been generated "
+                   "and can be found in the \"meta_training_data_final\" attribute."
+                   " Final base predidctors have been saved in the \"final_models\" attribute."))
 
         return self
 
-    def train_base_inner(self, X, y, base_predictors=None, modality=None):
+    # check self.meta_models for a list of keys
+    def train_base_final(self, X, y, modality=None):
+
+        print("\nTraining base predictors and generating data for final ensemble...")
+
+        meta_training_data_modality = self.train_base_inner(X=X,
+                                                            y=y,
+                                                            # this cv just returns all indices of X with an empty set of test indices
+                                                            cv_outer=dummy_cv(),
+                                                            cv_inner=self.cv_inner,
+                                                            base_predictors=self.base_predictors,
+                                                            modality=modality)
+
+        self.meta_training_data_final = append_modality(
+            self.meta_training_data_final, meta_training_data_modality)
+
+        base_model_list_of_dicts = self.train_base_outer(X=X,
+                                                         y=y,
+                                                         # this cv just returns the indices of X with an empty set of test indices
+                                                         cv_outer=dummy_cv(),
+                                                         base_predictors=self.base_predictors,
+                                                         modality=modality,
+                                                         model_building=self.model_building)
+
+        self.final_models["base models"][modality] = base_model_list_of_dicts
+
+    def train_base_inner(self, X, y, cv_outer, cv_inner, base_predictors=None, modality=None):
         """
         Perform a round of (inner) k-fold cross validation on each outer
         training set for generation of training data for the meta-algorithm
@@ -255,39 +399,39 @@ class EnsembleIntegration:
         if base_predictors is not None:
             self.base_predictors = base_predictors  # update base predictors
 
-        if modality is not None:
-            print(f"\n{modality} modality: training base predictors on inner training sets...")
-        else:
-            print("Training base predictors on inner training sets...")
+        print("Generating meta training data via nested cross validation...")
 
         # dictionaries for meta train/test data for each outer fold
-        meta_training_data = []
+        meta_training_data_modality = []
+
         # define joblib Parallel function
-        parallel = Parallel(n_jobs=self.n_jobs, verbose=10, backend=self.parallel_backend)
-        for outer_fold_id, (train_index_outer, test_index_outer) in enumerate(self.cv_outer.split(X, y)):
-            print("\nGenerating meta-training data for outer fold {outer_fold_id:}...".format(
-                outer_fold_id=outer_fold_id))
+        with Parallel(n_jobs=self.n_jobs, verbose=self.verbose, backend=self.parallel_backend) as parallel:
+            for outer_fold_id, (train_index_outer, test_index_outer) in enumerate(cv_outer.split(X, y)):
+                if self.verbose > 1:
+                    print("Generating meta-training data for outer fold {outer_fold_id:}...".format(
+                        outer_fold_id=outer_fold_id))
 
-            X_train_outer = X[train_index_outer]
-            y_train_outer = y[train_index_outer]
+                X_train_outer = X[train_index_outer]
+                y_train_outer = y[train_index_outer]
 
-            # spawn n_jobs jobs for each sample, inner_fold and model
-            output = parallel(delayed(self.train_model_fold_sample)(X=X_train_outer,
-                                                                    y=y_train_outer,
-                                                                    model_params=model_params,
-                                                                    fold_params=inner_fold_params,
-                                                                    sample_state=sample_state)
-                              for model_params in self.base_predictors.items()
-                              for inner_fold_params in enumerate(self.cv_inner.split(X_train_outer, y_train_outer))
-                              for sample_state in enumerate(self.random_numbers_for_samples))
-            combined_predictions = self.combine_data_inner(output, modality)
-            meta_training_data.append(combined_predictions)
+                # spawn n_jobs jobs for each sample, inner_fold and model
+                output = parallel(delayed(self.train_model_fold_sample)(X=X_train_outer,
+                                                                        y=y_train_outer,
+                                                                        model_params=model_params,
+                                                                        fold_params=inner_fold_params,
+                                                                        sample_state=sample_state)
+                                  for model_params in self.base_predictors.items()
+                                  for inner_fold_params in enumerate(cv_inner.split(X_train_outer, y_train_outer))
+                                  for sample_state in enumerate(self.random_numbers_for_samples))
+                combined_predictions = self.combine_predictions_inner(
+                    output, modality)
+                meta_training_data_modality.append(combined_predictions)
 
-        self.meta_training_data = append_modality(self.meta_training_data, meta_training_data)
+        # self.meta_training_data = append_modality(self.meta_training_data, meta_training_data)
 
-        return self
+        return meta_training_data_modality
 
-    def train_base_outer(self, X, y, base_predictors=None, modality=None):
+    def train_base_outer(self, X, y, cv_outer, base_predictors=None, modality=None, model_building=False):
         """
         Train each base predictor on each outer training set
 
@@ -307,66 +451,68 @@ class EnsembleIntegration:
         if base_predictors is not None:
             self.base_predictors = base_predictors  # update base predictors
 
-        if modality is not None:
-            print(f"\n{modality} modality: training base predictors on outer training sets...")
-        else:
-            print("Training base predictors on outer training sets...")
+        print("Training base predictors on outer training sets...")
 
         # define joblib Parallel function
-        parallel = Parallel(n_jobs=self.n_jobs, verbose=10, backend=self.parallel_backend)
-        # spawn job for each sample, outer_fold and model
-        output = parallel(delayed(self.train_model_fold_sample)(X=X,
-                                                                y=y,
-                                                                model_params=model_params,
-                                                                fold_params=outer_fold_params,
-                                                                sample_state=sample_state)
-                          for model_params in self.base_predictors.items()
-                          for outer_fold_params in enumerate(self.cv_outer.split(X, y))
-                          for sample_state in enumerate(self.random_numbers_for_samples))
-        # meta_test_data = self.combine_data_outer(output, modality)
+        with Parallel(n_jobs=self.n_jobs, verbose=self.verbose, backend=self.parallel_backend) as parallel:
+            # spawn job for each sample, outer_fold and model
+            output = parallel(delayed(self.train_model_fold_sample)(X=X,
+                                                                    y=y,
+                                                                    model_params=model_params,
+                                                                    fold_params=outer_fold_params,
+                                                                    sample_state=sample_state,
+                                                                    model_building=model_building)
+                              for model_params in self.base_predictors.items()
+                              for outer_fold_params in enumerate(cv_outer.split(X, y))
+                              for sample_state in enumerate(self.random_numbers_for_samples))
 
-        self.meta_test_data = append_modality(self.meta_test_data, self.combine_data_outer(output, modality))
-        self.base_summary = create_base_summary(self.meta_test_data)
-
-        return self
+        if model_building:
+            return output
+        else:
+            return self.combine_predictions_outer(output, modality)
 
     @ignore_warnings(category=ConvergenceWarning)
-    def train_model_fold_sample(self, X, y, model_params, fold_params, sample_state):
+    def train_model_fold_sample(self, X, y, model_params, fold_params, sample_state, model_building=False):
         model_name, model = model_params
+
+        model = clone(model)
 
         fold_id, (train_index, test_index) = fold_params
         sample_id, sample_random_state = sample_state
 
         X_train, X_test = X[train_index], X[test_index]
         y_train, y_test = y[train_index], y[test_index]
-        X_sample, y_sample = sample(X_train, y_train, strategy=self.sampling_strategy, random_state=sample_random_state)
+        X_sample, y_sample = sample(
+            X_train, y_train, strategy=self.sampling_strategy, random_state=sample_random_state)
 
         if self.calibration_model is not None:
             self.calibration_model.base_estimator = model
-            model = self.calibration_model.base_estimator
-
-        
+            model = self.calibration_model
 
         model.fit(X_sample, y_sample)
 
-        y_pred = safe_predict_proba(model, X_test)
+        if model_building:
 
-        # if str(model.__class__).find("sklearn") != -1: # was using for TensorFlow models
-        #     y_pred = y_pred[:, 1]  # assumes other models are sklearn
+            results_dict = {
+                "model name": model_name,
+                "sample id": sample_id,
+                "pickled model": pickle.dumps(model)  # pickle model to reduce memory usage. use pickle.loads() to de-serialize
+            }
 
-        metrics = scores(y_test, y_pred)
+        else:
+            y_pred = safe_predict_proba(model, X_test)
 
-        results_dict = {"model_name": model_name,
-                        "sample_id": sample_id,
-                        "fold_id": fold_id,
-                        "scores": metrics,
-                        "model": model,
-                        "y_pred": y_pred,
-                        "labels": y_test}
+            results_dict = {
+                "model name": model_name,
+                "sample id": sample_id,
+                "fold id": fold_id,
+                "y_pred": y_pred,
+                "labels": y_test
+            }
 
         return results_dict
 
-    def combine_data_inner(self, list_of_dicts, modality):  # we don't save the models trained here
+    def combine_predictions_inner(self, list_of_dicts, modality):
         # dictionary to store predictions
         combined_predictions = {}
         # combine fold predictions for each model
@@ -374,32 +520,44 @@ class EnsembleIntegration:
             for sample_id in range(self.n_samples):
                 model_predictions = np.concatenate(
                     list(d["y_pred"] for d in list_of_dicts if
-                         d["model_name"] == model_name and d["sample_id"] == sample_id))
-                combined_predictions[modality, model_name, sample_id] = model_predictions
+                         d["model name"] == model_name and d["sample id"] == sample_id))
+                combined_predictions[modality, model_name,
+                                     sample_id] = model_predictions
         labels = np.concatenate(list(d["labels"] for d in list_of_dicts if
-                                     d["model_name"] == list(self.base_predictors.keys())[0] and d["sample_id"] == 0))
+                                     d["model name"] == list(self.base_predictors.keys())[0] and d["sample id"] == 0))
         combined_predictions = pd.DataFrame(combined_predictions).rename_axis(["modality", "base predictor", "sample"],
                                                                               axis=1)
         combined_predictions["labels"] = labels
         return combined_predictions
 
-    def combine_data_outer(self, list_of_dicts, modality):
+    def combine_predictions_outer(self, list_of_dicts, modality, model_building=False):
+
+        if model_building:
+            k_outer = 1
+        else:
+            k_outer = self.k_outer
+
         combined_predictions = []
-        for fold_id in range(self.k_outer):
+
+        for fold_id in range(k_outer):
             predictions = {}
             for model_name in self.base_predictors.keys():
                 for sample_id in range(self.n_samples):
-                    model_predictions = list([d["y_pred"], d["model"]] for d in list_of_dicts if
-                                             d["fold_id"] == fold_id and d["model_name"] == model_name and d[
-                                                 "sample_id"] == sample_id)
-                    predictions[modality, model_name, sample_id] = model_predictions[0][0]
-                    # self.trained_base_predictors[(model_name, sample_id)] = model_predictions[0][1] # need to write to file to avoid memory issues
-            labels = [d["labels"] for d in list_of_dicts if
-                      d["fold_id"] == fold_id and d["model_name"] == list(self.base_predictors.keys())[0] and d[
-                          "sample_id"] == 0]
+                    model_predictions = list(d["y_pred"] for d in list_of_dicts if
+                                             d["fold id"] == fold_id and d["model name"] == model_name and d["sample id"] == sample_id)
+                    predictions[modality, model_name,
+                                sample_id] = model_predictions[0]
             predictions = pd.DataFrame(predictions)
-            predictions["labels"] = labels[0]
-            combined_predictions.append(predictions.rename_axis(["modality", "base predictor", "sample"], axis=1))
+
+            if not model_building:
+                labels = [d["labels"] for d in list_of_dicts if
+                        d["fold id"] == fold_id and d["model name"] == list(self.base_predictors.keys())[0] and d[
+                            "sample id"] == 0]
+                predictions["labels"] = labels[0]
+
+            combined_predictions.append(predictions.rename_axis(
+                ["modality", "base predictor", "sample"], axis=1))
+
         return combined_predictions
 
     def save(self, path=None):
