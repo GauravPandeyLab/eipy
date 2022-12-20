@@ -3,6 +3,7 @@ from utils import scores, set_seed, \
     retrieve_X_y, append_modality, f_minor_sklearn, f_minority_score
 
 from numpy.random import choice, seed
+import numpy as np
 from numpy import argmax, argmin, argsort, corrcoef, mean, nanmax, sqrt, triu_indices_from, where
 import pandas as pd
 
@@ -26,6 +27,8 @@ class CES:
         self.greater_is_better = greater_is_better
         self.argbest = argmax if greater_is_better else argmin
         self.best = max if greater_is_better else min
+        self.random_state = random_state
+        self.rng_generator = np.random.default_rng(seed=self.random_state)
 
     def fit(self, X, y):
         self.selected_ensemble = []
@@ -44,6 +47,7 @@ class CES:
 
 
     def predict(self, X):
+        # print(self.best_ensemble)
         ces_bp_df = X[self.best_ensemble]
         return ces_bp_df.mean(axis=1).values
 
@@ -51,7 +55,7 @@ class CES:
         initial_ensemble_size = 2
         max_candidates = 50
         if len(ensemble) >= initial_ensemble_size:
-            candidates = choice(best_classifiers.index.values, min(max_candidates, len(best_classifiers)),
+            candidates = self.rng_generator.choice(best_classifiers.index.values, min(max_candidates, len(best_classifiers)),
                                 replace=False)
             candidate_scores = [self.scoring_func(y, X[ensemble + [candidate]].mean(axis=1)) for
                                 candidate in
