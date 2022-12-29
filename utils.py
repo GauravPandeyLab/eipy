@@ -280,7 +280,7 @@ def sample(X, y, strategy, random_state):
         X_resampled = np.concatenate([X_maj, X_min])
         y_resampled = np.concatenate([y_maj, y_min])
     
-    if strategy is not None:
+    if (strategy == "undersampling") or (strategy == "oversampling"):
         X_resampled, y_resampled = sampler.fit_resample(X=X, y=y)
     return X_resampled, y_resampled
 

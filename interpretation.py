@@ -11,8 +11,11 @@ from ens_selection import CES
 import copy
 import sklearn.metrics
 from sklearn.metrics import fbeta_score, make_scorer
+from sklearn.pipeline import Pipeline
+import shap
 
-
+import warnings
+warnings.filterwarnings('ignore')
 class EI_interpreter:
     """
     EI_object: Initialized EI object
@@ -33,12 +36,14 @@ class EI_interpreter:
                  n_jobs=-1,
                  n_repeats=10,
                  random_state=42,
-                 ensemble_of_interest='ALL'):
-        self.EI = copy.copy(EI_object)
+                 ensemble_of_interest='ALL',
+                 shap_val=False):
+        self.EI = copy.deepcopy(EI_object)
         self.k_outer = self.EI.k_outer
-        self.base_predictors = copy.copy(base_predictors)
-        self.meta_models = copy.copy(meta_models)
+        self.base_predictors = copy.deepcopy(base_predictors)
+        self.meta_models = copy.deepcopy(meta_models)
         self.meta_test_int = None
+        self.shap_val = shap_val
 
         self.y = y
         self.metric = metric
@@ -76,7 +81,7 @@ class EI_interpreter:
         modality: modality name
         feature_names: feature name of X
         """
-        if self.base_predictors is not None:
+        if self.base_predictors is None:
             self.base_predictors = self.EI.base_predictors  # update base predictors
 
         if modality is not None:
@@ -84,23 +89,37 @@ class EI_interpreter:
             # EI_obj.base_predictors = update_keys(dictionary=EI_obj.base_predictors,
             #                                      string=modality)  # include modality in model name
         
-        meta_test_temp = self.EI.train_base_outer(X, self.y, self.EI.cv_outer, self.EI.base_predictors, modality)
+        meta_test_temp = self.EI.train_base_outer(X, self.y, self.EI.cv_outer, 
+                                                  self.base_predictors, modality)
         
         self.meta_test_int = append_modality(self.meta_test_int, meta_test_temp)
 
         lf_pi_list = []
+        X_resampled, y_resampled = sample(X, self.y, 
+                                              strategy=self.EI.sampling_strategy, 
+                                              random_state=self.random_state)
         for model_name, model in self.base_predictors.items():
             if self.EI.calibration_model is not None:
                 self.EI.calibration_model.base_estimator = model
                 model = self.EI.calibration_model
-            model.fit(X, self.y)
-            lf_pi = permutation_importance(estimator=model,
-                                           X=X,
-                                           y=self.y,
-                                           n_repeats=self.n_repeats,
-                                           n_jobs=-1,
-                                           random_state=self.random_state,
-                                           scoring=self.metric)
+            if type(model)==Pipeline:
+                est_ = list(model.named_steps)[-1]
+                if hasattr(model[est_], 'random_state') and hasattr(model[est_], 'set_params'):
+                    model.set_params(**{'{}__random_state'.format(est_):self.random_state})
+            if hasattr(model, 'random_state'):
+                model.set_params(**{'random_state': self.random_state})
+            model.fit(X_resampled, y_resampled)
+            if self.shap_val:
+                lf_pi = self.shap_val_mean(model, X)
+            else:
+                lf_pi = permutation_importance(estimator=model,
+                                            X=X,
+                                            y=self.y,
+                                            n_repeats=self.n_repeats,
+                                            n_jobs=-1,
+                                            random_state=self.random_state,
+                                            scoring=self.metric)
+
             # pi_df = pd.DataFrame(data=[lf_pi.importances_mean], 
                                 # columns=self.feature_dict[modality], index=[0])
             pi_df = pd.DataFrame({'local_feat_PI': lf_pi.importances_mean, 
@@ -124,7 +143,7 @@ class EI_interpreter:
 
         meta_X_train = pd.concat(X_train_list)
         meta_y_train = np.concatenate(y_train_list)
-        print(meta_X_train.shape, meta_y_train)
+        # print(meta_X_train.shape, meta_y_train)
         lm_pi_list = []
         for model_name, model in meta_models_interested.items():
             if ('Mean' in model_name) or ('Median' in model_name):
@@ -135,8 +154,21 @@ class EI_interpreter:
                 model.fit(meta_X_train, meta_y_train)
                 """TODO"""
             else:
+                if type(model)==Pipeline:
+                    est_ = list(model.named_steps)[-1]
+                    if hasattr(model[est_], 'random_state') and hasattr(model[est_], 'set_params'):
+                        model.set_params(**{'{}__random_state'.format(est_):self.random_state})
+                if hasattr(model, 'random_state') and hasattr(model, 'set_params'):
+                    model.set_params(**{'random_state': self.random_state})
                 model.fit(meta_X_train, meta_y_train)
-                lm_pi = permutation_importance(estimator=model,
+                # model.fit()
+                if self.shap_val:
+                    # shap_exp = shap.Explainer(model)
+                    # shap_vals = shap_exp.shap_values(meta_X_train)
+                    # print(shap_vals)
+                    lm_pi = self.shap_val_mean(model, meta_X_train)
+                else:
+                    lm_pi = permutation_importance(estimator=model,
                                                 X=meta_X_train,
                                                 y=meta_y_train,
                                                 n_repeats=self.n_repeats,
@@ -156,6 +188,15 @@ class EI_interpreter:
         self.LMRs = pd.concat(lm_pi_list)
         # print(self.LMRs)
 
+    def shap_val_mean(self, m, x):
+        if hasattr(m, "predict_proba"):
+            shap_exp = shap.Explainer(m.predict_proba, x)
+        else:
+            shap_exp = shap.Explainer(m.predict, x)
+        
+        shap_vals = shap_exp(x)
+        print(shap_vals.values.shape)
+        return np.mean(shap_vals, axis=1)
 
     def rank_product_score(self):
         for modal_name, modality_data in self.modalities.items():
@@ -167,7 +208,7 @@ class EI_interpreter:
         if self.ensemble_of_interest == "ALL":
             if not ("Mean" in meta_models):
                 meta_models["Mean"] = MeanAggregation()
-            elif not ("Median" in meta_models):
+            if not ("Median" in meta_models):
                 meta_models["Median"] = MedianAggregation()
             # elif not ("CES" in meta_models):
             #     meta_models["CES"] = CES()
