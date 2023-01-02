@@ -149,20 +149,20 @@ class EI_interpreter:
             if ('Mean' in model_name) or ('Median' in model_name):
                 lm_pi = np.ones(len(meta_X_train.columns))
                 # print(model_name, X_train.columns)
-            
-            elif 'CES' == model_name:
+            elif model_name=='CES':
                 model.fit(meta_X_train, meta_y_train)
-                """TODO"""
+                model.selected_ensemble
+                model_selected_freq = []
+                for bp in meta_X_train.columns:
+                    model_selected_freq.append(model.selected_ensemble.count(bp))
+                lm_pi = model_selected_freq
             else:
                 if type(model)==Pipeline:
                     est_ = list(model.named_steps)[-1]
                     if hasattr(model[est_], 'random_state') and hasattr(model[est_], 'set_params'):
                         model.set_params(**{'{}__random_state'.format(est_):self.random_state})
-                if hasattr(model, 'random_state'):
-                    if hasattr(model, 'set_params'):
-                        model.set_params(**{'random_state': self.random_state})
-                    else:
-                        model.random_state = self.random_state
+                if hasattr(model, 'random_state') and hasattr(model, 'set_params'):
+                    model.set_params(**{'random_state': self.random_state})
                 model.fit(meta_X_train, meta_y_train)
                 # model.fit()
                 if self.shap_val:
@@ -213,8 +213,8 @@ class EI_interpreter:
                 meta_models["Mean"] = MeanAggregation()
             if not ("Median" in meta_models):
                 meta_models["Median"] = MedianAggregation()
-            # elif not ("CES" in meta_models):
-            #     meta_models["CES"] = CES()
+            if not ("CES" in meta_models):
+                meta_models["CES"] = CES()
         self.meta_models = meta_models
 
 
