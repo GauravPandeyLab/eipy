@@ -158,8 +158,11 @@ class EI_interpreter:
                     est_ = list(model.named_steps)[-1]
                     if hasattr(model[est_], 'random_state') and hasattr(model[est_], 'set_params'):
                         model.set_params(**{'{}__random_state'.format(est_):self.random_state})
-                if hasattr(model, 'random_state') and hasattr(model, 'set_params'):
-                    model.set_params(**{'random_state': self.random_state})
+                if hasattr(model, 'random_state'):
+                    if hasattr(model, 'set_params'):
+                        model.set_params(**{'random_state': self.random_state})
+                    else:
+                        model.random_state = self.random_state
                 model.fit(meta_X_train, meta_y_train)
                 # model.fit()
                 if self.shap_val:

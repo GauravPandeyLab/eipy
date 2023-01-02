@@ -28,12 +28,13 @@ class CES:
         self.argbest = argmax if greater_is_better else argmin
         self.best = max if greater_is_better else min
         self.random_state = random_state
-        self.rng_generator = np.random.default_rng(seed=self.random_state)
+       
 
     def fit(self, X, y):
         self.selected_ensemble = []
         self.train_performance = []
         # print(X, y)
+        self.rng_generator = np.random.default_rng(seed=self.random_state)
         best_classifiers = X.apply(lambda x: self.scoring_func(y, x)).sort_values(ascending=self.greater_is_better)
         for i in range(min(self.max_ensemble_size, len(best_classifiers))):
             best_candidate = self.select_candidate_enhanced(X, y, best_classifiers, self.selected_ensemble, i)
