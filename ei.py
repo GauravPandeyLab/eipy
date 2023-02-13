@@ -181,7 +181,6 @@ class EnsembleIntegration:
         if self.sampling_aggregation == "mean":
             meta_prediction_data  = meta_prediction_data[0].groupby(level=[0, 1], axis=1).mean()
 
-
         pickled_meta_model = self.final_models["meta models"][meta_model_key]
         y_pred = safe_predict_proba(pickle.loads(pickled_meta_model), meta_prediction_data)
 
@@ -271,8 +270,7 @@ class EnsembleIntegration:
 
             for model_name, model in self.meta_models.items():
 
-                X_train, y_train = retrieve_X_y(
-                    labelled_data=self.meta_training_data_final[0])
+                X_train, y_train = retrieve_X_y(labelled_data=self.meta_training_data_final[0])
 
                 if self.sampling_aggregation == "mean":
                     X_train = X_train.groupby(level=[0, 1], axis=1).mean()
@@ -322,8 +320,7 @@ class EnsembleIntegration:
                                                             base_predictors=self.base_predictors,
                                                             modality=modality)
 
-        self.meta_training_data = append_modality(
-            self.meta_training_data, meta_training_data_modality)
+        self.meta_training_data = append_modality(self.meta_training_data, meta_training_data_modality)
 
         meta_test_data_modality = self.train_base_outer(X=X,
                                                         y=y,
@@ -331,8 +328,8 @@ class EnsembleIntegration:
                                                         base_predictors=self.base_predictors,
                                                         modality=modality)
 
-        self.meta_test_data = append_modality(
-            self.meta_test_data, meta_test_data_modality)  # append data to dataframe
+        self.meta_test_data = append_modality(self.meta_test_data, meta_test_data_modality)  # append data to dataframe
+
         # create a summary of base predictor performance
         self.base_summary = create_base_summary(self.meta_test_data)
 
@@ -360,19 +357,16 @@ class EnsembleIntegration:
 
         meta_training_data_modality = self.train_base_inner(X=X,
                                                             y=y,
-                                                            # this cv just returns all indices of X with an empty set of test indices
+                                                            cv_inner=self.cv_inner,  # this cv just returns all indices of X with an empty set of test indices
                                                             cv_outer=dummy_cv(),
-                                                            cv_inner=self.cv_inner,
                                                             base_predictors=self.base_predictors,
                                                             modality=modality)
 
-        self.meta_training_data_final = append_modality(
-            self.meta_training_data_final, meta_training_data_modality)
+        self.meta_training_data_final = append_modality(self.meta_training_data_final, meta_training_data_modality)
 
         base_model_list_of_dicts = self.train_base_outer(X=X,
                                                          y=y,
-                                                         # this cv just returns the indices of X with an empty set of test indices
-                                                         cv_outer=dummy_cv(),
+                                                         cv_outer=dummy_cv(),  # this cv just returns the indices of X with an empty set of test indices
                                                          base_predictors=self.base_predictors,
                                                          modality=modality,
                                                          model_building=self.model_building)
@@ -467,6 +461,7 @@ class EnsembleIntegration:
                               for sample_state in enumerate(self.random_numbers_for_samples))
 
         if model_building:
+            # breakpoint()
             return output
         else:
             return self.combine_predictions_outer(output, modality)
