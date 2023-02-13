@@ -106,7 +106,7 @@ class EnsembleIntegration:
                  # change to "threading" if including TensorFlow models in base_predictors
                  parallel_backend="loky",
                  project_name="project",
-                 additional_ensemble_methods=["Mean", "Median", "CES"],
+                 additional_ensemble_methods=["Mean", "CES"],
                  # calibration model to be applied to base predictors. Intended for use with sklearn's CalibratedClassifierCV
                  calibration_model=None,
                  model_building=False,
@@ -214,7 +214,7 @@ class EnsembleIntegration:
                 v.set_params(**{'random_state': self.random_state})
 
         additional_meta_models = {"Mean": MeanAggregation(),
-                                  "Median": MedianAggregation(),
+                                #   "Median": MedianAggregation(),
                                   "CES": CES()}
 
         additional_meta_models = dict(
