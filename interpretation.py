@@ -207,7 +207,8 @@ class EI_interpreter:
     def rank_product_score(self):
         for modal_name, modality_data in self.modalities.items():
             self.local_feature_rank(modality_data, modality=modal_name)
-        self.LFRs = pd.concat(self.LFRs)  # concatenate dfs for different modalities
+        self.LFRs = pd.concat(self.LFRs)
+
         """Add mean/median aggregation here"""
         meta_models = {"S." + k: v for k, v in self.meta_models.items() if not (k in ["Mean", "Median"])}
         if self.ensemble_of_interest == "ALL":
@@ -229,22 +230,21 @@ class EI_interpreter:
         """Calculate the Rank percentile & their products here"""
         # return feature_ranking
         feature_ranking_list = {}
+        self.merged_lmr_lfr = {}
         for model_name in ens_list:
             lmr_interest = self.LMRs[self.LMRs['ensemble_method']==model_name].copy()
-            
-            self.merged_lmr_lfr = pd.merge(lmr_interest, self.LFRs,  
+            self.merged_lmr_lfr[model_name] = pd.merge(lmr_interest, self.LFRs,  
                                         how='right', left_on=['base predictor','modality'], 
                                         right_on = ['base predictor','modality'])
             # print(merged_lmr_lfr)
-            self.merged_lmr_lfr['LMR_LFR_product'] = self.merged_lmr_lfr['LMR']*self.merged_lmr_lfr['LFR']
-
+            self.merged_lmr_lfr[model_name]['LMR_LFR_product'] = self.merged_lmr_lfr[model_name]['LMR']*self.merged_lmr_lfr[model_name]['LFR']
             """ take mean of LMR*LFR for each feature """
             RPS_list = {'modality':[],
                         'feature': [],
                         'RPS': []}
-            print(self.merged_lmr_lfr)
-            for modal in self.merged_lmr_lfr['modality'].unique():
-                merged_lmr_lfr_modal = self.merged_lmr_lfr.loc[self.merged_lmr_lfr['modality']==modal]
+            print(self.merged_lmr_lfr[model_name])
+            for modal in self.merged_lmr_lfr[model_name]['modality'].unique():
+                merged_lmr_lfr_modal = self.merged_lmr_lfr[model_name].loc[self.merged_lmr_lfr[model_name]['modality']==modal]
                 for feat in merged_lmr_lfr_modal['local_feat_name'].unique():
                     RPS_list['modality'].append(modal)
                     RPS_list['feature'].append(feat)
