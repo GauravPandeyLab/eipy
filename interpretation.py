@@ -142,6 +142,8 @@ class EI_interpreter:
             y_train_list.append(y_train)
 
         meta_X_train = pd.concat(X_train_list)
+        if self.EI.sampling_aggregation == "mean":
+            meta_X_train = meta_X_train.groupby(level=[0, 1], axis=1).mean()
         meta_y_train = np.concatenate(y_train_list)
         # print(meta_X_train.shape, meta_y_train)
         lm_pi_list = []
@@ -183,7 +185,8 @@ class EI_interpreter:
             pi_df = pd.DataFrame({'local_model_PI': lm_pi,
                                     'base predictor': [i[1] for i in meta_X_train.columns],
                                     'modality': [i[0] for i in meta_X_train.columns],
-                                    'sample': [i[2] for i in meta_X_train.columns]})
+                                    # 'sample': [i[2] for i in meta_X_train.columns]
+                                    })
             
             pi_df['ensemble_method'] = model_name
             pi_df['LMR'] = pi_df['local_model_PI'].rank(pct=True, ascending=False)
@@ -228,20 +231,20 @@ class EI_interpreter:
         feature_ranking_list = {}
         for model_name in ens_list:
             lmr_interest = self.LMRs[self.LMRs['ensemble_method']==model_name].copy()
-
-            merged_lmr_lfr = pd.merge(lmr_interest, self.LFRs,  
+            
+            self.merged_lmr_lfr = pd.merge(lmr_interest, self.LFRs,  
                                         how='right', left_on=['base predictor','modality'], 
                                         right_on = ['base predictor','modality'])
             # print(merged_lmr_lfr)
-            merged_lmr_lfr['LMR_LFR_product'] = merged_lmr_lfr['LMR']*merged_lmr_lfr['LFR']
+            self.merged_lmr_lfr['LMR_LFR_product'] = self.merged_lmr_lfr['LMR']*self.merged_lmr_lfr['LFR']
 
             """ take mean of LMR*LFR for each feature """
             RPS_list = {'modality':[],
                         'feature': [],
                         'RPS': []}
-            print(merged_lmr_lfr)
-            for modal in merged_lmr_lfr['modality'].unique():
-                merged_lmr_lfr_modal = merged_lmr_lfr.loc[merged_lmr_lfr['modality']==modal]
+            print(self.merged_lmr_lfr)
+            for modal in self.merged_lmr_lfr['modality'].unique():
+                merged_lmr_lfr_modal = self.merged_lmr_lfr.loc[self.merged_lmr_lfr['modality']==modal]
                 for feat in merged_lmr_lfr_modal['local_feat_name'].unique():
                     RPS_list['modality'].append(modal)
                     RPS_list['feature'].append(feat)
