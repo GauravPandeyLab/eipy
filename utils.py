@@ -207,14 +207,14 @@ def scores(y_true, y_pred, beta=1, metric_to_maximise="fscore", verbose=0):
     f_measure_major = fmeasure_score(y_true, y_pred, pos_label=major_class,
                                     thres=1-f_measure_minor['thres'])
 
-    max_mmc = matthews_max_score(y_true, y_pred)
+    max_mcc = matthews_max_score(y_true, y_pred)
 
     auc = roc_auc_score(y_true, y_pred)
 
     scores_threshold_dict = {"fmax (minority)": (f_measure_minor['F'], f_measure_minor['thres']),
                             "f (majority)": (f_measure_major['F'], f_measure_minor['thres']),
                              "AUC": (auc, np.nan),
-                             "max MMC": max_mmc
+                             "max MCC": max_mcc
                              }  # dictionary of (score, threshold)
 
     if verbose > 0:
