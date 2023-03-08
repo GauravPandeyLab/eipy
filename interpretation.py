@@ -204,8 +204,7 @@ class EI_interpreter:
     def rank_product_score(self):
         for modal_name, modality_data in self.modalities.items():
             self.local_feature_rank(modality_data, modality=modal_name)
-        self.LFRs = pd.concat(self.LFRs)
-
+        self.LFRs = pd.concat(self.LFRs)  # concatenate dfs for different modalities
         """Add mean/median aggregation here"""
         meta_models = {"S." + k: v for k, v in self.meta_models.items() if not (k in ["Mean", "Median"])}
         if self.ensemble_of_interest == "ALL":
@@ -229,11 +228,13 @@ class EI_interpreter:
         feature_ranking_list = {}
         for model_name in ens_list:
             lmr_interest = self.LMRs[self.LMRs['ensemble_method']==model_name].copy()
+
             merged_lmr_lfr = pd.merge(lmr_interest, self.LFRs,  
                                         how='right', left_on=['base predictor','modality'], 
                                         right_on = ['base predictor','modality'])
             # print(merged_lmr_lfr)
             merged_lmr_lfr['LMR_LFR_product'] = merged_lmr_lfr['LMR']*merged_lmr_lfr['LFR']
+
             """ take mean of LMR*LFR for each feature """
             RPS_list = {'modality':[],
                         'feature': [],

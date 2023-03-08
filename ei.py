@@ -169,8 +169,8 @@ class EnsembleIntegration:
 
             base_models = copy.copy(self.final_models["base models"][modality_name])
             for base_model_dict in base_models:
-                pickled_base_model = base_model_dict["pickled model"]
-                y_pred = safe_predict_proba(pickle.loads(pickled_base_model), X)
+                base_model = pickle.loads(base_model_dict["pickled model"])
+                y_pred = safe_predict_proba(base_model, X)
 
                 base_model_dict["fold id"] = 0
                 base_model_dict["y_pred"] = y_pred
@@ -181,9 +181,9 @@ class EnsembleIntegration:
         if self.sampling_aggregation == "mean":
             meta_prediction_data  = meta_prediction_data[0].groupby(level=[0, 1], axis=1).mean()
 
-        pickled_meta_model = self.final_models["meta models"][meta_model_key]
-        y_pred = safe_predict_proba(pickle.loads(pickled_meta_model), meta_prediction_data)
-
+        meta_model = pickle.loads(self.final_models["meta models"][meta_model_key])
+        
+        y_pred = safe_predict_proba(meta_model, meta_prediction_data)
         return y_pred
 
 
