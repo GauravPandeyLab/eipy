@@ -95,39 +95,43 @@ class EI_interpreter:
         self.meta_test_int = append_modality(self.meta_test_int, meta_test_temp)
 
         lf_pi_list = []
-        X_resampled, y_resampled = sample(X, self.y, 
-                                              strategy=self.EI.sampling_strategy, 
-                                              random_state=self.random_state)
-        for model_name, model in self.base_predictors.items():
-            if self.EI.calibration_model is not None:
-                self.EI.calibration_model.base_estimator = model
-                model = self.EI.calibration_model
-            if type(model)==Pipeline:
-                est_ = list(model.named_steps)[-1]
-                if hasattr(model[est_], 'random_state') and hasattr(model[est_], 'set_params'):
-                    model.set_params(**{'{}__random_state'.format(est_):self.random_state})
-            if hasattr(model, 'random_state'):
-                model.set_params(**{'random_state': self.random_state})
-            model.fit(X_resampled, y_resampled)
-            if self.shap_val:
-                lf_pi = self.shap_val_mean(model, X)
-            else:
-                lf_pi = permutation_importance(estimator=model,
-                                            X=X,
-                                            y=self.y,
-                                            n_repeats=self.n_repeats,
-                                            n_jobs=-1,
-                                            random_state=self.random_state,
-                                            scoring=self.metric)
 
-            # pi_df = pd.DataFrame(data=[lf_pi.importances_mean], 
-                                # columns=self.feature_dict[modality], index=[0])
-            pi_df = pd.DataFrame({'local_feat_PI': lf_pi.importances_mean, 
-                                'local_feat_name': self.feature_dict[modality]})
-            pi_df['base predictor'] = model_name
-            pi_df['modality'] = modality
-            pi_df['LFR'] = pi_df['local_feat_PI'].rank(pct=True, ascending=False)
-            lf_pi_list.append(pi_df)
+        for sample_state in enumerate(self.EI.random_numbers_for_samples):
+            X_resampled, y_resampled = sample(X, self.y, 
+                                        strategy=self.EI.sampling_strategy, 
+                                        random_state=sample_state[1])
+            for model_name, model in self.base_predictors.items():
+            
+                if self.EI.calibration_model is not None:
+                    self.EI.calibration_model.base_estimator = model
+                    model = self.EI.calibration_model
+                if type(model)==Pipeline:
+                    est_ = list(model.named_steps)[-1]
+                    if hasattr(model[est_], 'random_state') and hasattr(model[est_], 'set_params'):
+                        model.set_params(**{'{}__random_state'.format(est_):self.random_state})
+                if hasattr(model, 'random_state'):
+                    model.set_params(**{'random_state': self.random_state})
+                model.fit(X_resampled, y_resampled)
+                if self.shap_val:
+                    lf_pi = self.shap_val_mean(model, X)
+                else:
+                    lf_pi = permutation_importance(estimator=model,
+                                                X=X,
+                                                y=self.y,
+                                                n_repeats=self.n_repeats,
+                                                n_jobs=-1,
+                                                random_state=self.random_state,
+                                                scoring=self.metric)
+
+                # pi_df = pd.DataFrame(data=[lf_pi.importances_mean], 
+                                    # columns=self.feature_dict[modality], index=[0])
+                pi_df = pd.DataFrame({'local_feat_PI': lf_pi.importances_mean, 
+                                    'local_feat_name': self.feature_dict[modality]})
+                pi_df['base predictor'] = model_name
+                pi_df['modality'] = modality
+                pi_df['LFR'] = pi_df['local_feat_PI'].rank(pct=True, ascending=False)
+                pi_df['sample'] = sample_state[0]
+                lf_pi_list.append(pi_df)
 
         self.LFRs.append(pd.concat(lf_pi_list))
         # print(self.LFRs)
