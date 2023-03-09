@@ -167,7 +167,7 @@ class EnsembleIntegration:
             # check number of features is the same 
             assert X.shape[1] == n_features, f"{X.shape[1]} features were given for {modality_name} modality, but {n_features} were used during training."
 
-            base_models = copy.copy(self.final_models["base models"][modality_name])
+            base_models = copy.deepcopy(self.final_models["base models"][modality_name])
             for base_model_dict in base_models:
                 base_model = pickle.loads(base_model_dict["pickled model"])
                 y_pred = safe_predict_proba(base_model, X)

@@ -13,9 +13,15 @@ import sklearn.metrics
 from sklearn.metrics import fbeta_score, make_scorer
 from sklearn.pipeline import Pipeline
 import shap
+import pickle
+from itertools import groupby
+from operator import itemgetter
+from sklearn.ensemble import VotingClassifier
+from sklearn.preprocessing import LabelEncoder
 
 import warnings
 warnings.filterwarnings('ignore')
+
 class EI_interpreter:
     """
     EI_object: Initialized EI object
@@ -30,49 +36,21 @@ class EI_interpreter:
                     data to the target label by each meta model
 
     """
-    def __init__(self, EI_object, base_predictors,
-                 meta_models, modalities, y, metric,
-                 feature_dict=None,
-                 n_jobs=-1,
+    def __init__(self, 
+                 EI, 
+                 metric,
                  n_repeats=10,
-                 random_state=42,
-                 ensemble_of_interest='ALL',
-                 shap_val=False):
-        self.EI = copy.deepcopy(EI_object)
-        self.k_outer = self.EI.k_outer
-        self.base_predictors = copy.deepcopy(base_predictors)
-        self.meta_models = copy.deepcopy(meta_models)
-        self.meta_test_int = None
-        self.shap_val = shap_val
-
-        self.y = y
+                 ensemble_methods='all'  # can be "all" or a list of keys for ensemble methods
+                 ):
+        
+        self.EI = EI
         self.metric = metric
-        if feature_dict is None:
-            self.feature_dict = {}
-            self.modalities = {}
-            for modal_name, modality in modalities.items():
-                if type(modality) == pd.core.frame.DataFrame:
-                    """if the data input is dataframe, store the feature name"""
-                    self.feature_dict[modal_name] = list(modality.columns)
-                    self.modalities[modal_name] = modality.values
-                    # print(modal_name, modality.shape)
-                
-                else:
-                    """If there is no feature name in input/feature name dictionary"""
-                    self.feature_dict[modal_name] = ['{}_{}'.format(modal_name, i) for i in range(modality.shape[1])]
-                    self.modalities[modal_name] = modality
-        else:
-            self.feature_dict = feature_dict
-            self.modalities = modalities
-        self.n_jobs = n_jobs
         self.n_repeats = n_repeats
-        self.ensemble_of_interest = ensemble_of_interest
-        self.random_state = random_state
-        self.LFRs = []
-        self.LMRs = None
-        self.ensemble_feature_ranking = None
+        self.ensemble_methods = ensemble_methods
 
-    def local_feature_rank(self, X, modality):
+        self.LFR = None
+
+    def local_feature_rank(self, X_dict, y):
         """
         Compute Local Feature Ranks (LFRs) of base predictors
         Parameters
@@ -81,60 +59,67 @@ class EI_interpreter:
         modality: modality name
         feature_names: feature name of X
         """
-        if self.base_predictors is None:
-            self.base_predictors = self.EI.base_predictors  # update base predictors
 
-        if modality is not None:
-            print(f"\n Working on {modality} data... \n")
-            # EI_obj.base_predictors = update_keys(dictionary=EI_obj.base_predictors,
-            #                                      string=modality)  # include modality in model name
-        
-        meta_test_temp = self.EI.train_base_outer(X, self.y, self.EI.cv_outer, 
-                                                  self.base_predictors, modality)
-        
-        self.meta_test_int = append_modality(self.meta_test_int, meta_test_temp)
+        importance_list = []
 
-        lf_pi_list = []
+        for modality_index, modality_name in enumerate(self.EI.modality_names):
 
-        for sample_state in enumerate(self.EI.random_numbers_for_samples):
-            X_resampled, y_resampled = sample(X, self.y, 
-                                        strategy=self.EI.sampling_strategy, 
-                                        random_state=sample_state[1])
-            for model_name, model in self.base_predictors.items():
+            X = X_dict[modality_name]
             
-                if self.EI.calibration_model is not None:
-                    self.EI.calibration_model.base_estimator = model
-                    model = self.EI.calibration_model
-                if type(model)==Pipeline:
-                    est_ = list(model.named_steps)[-1]
-                    if hasattr(model[est_], 'random_state') and hasattr(model[est_], 'set_params'):
-                        model.set_params(**{'{}__random_state'.format(est_):self.random_state})
-                if hasattr(model, 'random_state'):
-                    model.set_params(**{'random_state': self.random_state})
-                model.fit(X_resampled, y_resampled)
-                if self.shap_val:
-                    lf_pi = self.shap_val_mean(model, X)
+            base_models = copy.deepcopy(self.EI.final_models["base models"][modality_name])
+
+            base_models = sorted(base_models, key = itemgetter('model name'))
+
+            for key, base_models_per_sample in groupby(base_models, key = itemgetter('model name')):
+                
+                list_of_base_models = []
+
+                for base_model_dict in base_models_per_sample:
+                    base_model = pickle.loads(base_model_dict["pickled model"])
+                    list_of_base_models.append((str(base_model_dict["sample id"]), base_model,))  # list of tuples for VotingClassifier
+
+                if len(list_of_base_models) > 1:  # create mean ensemble with base predictors with different sample ids
+
+                    ###################################################################################################### 
+                    #  This code is a work around and may be fragile. We use VotingClassifier to combine models trained on 
+                    #  different samples (taking a mean of model output). The current sklearn implementation of 
+                    #  VotingClassifier does not accept pretrained models, so we set parameters ourselves to allow it. In
+                    #  the future it may be possible to use VotingClassifier alone without additional code.
+
+                    model = VotingClassifier(estimators=list_of_base_models, 
+                                                           voting='soft',
+                                                           weights=np.ones(len(list_of_base_models))) # average predictions of models built on different data samples
+
+                    model.estimators_ = [j for _, j in list_of_base_models]
+                    model.le_ = LabelEncoder().fit(y)
+                    model.classes_ = model.le_.classes_
+
+                    ######################################################################################################
+                
                 else:
-                    lf_pi = permutation_importance(estimator=model,
-                                                X=X,
-                                                y=self.y,
-                                                n_repeats=self.n_repeats,
-                                                n_jobs=-1,
-                                                random_state=self.random_state,
-                                                scoring=self.metric)
 
-                # pi_df = pd.DataFrame(data=[lf_pi.importances_mean], 
-                                    # columns=self.feature_dict[modality], index=[0])
-                pi_df = pd.DataFrame({'local_feat_PI': lf_pi.importances_mean, 
-                                    'local_feat_name': self.feature_dict[modality]})
-                pi_df['base predictor'] = model_name
-                pi_df['modality'] = modality
-                pi_df['LFR'] = pi_df['local_feat_PI'].rank(pct=True, ascending=False)
-                pi_df['sample'] = sample_state[0]
-                lf_pi_list.append(pi_df)
+                    model = list_of_base_models[0]
 
-        self.LFRs.append(pd.concat(lf_pi_list))
-        # print(self.LFRs)
+                pi = permutation_importance(estimator=model,
+                                            X=X,
+                                            y=y,
+                                            n_repeats=self.n_repeats,
+                                            n_jobs=self.EI.n_jobs,
+                                            random_state=self.EI.random_state,
+                                            scoring=self.metric)
+
+                pi_df = pd.DataFrame({"local_importance_mean": pi.importances_mean, 
+                                    "local_importance_std": pi.importances_std, 
+                                    "local_feature_id": range(X.shape[1])})
+            
+                pi_df['base predictor'] = base_model_dict["model name"]
+                pi_df['modality'] = modality_name
+                pi_df['LFR'] = pi_df["local_importance_mean"].rank(pct=True, ascending=False)
+                # pi_df['sample'] = base_model_dict["sample id"]
+                importance_list.append(pi_df)
+
+        self.LFR = pd.concat(importance_list)
+
 
     def local_model_rank(self, meta_models_interested):
         X_train_list = []
@@ -208,29 +193,16 @@ class EI_interpreter:
         print(shap_vals.values.shape)
         return np.mean(shap_vals, axis=1)
 
-    def rank_product_score(self):
-        for modal_name, modality_data in self.modalities.items():
-            self.local_feature_rank(modality_data, modality=modal_name)
-        self.LFRs = pd.concat(self.LFRs)
+    def rank_product_score(self, X_dict, y):
 
-        """Add mean/median aggregation here"""
-        meta_models = {"S." + k: v for k, v in self.meta_models.items() if not (k in ["Mean", "Median"])}
-        if self.ensemble_of_interest == "ALL":
-            if not ("Mean" in meta_models):
-                meta_models["Mean"] = MeanAggregation()
-            if not ("Median" in meta_models):
-                meta_models["Median"] = MedianAggregation()
-            if not ("CES" in meta_models):
-                meta_models["CES"] = CES()
-        self.meta_models = meta_models
+        self.local_feature_rank(X_dict, y)
 
+        meta_models = copy.deepcopy(self.EI.final_models["meta models"])
 
-        if self.ensemble_of_interest == 'ALL':
-            self.local_model_rank(meta_models_interested=self.meta_models)
-            ens_list = [k for k, v in self.meta_models.items()]
-        else:
-            self.local_model_rank(meta_models_interested=self.ensemble_of_interest)
-            ens_list = self.ensemble_of_interest
+        breakpoint()
+
+        self.local_model_rank(meta_models_interested=self.ensemble_methods)
+
         """Calculate the Rank percentile & their products here"""
         # return feature_ranking
         feature_ranking_list = {}
