@@ -84,11 +84,12 @@ class EI_interpreter:
                     #  This code is a work around and may be fragile. We use VotingClassifier to combine models trained on 
                     #  different samples (taking a mean of model output). The current sklearn implementation of 
                     #  VotingClassifier does not accept pretrained models, so we set parameters ourselves to allow it. In
-                    #  the future it may be possible to use VotingClassifier alone without additional code.
+                    #  the future it may be possible to use VotingClassifier alone without additional code. An 
+                    #  sklearn-like model is needed to be passed to permutation_importance
 
                     model = VotingClassifier(estimators=list_of_base_models, 
-                                                           voting='soft',
-                                                           weights=np.ones(len(list_of_base_models))) # average predictions of models built on different data samples
+                                             voting='soft',
+                                             weights=np.ones(len(list_of_base_models))) # average predictions of models built on different data samples
 
                     model.estimators_ = [j for _, j in list_of_base_models]
                     model.le_ = LabelEncoder().fit(y)
@@ -109,79 +110,80 @@ class EI_interpreter:
                                             scoring=self.metric)
 
                 pi_df = pd.DataFrame({"local_importance_mean": pi.importances_mean, 
-                                    "local_importance_std": pi.importances_std, 
-                                    "local_feature_id": range(X.shape[1])})
+                                      "local_importance_std": pi.importances_std, 
+                                      "local_feature_id": range(X.shape[1])
+                                      })
             
                 pi_df['base predictor'] = base_model_dict["model name"]
                 pi_df['modality'] = modality_name
                 pi_df['LFR'] = pi_df["local_importance_mean"].rank(pct=True, ascending=False)
-                # pi_df['sample'] = base_model_dict["sample id"]
                 importance_list.append(pi_df)
 
         self.LFR = pd.concat(importance_list)
 
 
-    def local_model_rank(self, meta_models_interested):
-        X_train_list = []
-        y_train_list = []
-        # print(self.EI.meta_training_data)
-        for fold_id in range(self.EI.k_outer):
-            X_train, y_train = retrieve_X_y(labelled_data=self.meta_test_int[fold_id])
-            X_train_list.append(X_train)
-            y_train_list.append(y_train)
+    def local_model_rank(self, ensemble_model_keys):
 
-        meta_X_train = pd.concat(X_train_list)
+        #  load meta training data from EI training
+
+        meta_X_train, meta_y_train = retrieve_X_y(labelled_data=self.EI.meta_training_data_final[0])
+
         if self.EI.sampling_aggregation == "mean":
             meta_X_train = meta_X_train.groupby(level=[0, 1], axis=1).mean()
-        meta_y_train = np.concatenate(y_train_list)
-        # print(meta_X_train.shape, meta_y_train)
+
+        #  calculate importance for ensemble models of interest
+
         lm_pi_list = []
-        for model_name, model in meta_models_interested.items():
+
+        ensemble_models = copy.deepcopy(self.EI.final_models["meta models"])
+
+        ensemble_models = itemgetter(*ensemble_model_keys)(ensemble_models)  
+
+        ensemble_models = dict(zip(ensemble_model_keys, ensemble_models)) 
+
+        for model_name, model in ensemble_models.items():
+
+            print(model_name)
+
+            meta_model = pickle.loads(model)
+
             if ('Mean' in model_name) or ('Median' in model_name):
-                lm_pi = np.ones(len(meta_X_train.columns))
-                # print(model_name, X_train.columns)
+
+                importances_mean = np.ones(len(meta_X_train.columns))
+                importances_std = np.zeros(len(meta_X_train.columns))
+
             elif model_name=='CES':
-                model.fit(meta_X_train, meta_y_train)
-                model.selected_ensemble
+
                 model_selected_freq = []
                 for bp in meta_X_train.columns:
-                    model_selected_freq.append(model.selected_ensemble.count(bp))
-                lm_pi = model_selected_freq
-            else:
-                if type(model)==Pipeline:
-                    est_ = list(model.named_steps)[-1]
-                    if hasattr(model[est_], 'random_state') and hasattr(model[est_], 'set_params'):
-                        model.set_params(**{'{}__random_state'.format(est_):self.random_state})
-                if hasattr(model, 'random_state') and hasattr(model, 'set_params'):
-                    model.set_params(**{'random_state': self.random_state})
-                model.fit(meta_X_train, meta_y_train)
-                # model.fit()
-                if self.shap_val:
-                    # shap_exp = shap.Explainer(model)
-                    # shap_vals = shap_exp.shap_values(meta_X_train)
-                    # print(shap_vals)
-                    lm_pi = self.shap_val_mean(model, meta_X_train)
-                else:
-                    lm_pi = permutation_importance(estimator=model,
-                                                X=meta_X_train,
-                                                y=meta_y_train,
-                                                n_repeats=self.n_repeats,
-                                                n_jobs=-1,
-                                                random_state=self.random_state,
-                                                scoring=self.metric)
-                lm_pi = lm_pi.importances_mean
+                    model_selected_freq.append(meta_model.selected_ensemble.count(bp))
+                importances_mean = model_selected_freq
+                importances_std = np.ones(len(meta_X_train.columns)) * np.nan
 
-            pi_df = pd.DataFrame({'local_model_PI': lm_pi,
-                                    'base predictor': [i[1] for i in meta_X_train.columns],
-                                    'modality': [i[0] for i in meta_X_train.columns],
-                                    # 'sample': [i[2] for i in meta_X_train.columns]
-                                    })
+            else:
+
+                pi = permutation_importance(estimator=meta_model,
+                                            X=meta_X_train,
+                                            y=meta_y_train,
+                                            n_repeats=self.n_repeats,
+                                            n_jobs=-1,
+                                            random_state=self.EI.random_state,
+                                            scoring=self.metric)
+            
+                importances_mean = pi.importances_mean
+                importances_std = pi.importances_std
+
+            pi_df = pd.DataFrame({"local_importance_mean": importances_mean, 
+                                  "local_importance_std": importances_std, 
+                                  "base predictor": [column_name[1] for column_name in meta_X_train.columns],
+                                  "modality": [column_name[0] for column_name in meta_X_train.columns]
+                                  })
             
             pi_df['ensemble_method'] = model_name
-            pi_df['LMR'] = pi_df['local_model_PI'].rank(pct=True, ascending=False)
+            pi_df['LMR'] = pi_df["local_importance_mean"].rank(pct=True, ascending=False)
             lm_pi_list.append(pi_df)
-        self.LMRs = pd.concat(lm_pi_list)
-        # print(self.LMRs)
+        self.LMR = pd.concat(lm_pi_list)
+        breakpoint()
 
     def shap_val_mean(self, m, x):
         if hasattr(m, "predict_proba"):
@@ -195,23 +197,24 @@ class EI_interpreter:
 
     def rank_product_score(self, X_dict, y):
 
+        if self.ensemble_methods == "all":
+            ensemble_methods = self.EI.meta_models.keys()
+        else:
+            ensemble_methods = self.ensemble_methods
+
         self.local_feature_rank(X_dict, y)
 
-        meta_models = copy.deepcopy(self.EI.final_models["meta models"])
-
-        breakpoint()
-
-        self.local_model_rank(meta_models_interested=self.ensemble_methods)
+        self.local_model_rank(ensemble_model_keys=ensemble_methods)
 
         """Calculate the Rank percentile & their products here"""
         # return feature_ranking
         feature_ranking_list = {}
         self.merged_lmr_lfr = {}
-        for model_name in ens_list:
-            lmr_interest = self.LMRs[self.LMRs['ensemble_method']==model_name].copy()
-            self.merged_lmr_lfr[model_name] = pd.merge(lmr_interest, self.LFRs,  
-                                        how='right', left_on=['base predictor','modality'], 
-                                        right_on = ['base predictor','modality'])
+        for model_name in ensemble_methods:
+            lmr_interest = self.LMR[self.LMR['ensemble_method']==model_name].copy()
+            self.merged_lmr_lfr[model_name] = pd.merge(lmr_interest, self.LFR,  
+                                        how='right', left_on=['base predictor', 'modality'], 
+                                        right_on = ['base predictor', 'modality'])
             # print(merged_lmr_lfr)
             self.merged_lmr_lfr[model_name]['LMR_LFR_product'] = self.merged_lmr_lfr[model_name]['LMR']*self.merged_lmr_lfr[model_name]['LFR']
             """ take mean of LMR*LFR for each feature """
@@ -221,10 +224,10 @@ class EI_interpreter:
             print(self.merged_lmr_lfr[model_name])
             for modal in self.merged_lmr_lfr[model_name]['modality'].unique():
                 merged_lmr_lfr_modal = self.merged_lmr_lfr[model_name].loc[self.merged_lmr_lfr[model_name]['modality']==modal]
-                for feat in merged_lmr_lfr_modal['local_feat_name'].unique():
+                for feat in merged_lmr_lfr_modal['local_feature_id'].unique():
                     RPS_list['modality'].append(modal)
                     RPS_list['feature'].append(feat)
-                    RPS_list['RPS'].append(merged_lmr_lfr_modal.loc[merged_lmr_lfr_modal['local_feat_name']==feat, 
+                    RPS_list['RPS'].append(merged_lmr_lfr_modal.loc[merged_lmr_lfr_modal['local_feature_id']==feat, 
                                             'LMR_LFR_product'].mean())
             RPS_df = pd.DataFrame(RPS_list)
             RPS_df['feature rank'] = RPS_df['RPS'].rank(ascending=True)
