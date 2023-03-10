@@ -196,7 +196,7 @@ class EI_interpreter:
             pi_df['LMR'] = pi_df['local_model_PI'].rank(pct=True, ascending=False)
             lm_pi_list.append(pi_df)
         self.LMRs = pd.concat(lm_pi_list)
-        # print(self.LMRs)
+        breakpoint()
 
     def shap_val_mean(self, m, x):
         if hasattr(m, "predict_proba"):
