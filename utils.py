@@ -315,15 +315,16 @@ def auprc(y_true, y_scores):
 auprc_sklearn = make_scorer(auprc, greater_is_better=True, needs_proba=True)
 
 def f_minority_score(y_true, y_pred):
-    if (len(y_pred.shape) > 2):
-        y_pred_pos = y_pred[:, -1]
-    else:
-        y_pred_pos = y_pred
+    # if (len(y_pred.shape) > 2):
+    #     y_pred_pos = y_pred[:, -1]
+    # else:
+    #     y_pred_pos = y_pred
     if np.bincount(y_true)[0] < np.bincount(y_true)[1]:
         minor_class = 0
     else:
         minor_class = 1
-    return fmeasure_score(y_true, y_pred_pos, pos_label=minor_class)['F']
+    # return fmeasure_score(y_true, y_pred_pos, pos_label=minor_class)['F']
+    return fmeasure_score(y_true, y_pred, pos_label=minor_class)['F']
 
 def generate_scorer_by_model(score_func, model, greater_is_better):
     needs_proba = False

@@ -161,46 +161,46 @@ class EI_interpreter:
         # print(meta_X_train.shape, meta_y_train)
         lm_pi_list = []
         for model_name, model in meta_models_interested.items():
-            if ('Mean' in model_name) or ('Median' in model_name):
-                lm_pi = np.ones(len(meta_X_train.columns))
-                # print(model_name, X_train.columns)
-            elif model_name=='CES':
-                model.fit(meta_X_train, meta_y_train)
-                model.selected_ensemble
-                model_selected_freq = []
-                for bp in meta_X_train.columns:
-                    model_selected_freq.append(model.selected_ensemble.count(bp))
-                lm_pi = model_selected_freq
+            # if ('Mean' in model_name) or ('Median' in model_name):
+            #     lm_pi = np.ones(len(meta_X_train.columns))
+            #     # print(model_name, X_train.columns)
+            # elif model_name=='CES':
+            #     model.fit(meta_X_train, meta_y_train)
+            #     model.selected_ensemble
+            #     model_selected_freq = []
+            #     for bp in meta_X_train.columns:
+            #         model_selected_freq.append(model.selected_ensemble.count(bp))
+            #     lm_pi = model_selected_freq
+            # else:
+            if type(model)==Pipeline:
+                est_ = list(model.named_steps)[-1]
+                if hasattr(model[est_], 'random_state') and hasattr(model[est_], 'set_params'):
+                    model.set_params(**{'{}__random_state'.format(est_):self.random_state})
+            if hasattr(model, 'random_state') and hasattr(model, 'set_params'):
+                model.set_params(**{'random_state': self.random_state})
+            model.fit(meta_X_train, meta_y_train)
+            # model.fit()
+            if self.shap_val:
+                # shap_exp = shap.Explainer(model)
+                # shap_vals = shap_exp.shap_values(meta_X_train)
+                # print(shap_vals)
+                lm_pi = self.shap_val_mean(model, meta_X_train)
             else:
-                if type(model)==Pipeline:
-                    est_ = list(model.named_steps)[-1]
-                    if hasattr(model[est_], 'random_state') and hasattr(model[est_], 'set_params'):
-                        model.set_params(**{'{}__random_state'.format(est_):self.random_state})
-                if hasattr(model, 'random_state') and hasattr(model, 'set_params'):
-                    model.set_params(**{'random_state': self.random_state})
-                model.fit(meta_X_train, meta_y_train)
-                # model.fit()
-                if self.shap_val:
-                    # shap_exp = shap.Explainer(model)
-                    # shap_vals = shap_exp.shap_values(meta_X_train)
-                    # print(shap_vals)
-                    lm_pi = self.shap_val_mean(model, meta_X_train)
-                else:
-                    # scorer_ = generate_scorer_by_model(score_func=self.metric,
-                    #                                     model=model,
-                    #                                     greater_is_better=self.metric_greater_is_better)
-                    needs_proba = hasattr(model, "predict_proba")
-                    scorer_ = make_scorer(self.metric, 
-                                        greater_is_better=self.metric_greater_is_better,
-                                        needs_proba=needs_proba)
-                    lm_pi = permutation_importance(estimator=model,
-                                                X=meta_X_train,
-                                                y=meta_y_train,
-                                                n_repeats=self.n_repeats,
-                                                n_jobs=-1,
-                                                random_state=self.random_state,
-                                                scoring=scorer_
-                                                )
+                # scorer_ = generate_scorer_by_model(score_func=self.metric,
+                #                                     model=model,
+                #                                     greater_is_better=self.metric_greater_is_better)
+                needs_proba = hasattr(model, "predict_proba")
+                scorer_ = make_scorer(self.metric, 
+                                    greater_is_better=self.metric_greater_is_better,
+                                    needs_proba=needs_proba)
+                lm_pi = permutation_importance(estimator=model,
+                                            X=meta_X_train,
+                                            y=meta_y_train,
+                                            n_repeats=self.n_repeats,
+                                            n_jobs=-1,
+                                            random_state=self.random_state,
+                                            scoring=scorer_
+                                            )
                 lm_pi = lm_pi.importances_mean
 
             pi_df = pd.DataFrame({'local_model_PI': lm_pi,
