@@ -8,6 +8,7 @@ import numpy as np
 import pickle
 import copy
 from sklearn.utils._testing import ignore_warnings
+from sklearn.utils.validation import check_X_y, check_array, check_is_fitted
 from sklearn.exceptions import ConvergenceWarning
 from sklearn.model_selection import StratifiedKFold
 from sklearn.base import clone
@@ -17,6 +18,9 @@ from utils import scores, set_seed, random_integers, sample, retrieve_X_y, appen
 from ens_selection import CES
 warnings.filterwarnings("ignore", category=DeprecationWarning)
 from sklearn.pipeline import Pipeline
+from sklearn.base import BaseEstimator, ClassifierMixin
+from sklearn.utils.multiclass import unique_labels
+
 
 # def remove_correlated_features(df_train, df_test, correlation_removal_threshold=0.95):  # not used at this point
 
@@ -38,26 +42,44 @@ from sklearn.pipeline import Pipeline
 #     return df_train_new, df_test_new
 
 
-class MeanAggregation:
+
+
+class MeanAggregation(BaseEstimator, ClassifierMixin):
     def __init__(self):
         pass
 
     def fit(self, X, y):
-        pass
+        # Check that X and y have correct shape
+        # X, y = check_X_y(X, y)
+        # Store the classes seen during fit
+        self.classes_ = unique_labels(y)
+
+        self.X_ = X
+        self.y_ = y
+        # Return the classifier
+        return self
+
 
     def predict_proba(self, X):
+        check_is_fitted(self)
         predict_positive = X.mean(axis=1)
         return np.transpose(np.array([1 - predict_positive, predict_positive]))
 
-
-class MedianAggregation:
+class MedianAggregation(BaseEstimator, ClassifierMixin):
     def __init__(self):
         pass
 
     def fit(self, X, y):
-        pass
+        self.classes_ = unique_labels(y)
+
+        self.X_ = X
+        self.y_ = y
+        # Return the classifier
+        return self
+
 
     def predict_proba(self, X):
+        check_is_fitted(self)
         predict_positive = X.median(axis=1)
         return np.transpose(np.array([1 - predict_positive, predict_positive]))
 
