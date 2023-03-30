@@ -2,7 +2,7 @@ from sklearn.cluster import k_means
 from sklearn.inspection import permutation_importance
 from sklearn.model_selection import StratifiedKFold
 from utils import scores, set_seed, random_integers, sample, \
-    retrieve_X_y, append_modality
+    retrieve_X_y, append_modality, generate_scorer_by_model
 from joblib import Parallel, delayed
 import pandas as pd
 import numpy as np
@@ -40,13 +40,15 @@ class EI_interpreter:
                  EI, 
                  metric,
                  n_repeats=10,
-                 ensemble_methods='all'  # can be "all" or a list of keys for ensemble methods
+                 ensemble_methods='all',
+                 metric_greater_is_better = True  # can be "all" or a list of keys for ensemble methods
                  ):
         
         self.EI = EI
         self.metric = metric
         self.n_repeats = n_repeats
         self.ensemble_methods = ensemble_methods
+        self.metric_greater_is_better = metric_greater_is_better
 
         self.LFR = None
 
@@ -101,13 +103,18 @@ class EI_interpreter:
 
                     model = list_of_base_models[0]
 
+                needs_proba = hasattr(model, "predict_proba")
+                scorer_ = make_scorer(self.metric, 
+                                        greater_is_better=self.metric_greater_is_better,
+                                        needs_proba=needs_proba)
+
                 pi = permutation_importance(estimator=model,
                                             X=X,
                                             y=y,
                                             n_repeats=self.n_repeats,
                                             n_jobs=self.EI.n_jobs,
                                             random_state=self.EI.random_state,
-                                            scoring=self.metric)
+                                            scoring=scorer_)
 
                 pi_df = pd.DataFrame({"local_importance_mean": pi.importances_mean, 
                                       "local_importance_std": pi.importances_std, 
@@ -161,7 +168,10 @@ class EI_interpreter:
                 importances_std = np.ones(len(meta_X_train.columns)) * np.nan
 
             else:
-
+                needs_proba = hasattr(model, "predict_proba")
+                scorer_ = make_scorer(self.metric, 
+                                    greater_is_better=self.metric_greater_is_better,
+                                    needs_proba=needs_proba)
                 pi = permutation_importance(estimator=meta_model,
                                             X=meta_X_train,
                                             y=meta_y_train,

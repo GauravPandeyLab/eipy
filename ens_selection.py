@@ -7,8 +7,11 @@ import numpy as np
 from numpy import argmax, argmin, argsort, corrcoef, mean, nanmax, sqrt, triu_indices_from, where
 import pandas as pd
 
+from sklearn.utils.validation import check_X_y, check_array, check_is_fitted
+from sklearn.base import BaseEstimator, ClassifierMixin
+from sklearn.utils.multiclass import unique_labels
 
-class CES:
+class CES(BaseEstimator, ClassifierMixin):
     """
     Caruana et al's Ensemble Selection
     """
@@ -31,6 +34,15 @@ class CES:
        
 
     def fit(self, X, y):
+
+        # X, y = check_X_y(X, y)
+        # Store the classes seen during fit
+        self.classes_ = unique_labels(y)
+
+        self.X_ = X
+        self.y_ = y
+        # Return the classifier
+        
         self.selected_ensemble = []
         self.train_performance = []
         # print(X, y)
@@ -45,12 +57,15 @@ class CES:
         best_ensemble_size = self.get_best_performer(train_performance_df)['ensemble_size'].values
         self.best_ensemble = train_performance_df['ensemble'][:best_ensemble_size.item(0) + 1]
         # print(self.best_ensemble)
+        return self
 
-
-    def predict(self, X):
+    def predict_proba(self, X):
         # print(self.best_ensemble)
+        check_is_fitted(self)
+        # X = check_array(X)
         ces_bp_df = X[self.best_ensemble]
-        return ces_bp_df.mean(axis=1).values
+        predict_positive = ces_bp_df.mean(axis=1).values
+        return np.transpose(np.array([1 - predict_positive, predict_positive]))
 
     def select_candidate_enhanced(self, X, y, best_classifiers, ensemble, i):
         initial_ensemble_size = 2
@@ -83,16 +98,16 @@ class CES:
             return df[df.score >= (self.best(df.score) - se)].head(1)
         return df[df.score <= (self.best(df.score) + se)].head(1)
 
+
 # class BestBasePredictor:
-#     """
-#     Picking the best base predictor
-#     """
+#      """
+#      Picking the best base predictor
+#      """
 #     def __init__(self, scoring_func, greater_is_better=True):
 #         self.scoring_func = scoring_func
 #         self.greater_is_better = greater_is_better
 #         self.argbest = argmax if greater_is_better else argmin
 #         self.best = max if greater_is_better else min
-#
-#     def fit(self, X, y):
-#
 
+#     def fit(self, X, y):
+#         return df[df.score <= (self.best(df.score) + se)].head(1)
