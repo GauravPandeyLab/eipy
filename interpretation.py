@@ -62,7 +62,7 @@ class EI_interpreter:
         feature_names: feature name of X
         """
 
-        print("     Calculating local feature ranks...")
+        print("     Calculating local feature ranks...", end=" ")
 
         importance_list = []
 
@@ -130,12 +130,12 @@ class EI_interpreter:
 
         self.LFR = pd.concat(importance_list)
 
-        print("         ... complete!")
+        print("complete!")
 
 
     def local_model_rank(self, ensemble_model_keys):
 
-        print("     Calculating local model ranks...")
+        print("     Calculating local model ranks...", end=" ")
 
         #  load meta training data from EI training
 
@@ -198,7 +198,7 @@ class EI_interpreter:
             lm_pi_list.append(pi_df)
         self.LMR = pd.concat(lm_pi_list)
 
-        print("         ... complete!")
+        print("complete!")
 
     def shap_val_mean(self, m, x):
         if hasattr(m, "predict_proba"):
@@ -212,7 +212,7 @@ class EI_interpreter:
 
     def rank_product_score(self, X_dict, y):
     
-        print("Interpreting ensembles... \n")
+        print("\nInterpreting ensembles...")
 
         if self.ensemble_methods == "all":
             ensemble_methods = self.EI.meta_models.keys()
