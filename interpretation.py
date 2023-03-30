@@ -102,10 +102,9 @@ class EI_interpreter:
                     ######################################################################################################
                 
                 else:
+                    model = list_of_base_models[0][1]
 
-                    model = list_of_base_models[0]
-
-                needs_proba = hasattr(model, "predict_proba")
+                needs_proba = hasattr(base_model, "predict_proba")
                 scorer_ = make_scorer(self.metric, 
                                         greater_is_better=self.metric_greater_is_better,
                                         needs_proba=needs_proba)
