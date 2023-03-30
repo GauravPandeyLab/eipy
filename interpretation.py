@@ -62,6 +62,8 @@ class EI_interpreter:
         feature_names: feature name of X
         """
 
+        print("     Calculating local feature ranks...")
+
         importance_list = []
 
         for modality_index, modality_name in enumerate(self.EI.modality_names):
@@ -128,8 +130,12 @@ class EI_interpreter:
 
         self.LFR = pd.concat(importance_list)
 
+        print("         ... complete!")
+
 
     def local_model_rank(self, ensemble_model_keys):
+
+        print("     Calculating local model ranks...")
 
         #  load meta training data from EI training
 
@@ -149,8 +155,6 @@ class EI_interpreter:
         ensemble_models = dict(zip(ensemble_model_keys, ensemble_models)) 
 
         for model_name, model in ensemble_models.items():
-
-            print(model_name)
 
             meta_model = pickle.loads(model)
 
@@ -178,7 +182,7 @@ class EI_interpreter:
                                             n_repeats=self.n_repeats,
                                             n_jobs=-1,
                                             random_state=self.EI.random_state,
-                                            scoring=self.metric)
+                                            scoring=scorer_)
             
                 importances_mean = pi.importances_mean
                 importances_std = pi.importances_std
@@ -194,6 +198,8 @@ class EI_interpreter:
             lm_pi_list.append(pi_df)
         self.LMR = pd.concat(lm_pi_list)
 
+        print("         ... complete!")
+
     def shap_val_mean(self, m, x):
         if hasattr(m, "predict_proba"):
             shap_exp = shap.Explainer(m.predict_proba, x)
@@ -201,10 +207,12 @@ class EI_interpreter:
             shap_exp = shap.Explainer(m.predict, x)
         
         shap_vals = shap_exp(x)
-        print(shap_vals.values.shape)
+
         return np.mean(shap_vals, axis=1)
 
     def rank_product_score(self, X_dict, y):
+    
+        print("Interpreting ensembles... \n")
 
         if self.ensemble_methods == "all":
             ensemble_methods = self.EI.meta_models.keys()
@@ -224,13 +232,13 @@ class EI_interpreter:
             self.merged_lmr_lfr[model_name] = pd.merge(lmr_interest, self.LFR,  
                                         how='right', left_on=['base predictor', 'modality'], 
                                         right_on = ['base predictor', 'modality'])
-            # print(merged_lmr_lfr)
+
             self.merged_lmr_lfr[model_name]['LMR_LFR_product'] = self.merged_lmr_lfr[model_name]['LMR']*self.merged_lmr_lfr[model_name]['LFR']
             """ take mean of LMR*LFR for each feature """
             RPS_list = {'modality':[],
                         'feature': [],
                         'RPS': []}
-            print(self.merged_lmr_lfr[model_name])
+
             for modal in self.merged_lmr_lfr[model_name]['modality'].unique():
                 merged_lmr_lfr_modal = self.merged_lmr_lfr[model_name].loc[self.merged_lmr_lfr[model_name]['modality']==modal]
                 for feat in merged_lmr_lfr_modal['local_feature_id'].unique():
@@ -244,4 +252,4 @@ class EI_interpreter:
             RPS_df.sort_values(by='feature rank',inplace=True)
             feature_ranking_list[model_name] = RPS_df
         self.ensemble_feature_ranking = feature_ranking_list
-        print('Finished feature ranking of ensemble model(s)!')
+        print('... complete!')
