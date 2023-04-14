@@ -6,7 +6,7 @@ from utils import scores, set_seed, random_integers, sample, \
 from joblib import Parallel, delayed
 import pandas as pd
 import numpy as np
-from ei import MedianAggregation, MeanAggregation
+from eipy import MedianAggregation, MeanAggregation
 from ens_selection import CES
 import copy
 import sklearn.metrics
