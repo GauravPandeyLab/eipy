@@ -14,8 +14,8 @@ from sklearn.model_selection import StratifiedKFold
 from sklearn.base import clone
 from joblib import Parallel, delayed
 import warnings
-from utils import scores, set_seed, random_integers, sample, retrieve_X_y, append_modality, metric_threshold_dataframes, create_base_summary, safe_predict_proba, dummy_cv
-from ens_selection import CES
+from eipy.utils import scores, set_seed, random_integers, sample, retrieve_X_y, append_modality, metric_threshold_dataframes, create_base_summary, safe_predict_proba, dummy_cv
+from eipy.ens_selection import CES
 warnings.filterwarnings("ignore", category=DeprecationWarning)
 from sklearn.pipeline import Pipeline
 from sklearn.base import BaseEstimator, ClassifierMixin
