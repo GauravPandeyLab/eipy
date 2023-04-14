@@ -12,7 +12,7 @@ import sys
 
 path_to_ei = "/home/jamie/Projects/ei-python"
 sys.path.append(path_to_ei)
-from ei import EnsembleIntegration
+from eipy import EnsembleIntegration
 
 from sklearn.datasets import make_classification
 
