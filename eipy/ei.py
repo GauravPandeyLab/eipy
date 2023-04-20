@@ -208,9 +208,6 @@ class EnsembleIntegration:
         y_pred = safe_predict_proba(meta_model, meta_prediction_data)
         return y_pred
 
-
-        ############################ Continue here. Need to convert base_predictions list to dataframe and predict with meta model.
-
     @ignore_warnings(category=ConvergenceWarning)
     def train_meta(self, meta_models=None):
 
@@ -223,7 +220,7 @@ class EnsembleIntegration:
 
         if meta_models is not None:
             self.meta_models = meta_models
-            # suffix denotes stacking
+            # prefix denotes stacking
             self.meta_models = {"S." + k: v for k, v in meta_models.items()}
 
         for k, v in self.meta_models.items():
@@ -235,7 +232,7 @@ class EnsembleIntegration:
                 v.set_params(**{'random_state': self.random_state})
 
         additional_meta_models = {"Mean": MeanAggregation(),
-                                #   "Median": MedianAggregation(),
+                                  "Median": MedianAggregation(),
                                   "CES": CES()}
 
         additional_meta_models = dict(
