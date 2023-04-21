@@ -7,4 +7,13 @@ setup(name='eipy',
       author='Jamie Bennett, Richard Li',
       license='CC by 4.0',
       packages=find_packages(),
+      install_requires=["imbalanced_learn",
+                        "joblib",
+                        "numpy",
+                        "pandas",
+                        "scikit_learn",
+                        "scipy",
+                        "setuptools",
+                        "shap",
+                        "xgboost"]
       )
