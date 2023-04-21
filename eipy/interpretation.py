@@ -44,6 +44,7 @@ class EI_interpreter:
         self.metric_greater_is_better = metric_greater_is_better
 
         self.LFR = None
+        self.LMR = None
 
     def local_feature_rank(self, X_dict, y):
         """
@@ -211,9 +212,11 @@ class EI_interpreter:
         else:
             ensemble_methods = self.ensemble_methods
 
-        self.local_feature_rank(X_dict, y)
+        if self.LFR is None:
+            self.local_feature_rank(X_dict, y)
 
-        self.local_model_rank(ensemble_model_keys=ensemble_methods)
+        if self.LMR is None:
+            self.local_model_rank(ensemble_model_keys=ensemble_methods)
 
         """Calculate the Rank percentile & their products here"""
         # return feature_ranking
