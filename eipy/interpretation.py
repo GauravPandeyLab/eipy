@@ -1,17 +1,10 @@
-from sklearn.cluster import k_means
 from sklearn.inspection import permutation_importance
-from sklearn.model_selection import StratifiedKFold
-from utils import scores, set_seed, random_integers, sample, \
+from eipy.utils import scores, set_seed, random_integers, sample, \
     retrieve_X_y, append_modality, generate_scorer_by_model
-from joblib import Parallel, delayed
 import pandas as pd
 import numpy as np
-from eipy import MedianAggregation, MeanAggregation
-from ens_selection import CES
 import copy
-import sklearn.metrics
 from sklearn.metrics import fbeta_score, make_scorer
-from sklearn.pipeline import Pipeline
 import shap
 import pickle
 from itertools import groupby
