@@ -141,11 +141,11 @@ class EI_interpreter:
         lm_pi_list = []
 
         ensemble_models = copy.deepcopy(self.EI.final_models["meta models"])
-
-        ensemble_models = list(itemgetter(*ensemble_model_keys)(ensemble_models))
-
+        breakpoint()
+        ensemble_models = [ensemble_models[key] for key in ensemble_model_keys]
+        breakpoint()
         ensemble_models = dict(zip(ensemble_model_keys, ensemble_models)) 
-
+        breakpoint()
         for model_name, model in ensemble_models.items():
             breakpoint()
             meta_model = pickle.loads(model)
