@@ -14,8 +14,8 @@ from sklearn.model_selection import StratifiedKFold
 from sklearn.base import clone
 from joblib import Parallel, delayed
 import warnings
-from utils import scores, set_seed, random_integers, sample, retrieve_X_y, append_modality, metric_threshold_dataframes, create_base_summary, safe_predict_proba, dummy_cv
-from ens_selection import CES
+from eipy.utils import scores, set_seed, random_integers, sample, retrieve_X_y, append_modality, metric_threshold_dataframes, create_base_summary, safe_predict_proba, dummy_cv
+from eipy.ens_selection import CES
 warnings.filterwarnings("ignore", category=DeprecationWarning)
 from sklearn.pipeline import Pipeline
 from sklearn.base import BaseEstimator, ClassifierMixin
@@ -189,7 +189,7 @@ class EnsembleIntegration:
             # check number of features is the same 
             assert X.shape[1] == n_features, f"{X.shape[1]} features were given for {modality_name} modality, but {n_features} were used during training."
 
-            base_models = copy.copy(self.final_models["base models"][modality_name])
+            base_models = copy.deepcopy(self.final_models["base models"][modality_name])
             for base_model_dict in base_models:
                 base_model = pickle.loads(base_model_dict["pickled model"])
                 y_pred = safe_predict_proba(base_model, X)
@@ -208,9 +208,6 @@ class EnsembleIntegration:
         y_pred = safe_predict_proba(meta_model, meta_prediction_data)
         return y_pred
 
-
-        ############################ Continue here. Need to convert base_predictions list to dataframe and predict with meta model.
-
     @ignore_warnings(category=ConvergenceWarning)
     def train_meta(self, meta_models=None):
 
@@ -223,7 +220,7 @@ class EnsembleIntegration:
 
         if meta_models is not None:
             self.meta_models = meta_models
-            # suffix denotes stacking
+            # prefix denotes stacking
             self.meta_models = {"S." + k: v for k, v in meta_models.items()}
 
         for k, v in self.meta_models.items():
@@ -235,7 +232,7 @@ class EnsembleIntegration:
                 v.set_params(**{'random_state': self.random_state})
 
         additional_meta_models = {"Mean": MeanAggregation(),
-                                #   "Median": MedianAggregation(),
+                                  "Median": MedianAggregation(),
                                   "CES": CES()}
 
         additional_meta_models = dict(

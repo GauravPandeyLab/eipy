@@ -1,4 +1,4 @@
-from utils import scores, set_seed, \
+from eipy.utils import scores, set_seed, \
     random_integers, sample, \
     retrieve_X_y, append_modality, f_minor_sklearn, f_minority_score
 
