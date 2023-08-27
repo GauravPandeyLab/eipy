@@ -1,0 +1,32 @@
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.poetry]
+name = "Ensemble Integration"
+version = "0.1.0"
+description = "Ensemble Integration: a customizable pipeline for generating diverse ensembles of heterogeneous classifiers"
+authors = ["Jamie Bennett", "Yan Chak (Richard) Li"]
+license = "Creative Commons Attribution-NonCommercial 4.0 International"
+packages = [
+    { include = "eipy"},
+]
+
+[tool.poetry.dependencies]
+python = ">=3.8"
+imbalanced-learn = ">=0.11"
+joblib = ">=1.3"
+numpy = ">=1.24"
+pandas = ">=1.4"
+scikit-learn = ">=1.2"
+scipy = {version = ">=1.0,<1.12", python = ">=3.8,<3.13"}
+shap = ">=0.42"
+xgboost = ">=1.7"
+
+[tool.poetry.group.dev.dependencies]
+pytest = ">=5.0"
+flake8 = ">=3.8"
+flake8-bugbear = ">=23"
+tox = ">=3.9"
+pytest-cov = ">=2.12"
+black = ">=23.0"
