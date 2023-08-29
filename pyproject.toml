@@ -3,7 +3,7 @@ requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
 
 [tool.poetry]
-name = "Ensemble Integration"
+name = "eipy"
 version = "0.1.0"
 description = "Ensemble Integration: a customizable pipeline for generating diverse ensembles of heterogeneous classifiers"
 authors = ["Jamie Bennett", "Yan Chak (Richard) Li"]
@@ -24,9 +24,16 @@ shap = ">=0.42"
 xgboost = ">=1.7"
 
 [tool.poetry.group.dev.dependencies]
-pytest = ">=5.0"
-flake8 = ">=3.8"
+pytest = ">=6.0"
+flake8 = ">=3.9"
 flake8-bugbear = ">=23"
 tox = ">=3.9"
-pytest-cov = ">=2.12"
+pytest-cov = ">=3.0"
 black = ">=23.0"
+ipykernel = "^6.25.1"
+
+[tool.pytest.ini_options]
+# addopts = "-ra -v"
+testpaths = [
+    "tests"
+]
