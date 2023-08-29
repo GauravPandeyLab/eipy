@@ -31,6 +31,8 @@ tox = ">=3.9"
 pytest-cov = ">=3.0"
 black = ">=23.0"
 ipykernel = "^6.25.1"
+sphinx = "^4.2"
+sphinx-autodoc-typehints = "^1.12"
 
 [tool.pytest.ini_options]
 # addopts = "-ra -v"
