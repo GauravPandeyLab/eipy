@@ -31,6 +31,11 @@ tox = ">=3.9"
 pytest-cov = ">=3.0"
 black = ">=23.0"
 ipykernel = "^6.25.1"
+
+[tool.poetry.group.docs]
+optional = true
+
+[tool.poetry.group.docs.dependencies]
 sphinx = "^4.2"
 sphinx-autodoc-typehints = "^1.12"
 
