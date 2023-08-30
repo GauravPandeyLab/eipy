@@ -37,54 +37,85 @@ warnings.filterwarnings("ignore", category=DeprecationWarning)
 
 class EnsembleIntegration:
     """
-    Algorithms to test a variety of ensemble methods.
+    Methods to train and test a variety of ensemble algorithms using a nested cross validation approach.
 
     Parameters
     ----------
-    base_predictors : dictionary
-        Base predictors.
-    k_outer : int, optional
-        Number of outer folds. Default is 5.
-    k_inner : int, optional
-        Number of inner folds. Default is 5.
-    random_state : int, optional
-        Random state for cross-validation. The default is 42.
+    base_predictors : dict, default=None
+        Dictionary of (sklearn-like) base predictors. Can also be passed in the train_base method.
+    meta_models : dict, default=None
+        Dictionary of (sklearn-like) stacking algorithms. Can also be passed in the train_meta method.
+    k_outer : int, default=5
+        Number of outer folds. 
+    k_inner : int, default=5
+        Number of inner folds.
+    n_samples : int, default=1
+        The number of samples to take when balancing classes. Ignored if sampling_strategy is None.
+    sampling_strategy : str, default=None
+        The sampling method for class balancing. Can be set to 'undersampling', 'oversampling', 'hybrid'.
+    sampling_aggregation : str, default='mean'
+        Method for combining multiple samples. Only used when n_samples>1. Can be 'mean' or None.
+    n_jobs : int, default=1
+        Number of workers for parallelization in joblib.
+    random_state : int, default=None
+        Random state for cross-validation and use in some models. 
+    parallel_backend : str, default='loky'
+        Backend to use in joblib. See joblib.Parallel() for other options.
+    project_name : str, default='project'
+        Name of project.
+    additional_ensemble_methods : list of str, default=['Mean', 'CES']
+        Additional ensemble methods to be used. Can include 'Mean', 'Median' and 'CES'. The 'CES' ensemble method is described in Caruana R. et al. (2006) Getting the most out of ensemble selection. In: Sixth International Conference on Data Mining (ICDM'06), 2006 IEEE, Piscataway, NJ, USA, pp. 828-833.
+    calibration_model : sklearn estimator, default=None
+        Calibrate base predictor predictions with calibration_model. Intended for use with sklearn's CalibratedClassifierCV().
+    model_building : bool, default=False
+        Whether or not to train and save final models.
+    verbose : int, default=1
+        Verbosity level. Can be set to 0 or 1. 
 
-    Returns
-    -------
-    predictions_df : Pandas dataframe of shape (n_samples, n_base_predictors)
-        Matrix of data intended for training of a meta-algorithm.
+    Attributes
+    ----------
+    meta_training_data : list of pandas.DataFrame
+        Training data for ensemble methods, for each outer fold. len(meta_training_data) = len(k_outer)
+    meta_test_data : list of pandas.DataFrame
+        Test data for ensemble methods, for each outer fold. len(meta_test_data) = len(k_outer)
+    meta_predictions : pandas.DataFrame
+        Combined predictions (across all outer folds) made by each ensemble method.
+    meta_summary : pandas.DataFrame
+        Summary of performance scores for each ensemble method.
+    modality_names : list of str
+        List of modalities in the order in which they were passed to EnsembleIntegration.
+    n_features_per_modality : list of int
+        List of number of features in each modality corresponding to modality_names.
+    random_numbers_for_samples : list of int
+        Random numbers used to sample each training fold.
+    final_models : dict
+        Dictionary of the form {"base models": {}, "meta models": {}}. Only populated if model_building=True.
+    meta_training_data_final: list of pandas.DataFrame
+        List containing single dataframe containing training data. Final models are trained on all available data.
+    cv_outer : callable
+        StratifiedKFold object from sklearn used to generate outer folds.
+    cv_inner : callable StratifiedKFold(
+        StratifiedKFold object from sklearn used to generate inner folds.
 
-    To be done:
-        - EI.save() does not work with TF models in base predictors. Need to save models separately then set base_predictors=None to save. Load models from separate files
-        - create wrapper for TF models. Needs to take TF model + fit parameters. Then create new fit function.
-        - CES ensemble
-        - interpretation
-        - best base predictor
-        - model building
-        - think about the use of calibrated classifier in base and meta
     """
 
     def __init__(
         self,
-        base_predictors=None,  # dictionary of sklearn models
-        meta_models=None,  # dictionary of sklearn models
-        k_outer=5,  # number of outer folds, int
-        k_inner=5,  # number of inner folds, int
-        n_samples=1,  # number of samples of training sets to be taken
-        # sampling method: "undersampling", "oversampling", "hybrid", None
+        base_predictors=None,  
+        meta_models=None,  
+        k_outer=5, 
+        k_inner=5, 
+        n_samples=1, 
         sampling_strategy="undersampling",
         sampling_aggregation="mean",
-        n_jobs=-1,
+        n_jobs=1,
         random_state=None,
-        # change to "threading" if including TensorFlow models in base_predictors
         parallel_backend="loky",
         project_name="project",
         additional_ensemble_methods=["Mean", "CES"],
-        # calibration model to be applied to base predictors. Intended for use with sklearn's CalibratedClassifierCV
         calibration_model=None,
         model_building=False,
-        verbose=0,
+        verbose=1,
     ):
         set_seed(random_state)
 
@@ -117,10 +148,6 @@ class EnsembleIntegration:
             n_splits=self.k_inner, shuffle=True, random_state=self.random_state
         )
 
-        self.random_numbers_for_samples = random_integers(
-            n_integers=n_samples, seed=self.random_state
-        )
-
         self.meta_training_data = None
         self.meta_test_data = None
         self.base_summary = None
@@ -130,6 +157,10 @@ class EnsembleIntegration:
 
         self.modality_names = []
         self.n_features_per_modality = []
+
+        self.random_numbers_for_samples = random_integers(
+            n_integers=n_samples, seed=self.random_state
+        )
 
     def predict(self, X_dictionary, meta_model_key):
 
@@ -273,6 +304,23 @@ class EnsembleIntegration:
         return self
 
     def train_base(self, X, y, base_predictors=None, modality=None):
+
+        """
+        Trains base_predictors 
+
+        Parameters
+        ----------
+        X : array of shape (n_samples, n_features)
+            Dataset.
+        y : array of shape (n_samples,)
+            Labels.
+
+        Returns
+        -------
+        meta_training_data : List of length k_outer containing Pandas dataframes
+        of shape (n_outer_training_samples, n_base_predictors * n_samples)
+
+        """
 
         print(f"Training base predictors on {modality} modality \n")
 
