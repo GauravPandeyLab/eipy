@@ -1,10 +1,10 @@
 
 <!DOCTYPE html>
 
-<html lang="en">
+<html>
   <head>
     <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
 
     <title>Welcome to Ensemble Integration’s documentation! &#8212; Ensemble Integration 0.1.0 documentation</title>
     <link rel="stylesheet" type="text/css" href="_static/pygments.css" />
@@ -12,10 +12,10 @@
     <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
     <script src="_static/jquery.js"></script>
     <script src="_static/underscore.js"></script>
-    <script src="_static/_sphinx_javascript_frameworks_compat.js"></script>
     <script src="_static/doctools.js"></script>
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Usage" href="usage.html" />
    
   <link rel="stylesheet" href="_static/custom.css" type="text/css" />
   
@@ -32,101 +32,30 @@
 
           <div class="body" role="main">
             
-  <section id="module-eipy.ei">
-<span id="welcome-to-ensemble-integration-s-documentation"></span><h1>Welcome to Ensemble Integration’s documentation!<a class="headerlink" href="#module-eipy.ei" title="Permalink to this heading">¶</a></h1>
-<p>Ensemble Integration</p>
-<p>&#64;author: Jamie Bennett, Yan Chak (Richard) Li</p>
-<dl class="py class">
-<dt class="sig sig-object py" id="eipy.ei.EnsembleIntegration">
-<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">eipy.ei.</span></span><span class="sig-name descname"><span class="pre">EnsembleIntegration</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">base_predictors</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">meta_models</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">k_outer</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">5</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">k_inner</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">5</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">n_samples</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sampling_strategy</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'undersampling'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sampling_aggregation</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'mean'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">n_jobs</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">-</span> <span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">random_state</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">parallel_backend</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'loky'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">project_name</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'project'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">additional_ensemble_methods</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">['Mean',</span> <span class="pre">'CES']</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">calibration_model</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">model_building</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">verbose</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#eipy.ei.EnsembleIntegration" title="Permalink to this definition">¶</a></dt>
-<dd><p>Algorithms to test a variety of ensemble methods.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>base_predictors</strong> (<em>dictionary</em>) – Base predictors.</p></li>
-<li><p><strong>k_outer</strong> (<em>int</em><em>, </em><em>optional</em>) – Number of outer folds. Default is 5.</p></li>
-<li><p><strong>k_inner</strong> (<em>int</em><em>, </em><em>optional</em>) – Number of inner folds. Default is 5.</p></li>
-<li><p><strong>random_state</strong> (<em>int</em><em>, </em><em>optional</em>) – Random state for cross-validation. The default is 42.</p></li>
-</ul>
-</dd>
-<dt class="field-even">Returns<span class="colon">:</span></dt>
-<dd class="field-even"><p><ul class="simple">
-<li><p><strong>predictions_df</strong> (<em>Pandas dataframe of shape (n_samples, n_base_predictors)</em>) – Matrix of data intended for training of a meta-algorithm.</p></li>
-<li><p><em>To be done</em> –</p>
+  <section id="welcome-to-ensemble-integration-s-documentation">
+<h1>Welcome to Ensemble Integration’s documentation!<a class="headerlink" href="#welcome-to-ensemble-integration-s-documentation" title="Permalink to this headline">¶</a></h1>
+<p>Ensemble Integration (EI) is a customizable pipeline for generating diverse ensembles of heterogeneous classifiers,
+as well as the accompanying metadata needed for ensemble learning approaches utilizing ensemble diversity for
+improved performance. It also fairly evaluates the performance of ensemble learning methods including ensemble
+selection [Caruana2004], and stacked generalization (stacking) [Wolpert1992].</p>
+<p>For more details see the original publication <a class="reference external" href="https://doi.org/10.1093/bioadv/vbac065">here</a>.</p>
+<div class="toctree-wrapper compound">
+<p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
 <ul>
-<li><p>EI.save() does not work with TF models in base predictors. Need to save models separately then set base_predictors=None to save. Load models from separate files</p></li>
-<li><p>create wrapper for TF models. Needs to take TF model + fit parameters. Then create new fit function.</p></li>
-<li><p>CES ensemble</p></li>
-<li><p>interpretation</p></li>
-<li><p>best base predictor</p></li>
-<li><p>model building</p></li>
-<li><p>think about the use of calibrated classifier in base and meta</p></li>
+<li class="toctree-l1"><a class="reference internal" href="usage.html">Usage</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="usage.html#installation">Installation</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="api_reference.html">API Reference</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="api_reference.html#ensemble-integration">Ensemble Integration</a></li>
+<li class="toctree-l2"><a class="reference internal" href="api_reference.html#interpretation">Interpretation</a></li>
 </ul>
 </li>
 </ul>
-</p>
-</dd>
-</dl>
-<dl class="py method">
-<dt class="sig sig-object py" id="eipy.ei.EnsembleIntegration.train_base_inner">
-<span class="sig-name descname"><span class="pre">train_base_inner</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">X</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">y</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cv_outer</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cv_inner</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">base_predictors</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">modality</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#eipy.ei.EnsembleIntegration.train_base_inner" title="Permalink to this definition">¶</a></dt>
-<dd><p>Perform a round of (inner) k-fold cross validation on each outer
-training set for generation of training data for the meta-algorithm</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>X</strong> (<em>array of shape</em><em> (</em><em>n_samples</em><em>, </em><em>n_features</em><em>)</em>) – Dataset.</p></li>
-<li><p><strong>y</strong> (<em>array of shape</em><em> (</em><em>n_samples</em><em>,</em><em>)</em>) – Labels.</p></li>
-</ul>
-</dd>
-<dt class="field-even">Returns<span class="colon">:</span></dt>
-<dd class="field-even"><p><ul class="simple">
-<li><p><strong>meta_training_data</strong> (<em>List of length k_outer containing Pandas dataframes</em>)</p></li>
-<li><p><em>of shape (n_outer_training_samples, n_base_predictors * n_samples)</em></p></li>
-</ul>
-</p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="eipy.ei.EnsembleIntegration.train_base_outer">
-<span class="sig-name descname"><span class="pre">train_base_outer</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">X</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">y</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cv_outer</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">base_predictors</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">modality</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">model_building</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#eipy.ei.EnsembleIntegration.train_base_outer" title="Permalink to this definition">¶</a></dt>
-<dd><p>Train each base predictor on each outer training set</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>X</strong> (<em>array of shape</em><em> (</em><em>n_samples</em><em>, </em><em>n_features</em><em>)</em>) – Dataset.</p></li>
-<li><p><strong>y</strong> (<em>array of shape</em><em> (</em><em>n_samples</em><em>,</em><em>)</em>) – Labels.</p></li>
-</ul>
-</dd>
-<dt class="field-even">Returns<span class="colon">:</span></dt>
-<dd class="field-even"><p><ul class="simple">
-<li><p><strong>meta_test_data</strong> (<em>List of length k_outer containing Pandas dataframes</em>)</p></li>
-<li><p><em>of shape (n_outer_test_samples, n_base_predictors * n_samples)</em></p></li>
-</ul>
-</p>
-</dd>
-</dl>
-</dd></dl>
-
-</dd></dl>
-
-<dl class="py class">
-<dt class="sig sig-object py" id="eipy.ei.MeanAggregation">
-<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">eipy.ei.</span></span><span class="sig-name descname"><span class="pre">MeanAggregation</span></span><a class="headerlink" href="#eipy.ei.MeanAggregation" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="py class">
-<dt class="sig sig-object py" id="eipy.ei.MedianAggregation">
-<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">eipy.ei.</span></span><span class="sig-name descname"><span class="pre">MedianAggregation</span></span><a class="headerlink" href="#eipy.ei.MedianAggregation" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<div class="toctree-wrapper compound">
 </div>
 </section>
 <section id="indices-and-tables">
-<h1>Indices and tables<a class="headerlink" href="#indices-and-tables" title="Permalink to this heading">¶</a></h1>
+<h1>Indices and tables<a class="headerlink" href="#indices-and-tables" title="Permalink to this headline">¶</a></h1>
 <ul class="simple">
 <li><p><a class="reference internal" href="genindex.html"><span class="std std-ref">Index</span></a></p></li>
 <li><p><a class="reference internal" href="py-modindex.html"><span class="std std-ref">Module Index</span></a></p></li>
@@ -151,11 +80,17 @@ training set for generation of training data for the meta-algorithm</p>
 
 
 <h3>Navigation</h3>
+<p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="usage.html">Usage</a></li>
+<li class="toctree-l1"><a class="reference internal" href="api_reference.html">API Reference</a></li>
+</ul>
 
 <div class="relations">
 <h3>Related Topics</h3>
 <ul>
   <li><a href="#">Documentation overview</a><ul>
+      <li>Next: <a href="usage.html" title="next chapter">Usage</a></li>
   </ul></li>
 </ul>
 </div>
@@ -168,7 +103,7 @@ training set for generation of training data for the meta-algorithm</p>
     </form>
     </div>
 </div>
-<script>document.getElementById('searchbox').style.display = "block"</script>
+<script>$('#searchbox').show(0);</script>
 
 
 
@@ -185,8 +120,8 @@ training set for generation of training data for the meta-algorithm</p>
       &copy;2023, Jamie J. R. Bennett, Yan Chak Li.
       
       |
-      Powered by <a href="http://sphinx-doc.org/">Sphinx 5.0.2</a>
-      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 4.5.0</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.13</a>
       
       |
       <a href="_sources/index.rst.txt"
