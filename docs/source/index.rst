@@ -13,7 +13,7 @@ For more details see the original publication `here <https://doi.org/10.1093/bio
    :caption: Contents:
    
    usage
-   demos/ei_demo.ipynb
+   tutorial.ipynb
    api_reference
 
 Indices and tables
