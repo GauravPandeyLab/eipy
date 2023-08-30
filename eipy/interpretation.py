@@ -24,7 +24,7 @@ import warnings
 warnings.filterwarnings("ignore")
 
 
-class EI_interpreter:
+class PermutationInterpreter:
     """
     EI_object: Initialized EI object
     base_predictors: List of base predictors
