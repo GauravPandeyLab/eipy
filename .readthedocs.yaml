@@ -11,6 +11,7 @@ build:
     python: "3.10"
   jobs:
     post_create_environment:
+      - sudo apt-get -y install pandoc
       - pip install poetry
       - poetry config virtualenvs.create false
     post_install:
