@@ -322,7 +322,7 @@ class EnsembleIntegration:
 
         """
 
-        print(f"Training base predictors on {modality} modality \n")
+        print(f"Training base predictors on {modality}\n")
 
         self.modality_names.append(modality)
         self.n_features_per_modality.append(X.shape[1])
