@@ -34,6 +34,8 @@ from sklearn.utils.multiclass import unique_labels
 
 warnings.filterwarnings("ignore", category=DeprecationWarning)
 
+bar_format = '{desc}: |{bar}|{percentage:3.0f}%'
+
 
 class EnsembleIntegration:
     """
@@ -204,8 +206,6 @@ class EnsembleIntegration:
     @ignore_warnings(category=ConvergenceWarning)
     def train_meta(self, meta_models=None):
 
-        print("Analysing ensembles... \n")
-
         if meta_models is not None:
             self.meta_models = meta_models
             # prefix denotes stacking
@@ -240,9 +240,7 @@ class EnsembleIntegration:
         meta_predictions = {}
         performance_metrics = []
 
-        for model_name, model in self.meta_models.items():
-
-            print("\n{model_name:}...".format(model_name=model_name))
+        for model_name, model in tqdm(self.meta_models.items(), desc='Analyzing ensembles', bar_format=bar_format):
 
             y_pred_combined = []
 
@@ -263,7 +261,7 @@ class EnsembleIntegration:
 
             meta_predictions[model_name] = y_pred_combined
             performance_metrics.append(
-                scores(y_test_combined, y_pred_combined, verbose=1)
+                scores(y_test_combined, y_pred_combined, verbose=0)
             )
 
         meta_predictions["labels"] = y_test_combined
@@ -271,17 +269,9 @@ class EnsembleIntegration:
         self.meta_predictions = pd.DataFrame.from_dict(meta_predictions)
         self.meta_summary = metric_threshold_dataframes(self.meta_predictions)
 
-        print(
-            (
-                'Analysis complete: performance summary of ensemble algorithms can be found in "meta_summary" attribute.'
-            )
-        )
-
         if self.model_building:
 
-            print("\nTraining meta predictors for final ensemble...")
-
-            for model_name, model in self.meta_models.items():
+            for model_name, model in tqdm(self.meta_models.items(), desc='Training final meta models', bar_format=bar_format):
 
                 X_train, y_train = retrieve_X_y(
                     labelled_data=self.meta_training_data_final[0]
@@ -294,12 +284,6 @@ class EnsembleIntegration:
                 model.fit(X_train, y_train)
 
                 self.final_models["meta models"][model_name] = pickle.dumps(model)
-
-        print(
-            (
-                'Model building: final meta models have been saved to "final_models" attribute.'
-            )
-        )
 
         return self
 
@@ -322,7 +306,7 @@ class EnsembleIntegration:
 
         """
 
-        print(f"Training base predictors on {modality}\n")
+        print(f"Training base predictors on {modality}...\n\n... for analysis...")
 
         self.modality_names.append(modality)
         self.n_features_per_modality.append(X.shape[1])
@@ -376,7 +360,7 @@ class EnsembleIntegration:
     # check self.meta_models for a list of keys
     def train_base_final(self, X, y, modality=None):
 
-        print("\nTraining base predictors and generating data for final ensemble...")
+        print("\n... for final ensemble...")
 
         meta_training_data_modality = self.train_base_inner(
             X=X,
@@ -432,7 +416,7 @@ class EnsembleIntegration:
             n_jobs=self.n_jobs, verbose=0, backend=self.parallel_backend
         ) as parallel:
             for outer_fold_id, (train_index_outer, test_index_outer) in enumerate(
-                tqdm(cv_outer.split(X, y), total=cv_outer.n_splits, desc='Generating meta training data')
+                tqdm(cv_outer.split(X, y), total=cv_outer.n_splits, desc='Generating meta training data', bar_format=bar_format)
             ):
 
                 X_train_outer = X[train_index_outer]
@@ -500,7 +484,7 @@ class EnsembleIntegration:
                     sample_state=sample_state,
                     model_building=model_building,
                 )
-                for model_params in tqdm(self.base_predictors.items(), desc=progress_string)
+                for model_params in tqdm(self.base_predictors.items(), desc=progress_string, bar_format=bar_format)
                 for outer_fold_params in enumerate(cv_outer.split(X, y))
                 for sample_state in enumerate(self.random_numbers_for_samples)
             )
