@@ -35,7 +35,3 @@ sphinx:
 # python:
 #    install:
 #    - requirements: docs/requirements.txt
-# python:
-#   install:
-#     - poetry:
-#         with: docs
