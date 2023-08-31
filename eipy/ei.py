@@ -86,12 +86,12 @@ class EnsembleIntegration:
     ----------
     base_summary : dict
         Summary of performance scores for each base predictor. Scores can be accessed
-        using the metrics key and corresponding thresholds (if applicable) can be
-        accessed in the thresholds key.
+        using the 'metrics' key and corresponding thresholds (if applicable) can be
+        accessed in the 'thresholds' key.
     meta_summary : dict
         Summary of performance scores for each ensemble method. Scores can be accessed
-        using the metrics key and corresponding thresholds (if applicable) can be
-        accessed in the thresholds key.
+        using the 'metrics' key and corresponding thresholds (if applicable) can be
+        accessed in the 'thresholds' key.
     meta_training_data : list of pandas.DataFrame
         Training data for ensemble methods, for each outer fold.
         len(meta_training_data) = len(k_outer)
@@ -107,14 +107,14 @@ class EnsembleIntegration:
         Random numbers used to sample each training fold.
     final_models : dict
         Dictionary of the form {"base models": {}, "meta models": {}}.
-        Populated if model_building=True.
+        Populated if ``model_building=True``.
     meta_training_data_final: list of pandas.DataFrame
         List containing single dataframe of training data. Final models are
         trained on all available data.
     cv_outer : StratifiedKFold
-        StratifiedKFold cross validator from sklearn.
+        ``StratifiedKFold()`` cross validator from sklearn.
     cv_inner : StratifiedKFold
-        StratifiedKFold cross validator from sklearn.
+        ``StratifiedKFold()`` cross validator from sklearn.
     """
 
     def __init__(
@@ -262,7 +262,7 @@ class EnsembleIntegration:
         ----------
         X_dict : dict
             Dictionary of X modalities each having n_samples. Key and n_features
-            must match those seen by 'train_base'.
+            must match those seen by ``train_base``.
         meta_model_key :
             The key of the ensemble method selected during performance analysis.
             Stacked generalization algorithms given in base_predictors have the
@@ -362,7 +362,7 @@ class EnsembleIntegration:
         ----------
         X_dict : dict
             Dictionary of X modalities each having n_samples. Key and n_features
-            must match those seen by 'train_base'.
+            must match those seen by ``train_base``.
         meta_model_key :
             The key of the ensemble method selected during performance analysis.
             Stacked generalization algorithms given in base_predictors have the
