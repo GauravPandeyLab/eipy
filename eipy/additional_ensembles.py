@@ -30,18 +30,19 @@ from sklearn.utils.multiclass import unique_labels
 
 
 class MeanAggregation(BaseEstimator, ClassifierMixin):
+    """
+    Trivially takes the mean of X.  
+    """
     def __init__(self):
         pass
 
     def fit(self, X, y):
-        # Check that X and y have correct shape
-        # X, y = check_X_y(X, y)
-        # Store the classes seen during fit
+
         self.classes_ = unique_labels(y)
 
         self.X_ = X
         self.y_ = y
-        # Return the classifier
+
         return self
 
     def predict_proba(self, X):
@@ -51,6 +52,9 @@ class MeanAggregation(BaseEstimator, ClassifierMixin):
 
 
 class MedianAggregation(BaseEstimator, ClassifierMixin):
+    """
+    Trivially takes the median of X.  
+    """
     def __init__(self):
         pass
 
@@ -59,7 +63,7 @@ class MedianAggregation(BaseEstimator, ClassifierMixin):
 
         self.X_ = X
         self.y_ = y
-        # Return the classifier
+
         return self
 
     def predict_proba(self, X):
@@ -92,7 +96,6 @@ class CES(BaseEstimator, ClassifierMixin):
         self.random_state = random_state
 
     def fit(self, X, y):
-
         # X, y = check_X_y(X, y)
         # Store the classes seen during fit
         self.classes_ = unique_labels(y)
@@ -152,7 +155,6 @@ class CES(BaseEstimator, ClassifierMixin):
         return best_candidate
 
     def get_performance(self, X, y):
-
         predictions = X[self.selected_ensemble].mean(axis=1)
         score = self.scoring_func(y, predictions)
 

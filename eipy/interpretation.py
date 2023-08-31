@@ -47,7 +47,6 @@ class PermutationInterpreter:
         ensemble_methods="all",
         metric_greater_is_better=True,  # can be "all" or a list of keys for ensemble methods
     ):
-
         self.EI = EI
         self.metric = metric
         self.n_repeats = n_repeats
@@ -59,10 +58,11 @@ class PermutationInterpreter:
 
     def local_feature_rank(self, X_dict, y):
         """
-        Compute Local Feature Ranks (LFRs) of base predictors
+        Local Feature Ranks (LFRs) of base predictors
+
         Parameters
         ----------
-        X: data matrix of features of a modality
+        X_dict: data matrix of features of a modality
         modality: modality name
         feature_names: feature name of X
         """
@@ -72,7 +72,6 @@ class PermutationInterpreter:
         importance_list = []
 
         for modality_index, modality_name in enumerate(self.EI.modality_names):
-
             X = X_dict[modality_name]
 
             base_models = copy.deepcopy(
@@ -84,7 +83,6 @@ class PermutationInterpreter:
             for key, base_models_per_sample in groupby(
                 base_models, key=itemgetter("model name")
             ):
-
                 list_of_base_models = []
 
                 for base_model_dict in base_models_per_sample:
@@ -98,8 +96,7 @@ class PermutationInterpreter:
 
                 if (
                     len(list_of_base_models) > 1
-                ):  # create mean ensemble with base predictors with different sample ids
-
+                ):  # take mean of base predictors with different sample ids
                     ######################################################################################################
                     #  This code is a work around and may be fragile. We use VotingClassifier to combine models trained on
                     #  different samples (taking a mean of model output). The current sklearn implementation of
@@ -159,7 +156,6 @@ class PermutationInterpreter:
         print("complete!")
 
     def local_model_rank(self, ensemble_model_keys):
-
         print("     Calculating local model ranks...", end=" ")
 
         #  load meta training data from EI training
@@ -182,16 +178,13 @@ class PermutationInterpreter:
         ensemble_models = dict(zip(ensemble_model_keys, ensemble_models))
 
         for model_name, model in ensemble_models.items():
-
             meta_model = pickle.loads(model)
 
             if ("Mean" in model_name) or ("Median" in model_name):
-
                 importances_mean = np.ones(len(meta_X_train.columns))
                 importances_std = np.zeros(len(meta_X_train.columns))
 
             elif model_name == "CES":
-
                 model_selected_freq = []
                 for bp in meta_X_train.columns:
                     model_selected_freq.append(meta_model.selected_ensemble.count(bp))
@@ -251,7 +244,6 @@ class PermutationInterpreter:
         return np.mean(shap_vals, axis=1)
 
     def rank_product_score(self, X_dict, y):
-
         print("\nInterpreting ensembles...")
 
         if self.ensemble_methods == "all":
