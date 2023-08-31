@@ -29,16 +29,30 @@ release = '0.1.0'
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
 # ones.
 extensions = ['sphinx.ext.autodoc', 
+              'sphinx.ext.autosummary',
               'sphinx.ext.coverage', 
+              'numpydoc',
               'sphinx.ext.napoleon',
+              'sphinx_autodoc_typehints',
               'sphinx_rtd_theme',
               'nbsphinx',
-              'sphinx_copybutton'
+              'sphinx_copybutton',
             #   'sphinx.ext.githubpages'
 ]
 
 # Set order in autodoc
 autodoc_member_order = 'bysource'
+
+# generate autosummary even if no references
+autosummary_generate = True
+
+# Whether to create a Sphinx table of contents for the lists of class 
+# methods and attributes. If a table of contents is made, Sphinx expects 
+# each entry to have a separate page. True by default.
+numpydoc_class_members_toctree = False
+
+# html sourcecode link
+html_show_sourcelink = False
  
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['_templates']
@@ -48,6 +62,11 @@ templates_path = ['_templates']
 # This pattern also affects html_static_path and html_extra_path.
 exclude_patterns = []
 
+# The name of the Pygments (syntax highlighting) style to use.
+pygments_style = "sphinx"
+
+# If true, '()' will be appended to :func: etc. cross-reference text.
+add_function_parentheses = False
 
 # -- Options for HTML output -------------------------------------------------
 
