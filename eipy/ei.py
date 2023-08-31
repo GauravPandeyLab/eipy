@@ -413,7 +413,6 @@ class EnsembleIntegration:
         y_pred = safe_predict_proba(meta_model, meta_prediction_data)
         return y_pred
 
-    # check self.meta_predictors for a list of keys
     def _train_base_final(self, X, y, modality=None):
         """
         Train final base predictor model.
