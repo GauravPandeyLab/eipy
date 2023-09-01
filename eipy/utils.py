@@ -19,6 +19,7 @@ from sklearn.exceptions import UndefinedMetricWarning
 
 warnings.filterwarnings(action="ignore", category=UndefinedMetricWarning)
 
+bar_format = "{desc}: |{bar}|{percentage:3.0f}%"
 
 class TFWrapper:
     def __init__(self, tf_fun, compile_kwargs, fit_kwargs):
@@ -194,6 +195,7 @@ def fmeasure_score(
             labels,
             binary_predictions,
             average="binary",
+            zero_division=0.0,
             # pos_label=pos_label
         )
         return {"P": precision, "R": recall, "F": fmeasure}
