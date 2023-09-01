@@ -7,8 +7,10 @@ from eipy.utils import (
     retrieve_X_y,
     append_modality,
     generate_scorer_by_model,
+    bar_format
 )
 import pandas as pd
+from tqdm import tqdm
 import numpy as np
 import copy
 from sklearn.metrics import fbeta_score, make_scorer
@@ -26,16 +28,34 @@ warnings.filterwarnings("ignore")
 
 class PermutationInterpreter:
     """
-    EI_object: Initialized EI object
-    base_predictors: List of base predictors
-    meta_models: List of meta models
-    modalities: dictionary of multimodal dataset sorted by modality name
-    y: label of dataset
+    Permuation importance based interpreter. 
+
+    EI : EnsembleIntegration class object
+        Fitted EnsembleIntegration model, i.e. with model_building=True.
+    metric : function
+        sklearn-like metric function.
+    n_repeats : int, default=10
+        Number of repeats in PermutationImportance. 
+    meta_predictor_keys: default='all'
+        Meta predictor keys used in EnsembleIntegration. If 'all' then all meta predictors
+        seen by EI are interpreted. Recommended to pass a subset of meta_predctor keys as 
+        a list.
+    metric_greater_is_better: default=True
+        Metric greater is better.
+
+    Attributes
+    ----------
+    ensemble_feature_ranking : pandas.DataFrame
+        Feature rankings for each ensemble method. 
+    LFR : pandas.DataFrame
+        Local feature rankings for each base predictor.
+    LMR : pandas.Dataframe
+        self.LMR = None
 
     Returns
     -------
-    feature_ranking: Dictionary of the overall feature ranking of multimodal
-                    data to the target label by each meta model
+    self
+        Feature rankings of final ensemble models trained with EnsembleIntegration.
 
     """
 
@@ -44,34 +64,97 @@ class PermutationInterpreter:
         EI,
         metric,
         n_repeats=10,
-        ensemble_methods="all",
+        meta_predictor_keys="all",
         metric_greater_is_better=True,  # can be "all" or a list of keys for ensemble methods
     ):
         self.EI = EI
         self.metric = metric
         self.n_repeats = n_repeats
-        self.ensemble_methods = ensemble_methods
+        self.meta_predictor_keys = meta_predictor_keys
         self.metric_greater_is_better = metric_greater_is_better
 
         self.LFR = None
         self.LMR = None
 
-    def local_feature_rank(self, X_dict, y):
+    def rank_product_score(self, X_dict, y):
+        print("Interpreting ensembles...\n")
+
+        if self.meta_predictor_keys == "all":
+            meta_predictor_keys = self.EI.meta_predictor.keys()
+        else:
+            meta_predictor_keys = self.meta_predictor_keys
+
+        if self.LFR is None:
+            self._local_feature_rank(X_dict, y)
+
+        if self.LMR is None:
+            self._local_model_rank(meta_predictor_keys=meta_predictor_keys)
+
+        print('Calculating combined rank product score...')
+
+        feature_ranking_list = {}
+        self.merged_lmr_lfr = {}
+        for model_name in meta_predictor_keys:
+            lmr_interest = self.LMR[self.LMR["ensemble_method"] == model_name].copy()
+            self.merged_lmr_lfr[model_name] = pd.merge(
+                lmr_interest,
+                self.LFR,
+                how="right",
+                left_on=["base predictor", "modality"],
+                right_on=["base predictor", "modality"],
+            )
+
+            self.merged_lmr_lfr[model_name]["LMR_LFR_product"] = (
+                self.merged_lmr_lfr[model_name]["LMR"]
+                * self.merged_lmr_lfr[model_name]["LFR"]
+            )
+            # take mean of LMR*LFR for each feature
+            RPS_list = {"modality": [], "feature": [], "RPS": []}
+
+            for modal in self.merged_lmr_lfr[model_name]["modality"].unique():
+                merged_lmr_lfr_modal = self.merged_lmr_lfr[model_name].loc[
+                    self.merged_lmr_lfr[model_name]["modality"] == modal
+                ]
+                for feat in merged_lmr_lfr_modal["local_feature_id"].unique():
+                    RPS_list["modality"].append(modal)
+                    RPS_list["feature"].append(feat)
+                    RPS_list["RPS"].append(
+                        merged_lmr_lfr_modal.loc[
+                            merged_lmr_lfr_modal["local_feature_id"] == feat,
+                            "LMR_LFR_product",
+                        ].mean()
+                    )
+            RPS_df = pd.DataFrame(RPS_list)
+            RPS_df["feature rank"] = RPS_df["RPS"].rank(ascending=True)
+            RPS_df["ensemble method"] = model_name
+            RPS_df.sort_values(by="feature rank", inplace=True)
+            feature_ranking_list[model_name] = RPS_df
+        self.ensemble_feature_ranking = feature_ranking_list
+        print("... complete!")
+
+        return self
+
+    def _local_feature_rank(self, X_dict, y):
         """
-        Local Feature Ranks (LFRs) of base predictors
+        Local Feature Ranks (LFRs) for each base predictor
 
         Parameters
         ----------
-        X_dict: data matrix of features of a modality
-        modality: modality name
-        feature_names: feature name of X
-        """
+        X_dict : dict
+            Dictionary of X modalities. Keys and n_features
+            must match those seen by EnsembleIntegration.train_base().
+        meta_predictor_key :
+            The key of an ensemble method selected during performance analysis.
 
-        print("     Calculating local feature ranks...", end=" ")
+        Returns
+        -------
+        self
+            Local feature ranks.
+        """
 
         importance_list = []
 
-        for modality_index, modality_name in enumerate(self.EI.modality_names):
+        for modality_name in tqdm(self.EI.modality_names, desc='Calculating local feature ranks', bar_format=bar_format):
             X = X_dict[modality_name]
 
             base_models = copy.deepcopy(
@@ -155,9 +238,22 @@ class PermutationInterpreter:
 
         print("complete!")
 
-    def local_model_rank(self, ensemble_model_keys):
-        print("     Calculating local model ranks...", end=" ")
+        return self
 
+    def _local_model_rank(self, meta_predictor_keys):
+        """
+        Local Model Ranks (LFRs)
+
+        Parameters
+        ----------
+        meta_predictor_keys : list of str
+            List of meta predictor keys that will be used to select ensembles classifiers to interpret.
+
+        Returns
+        -------
+        self
+            Local model ranks.
+        """
         #  load meta training data from EI training
 
         meta_X_train, meta_y_train = retrieve_X_y(
@@ -173,12 +269,12 @@ class PermutationInterpreter:
 
         ensemble_models = copy.deepcopy(self.EI.final_models["meta models"])
 
-        ensemble_models = [ensemble_models[key] for key in ensemble_model_keys]
+        ensemble_models = [ensemble_models[key] for key in meta_predictor_keys]
 
-        ensemble_models = dict(zip(ensemble_model_keys, ensemble_models))
+        ensemble_models = dict(zip(meta_predictor_keys, ensemble_models))
 
-        for model_name, model in ensemble_models.items():
-            meta_model = pickle.loads(model)
+        for model_name, model in tqdm(ensemble_models.items(), desc='Calculating local model ranks', bar_format=bar_format):
+            meta_predictor = pickle.loads(model)
 
             if ("Mean" in model_name) or ("Median" in model_name):
                 importances_mean = np.ones(len(meta_X_train.columns))
@@ -187,7 +283,7 @@ class PermutationInterpreter:
             elif model_name == "CES":
                 model_selected_freq = []
                 for bp in meta_X_train.columns:
-                    model_selected_freq.append(meta_model.selected_ensemble.count(bp))
+                    model_selected_freq.append(meta_predictor.selected_ensemble.count(bp))
                 importances_mean = model_selected_freq
                 importances_std = np.ones(len(meta_X_train.columns)) * np.nan
 
@@ -199,7 +295,7 @@ class PermutationInterpreter:
                     needs_proba=needs_proba,
                 )
                 pi = permutation_importance(
-                    estimator=meta_model,
+                    estimator=meta_predictor,
                     X=meta_X_train,
                     y=meta_y_train,
                     n_repeats=self.n_repeats,
@@ -233,6 +329,8 @@ class PermutationInterpreter:
 
         print("complete!")
 
+        return self
+
     def shap_val_mean(self, m, x):
         if hasattr(m, "predict_proba"):
             shap_exp = shap.Explainer(m.predict_proba, x)
@@ -242,59 +340,3 @@ class PermutationInterpreter:
         shap_vals = shap_exp(x)
 
         return np.mean(shap_vals, axis=1)
-
-    def rank_product_score(self, X_dict, y):
-        print("\nInterpreting ensembles...")
-
-        if self.ensemble_methods == "all":
-            ensemble_methods = self.EI.meta_models.keys()
-        else:
-            ensemble_methods = self.ensemble_methods
-
-        if self.LFR is None:
-            self.local_feature_rank(X_dict, y)
-
-        if self.LMR is None:
-            self.local_model_rank(ensemble_model_keys=ensemble_methods)
-
-        """Calculate the Rank percentile & their products here"""
-        # return feature_ranking
-        feature_ranking_list = {}
-        self.merged_lmr_lfr = {}
-        for model_name in ensemble_methods:
-            lmr_interest = self.LMR[self.LMR["ensemble_method"] == model_name].copy()
-            self.merged_lmr_lfr[model_name] = pd.merge(
-                lmr_interest,
-                self.LFR,
-                how="right",
-                left_on=["base predictor", "modality"],
-                right_on=["base predictor", "modality"],
-            )
-
-            self.merged_lmr_lfr[model_name]["LMR_LFR_product"] = (
-                self.merged_lmr_lfr[model_name]["LMR"]
-                * self.merged_lmr_lfr[model_name]["LFR"]
-            )
-            """ take mean of LMR*LFR for each feature """
-            RPS_list = {"modality": [], "feature": [], "RPS": []}
-
-            for modal in self.merged_lmr_lfr[model_name]["modality"].unique():
-                merged_lmr_lfr_modal = self.merged_lmr_lfr[model_name].loc[
-                    self.merged_lmr_lfr[model_name]["modality"] == modal
-                ]
-                for feat in merged_lmr_lfr_modal["local_feature_id"].unique():
-                    RPS_list["modality"].append(modal)
-                    RPS_list["feature"].append(feat)
-                    RPS_list["RPS"].append(
-                        merged_lmr_lfr_modal.loc[
-                            merged_lmr_lfr_modal["local_feature_id"] == feat,
-                            "LMR_LFR_product",
-                        ].mean()
-                    )
-            RPS_df = pd.DataFrame(RPS_list)
-            RPS_df["feature rank"] = RPS_df["RPS"].rank(ascending=True)
-            RPS_df["ensemble method"] = model_name
-            RPS_df.sort_values(by="feature rank", inplace=True)
-            feature_ranking_list[model_name] = RPS_df
-        self.ensemble_feature_ranking = feature_ranking_list
-        print("... complete!")
