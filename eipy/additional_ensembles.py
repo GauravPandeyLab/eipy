@@ -1,43 +1,30 @@
 from eipy.utils import (
-    scores,
     set_seed,
-    random_integers,
-    sample,
-    retrieve_X_y,
-    append_modality,
-    f_minor_sklearn,
     f_minority_score,
 )
 
-from numpy.random import choice, seed
 import numpy as np
 from numpy import (
     argmax,
     argmin,
-    argsort,
-    corrcoef,
-    mean,
-    nanmax,
     sqrt,
-    triu_indices_from,
-    where,
 )
 import pandas as pd
 
-from sklearn.utils.validation import check_X_y, check_array, check_is_fitted
+from sklearn.utils.validation import check_is_fitted
 from sklearn.base import BaseEstimator, ClassifierMixin
 from sklearn.utils.multiclass import unique_labels
 
 
 class MeanAggregation(BaseEstimator, ClassifierMixin):
     """
-    Trivially takes the mean of X.  
+    Trivially takes the mean of X.
     """
+
     def __init__(self):
         pass
 
     def fit(self, X, y):
-
         self.classes_ = unique_labels(y)
 
         self.X_ = X
@@ -53,8 +40,9 @@ class MeanAggregation(BaseEstimator, ClassifierMixin):
 
 class MedianAggregation(BaseEstimator, ClassifierMixin):
     """
-    Trivially takes the median of X.  
+    Trivially takes the median of X.
     """
+
     def __init__(self):
         pass
 
@@ -74,9 +62,9 @@ class MedianAggregation(BaseEstimator, ClassifierMixin):
 
 class CES(BaseEstimator, ClassifierMixin):
     """
-    Caruana et al's Ensemble Selection. 
-    
-    Caruana R. et al. (2006) Getting the most out of ensemble selection. 
+    Caruana et al's Ensemble Selection.
+
+    Caruana R. et al. (2006) Getting the most out of ensemble selection.
     In: Sixth International Conference on Data
     Mining (ICDM'06), 2006 IEEE, Piscataway, NJ, USA, pp. 828-833.
     """
