@@ -1,25 +1,33 @@
 Getting started
 ===============
 
-The purpose of Ensemble Integration (EI) is to fuse multi-modal data using late fusion. Simply concatenating features is not
-always guaranteed to generate the best performance. In EI base predictors can be trained on each modality before
-being ensembled at the late stage. 
+eipy focuses mainly on
+`stacked generalization <https://www.sciencedirect.com/science/article/abs/pii/S0893608005800231>`_,
+as a method for late data fusion, but other ensemble methods including 
+`ensemble selection <https://dl.acm.org/doi/10.1145/1015330.1015432>`_ are available for
+comparison. 
 
-This implementation of EI utilises `sklearn <https://scikit-learn.org/>`_ models only, therefore, for unstructured data 
-it is recommended to perform feature selection prior to using EI.
+Base predictor training is performed in a nested cross validation set up, to allow for an unbiased comparison
+and selection the ensembmle method with the best performance. A final model can then be trained on all available
+data.
 
 Source code
 -----------
 
-The source code for Ensemble Integration is available on `github <https://github.com/03bennej/ei-python.git>`_.
+The source code for eipy is available on `GitHub <https://github.com/03bennej/ei-python.git>`_.
 
 Installation
 ------------
 
 As usual it is recommended to set up a virtual environment prior to installation. 
-To use Ensemble Integration, first install it using pip:
+To use eipy, first install it using pip:
 
 .. code-block:: console
 
    pip install "git+https://github.com/03bennej/ei-python.git"
+
+Citation
+--------
+
+If you use eipy in a scientific publication please cite the `original paper <https://doi.org/10.1093/bioadv/vbac065>`_.
 

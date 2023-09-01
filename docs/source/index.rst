@@ -1,11 +1,12 @@
 Welcome to Ensemble Integration's documentation!
 ================================================
 
-Ensemble Integration (EI) is a customizable pipeline for generating diverse ensembles of heterogeneous classifiers,
-as well as the accompanying metadata needed for ensemble learning approaches utilizing ensemble diversity for 
-improved performance. It also fairly evaluates the performance of ensemble learning methods including
-`stacked generalization <https://www.sciencedirect.com/science/article/abs/pii/S0893608005800231>`_ (stacking) methods,
-and `ensemble selection <https://dl.acm.org/doi/10.1145/1015330.1015432>`_. 
+**Ensemble Integration (eipy)** leverages multi-modal data to build classifiers using a late fusion approach. 
+In eipy, base predictors can be trained on each modality before being ensembled at the late stage. 
+
+This implementation of eipy can utilise `sklearn-like <https://scikit-learn.org/>`_ models only, therefore, for unstructured data,
+e.g. images, it is recommended to perform feature selection prior to using eipy. We hope to allow for a wider range of base predictors, 
+i.e. deep learning methods, in future releases.
 
 For more details see the `original publication <https://doi.org/10.1093/bioadv/vbac065>`_.
 
