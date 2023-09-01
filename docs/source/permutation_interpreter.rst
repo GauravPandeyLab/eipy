@@ -2,4 +2,4 @@ PermutationInterpreter
 ------------------------
 
 .. autoclass:: eipy.interpretation.PermutationInterpreter
-    :members: 
+    :members: rank_product_score
