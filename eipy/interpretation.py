@@ -21,6 +21,10 @@ class PermutationInterpreter:
     """
     Permuation importance based interpreter.
 
+    This method utilizes sklearn's `PermutationImportance
+    <https://scikit-learn.org/stable/modules/generated/sklearn.inspection.permutation_importance.html>`_
+    function.
+
     EI : EnsembleIntegration class object
         Fitted EnsembleIntegration model, i.e. with model_building=True.
     metric : function
@@ -93,10 +97,10 @@ class PermutationInterpreter:
             meta_predictor_keys = self.meta_predictor_keys
 
         if self.LFR is None:
-            self._local_feature_rank(X_dict, y)
+            self.local_feature_rank(X_dict, y)
 
         if self.LMR is None:
-            self._local_model_rank(meta_predictor_keys=meta_predictor_keys)
+            self.local_model_rank(meta_predictor_keys=meta_predictor_keys)
 
         print("Calculating combined rank product score...")
 
@@ -142,7 +146,7 @@ class PermutationInterpreter:
 
         return self
 
-    def _local_feature_rank(self, X_dict, y):
+    def local_feature_rank(self, X_dict, y):
         """
         Local Feature Ranks (LFRs) for each base predictor
 
@@ -252,7 +256,7 @@ class PermutationInterpreter:
 
         return self
 
-    def _local_model_rank(self, meta_predictor_keys):
+    def local_model_rank(self, meta_predictor_keys):
         """
         Local Model Ranks (LMRs)
 
