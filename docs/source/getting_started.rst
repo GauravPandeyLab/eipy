@@ -1,7 +1,7 @@
 Getting started
 ===============
 
-eipy focuses mainly on
+Ensemble Integration focuses mainly on
 `stacked generalization <https://www.sciencedirect.com/science/article/abs/pii/S0893608005800231>`_,
 as a method for late data fusion, but other ensemble methods including 
 `ensemble selection <https://dl.acm.org/doi/10.1145/1015330.1015432>`_ are available for
