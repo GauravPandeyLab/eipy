@@ -1,19 +1,10 @@
 from sklearn.inspection import permutation_importance
-from eipy.utils import (
-    scores,
-    set_seed,
-    random_integers,
-    sample,
-    retrieve_X_y,
-    append_modality,
-    generate_scorer_by_model,
-    bar_format
-)
+from eipy.utils import retrieve_X_y, bar_format
 import pandas as pd
 from tqdm import tqdm
 import numpy as np
 import copy
-from sklearn.metrics import fbeta_score, make_scorer
+from sklearn.metrics import make_scorer
 import shap
 import pickle
 from itertools import groupby
@@ -28,17 +19,17 @@ warnings.filterwarnings("ignore")
 
 class PermutationInterpreter:
     """
-    Permuation importance based interpreter. 
+    Permuation importance based interpreter.
 
     EI : EnsembleIntegration class object
         Fitted EnsembleIntegration model, i.e. with model_building=True.
     metric : function
         sklearn-like metric function.
     n_repeats : int, default=10
-        Number of repeats in PermutationImportance. 
+        Number of repeats in PermutationImportance.
     meta_predictor_keys: default='all'
         Meta predictor keys used in EnsembleIntegration. If 'all' then all meta predictors
-        seen by EI are interpreted. Recommended to pass a subset of meta_predctor keys as 
+        seen by EI are interpreted. Recommended to pass a subset of meta_predctor keys as
         a list.
     metric_greater_is_better: default=True
         Metric greater is better.
@@ -46,7 +37,7 @@ class PermutationInterpreter:
     Attributes
     ----------
     ensemble_feature_ranking : pandas.DataFrame
-        Feature rankings for each ensemble method. 
+        Feature rankings for each ensemble method.
     LFR : pandas.DataFrame
         Local feature rankings for each base predictor.
     LMR : pandas.Dataframe
@@ -77,6 +68,23 @@ class PermutationInterpreter:
         self.LMR = None
 
     def rank_product_score(self, X_dict, y):
+        """
+        Compute feature ranking of ensemble methods using LFR and LMR.
+
+        Parameters
+        ----------
+        X_dict : dict
+            Dictionary of X modalities. Keys and n_features
+            must match those seen by EnsembleIntegration.train_base().
+        y : array of shape (n_samples,)
+            Target vector relative to X.
+
+        Returns
+        -------
+        self
+            Feature ranking of ensemble methods
+        """
+
         print("Interpreting ensembles...\n")
 
         if self.meta_predictor_keys == "all":
@@ -90,7 +98,7 @@ class PermutationInterpreter:
         if self.LMR is None:
             self._local_model_rank(meta_predictor_keys=meta_predictor_keys)
 
-        print('Calculating combined rank product score...')
+        print("Calculating combined rank product score...")
 
         feature_ranking_list = {}
         self.merged_lmr_lfr = {}
@@ -143,8 +151,8 @@ class PermutationInterpreter:
         X_dict : dict
             Dictionary of X modalities. Keys and n_features
             must match those seen by EnsembleIntegration.train_base().
-        meta_predictor_key :
-            The key of an ensemble method selected during performance analysis.
+        y : array of shape (n_samples,)
+            Target vector relative to X.
 
         Returns
         -------
@@ -154,7 +162,11 @@ class PermutationInterpreter:
 
         importance_list = []
 
-        for modality_name in tqdm(self.EI.modality_names, desc='Calculating local feature ranks', bar_format=bar_format):
+        for modality_name in tqdm(
+            self.EI.modality_names,
+            desc="Calculating local feature ranks",
+            bar_format=bar_format,
+        ):
             X = X_dict[modality_name]
 
             base_models = copy.deepcopy(
@@ -163,7 +175,7 @@ class PermutationInterpreter:
 
             base_models = sorted(base_models, key=itemgetter("model name"))
 
-            for key, base_models_per_sample in groupby(
+            for _key, base_models_per_sample in groupby(
                 base_models, key=itemgetter("model name")
             ):
                 list_of_base_models = []
@@ -180,12 +192,14 @@ class PermutationInterpreter:
                 if (
                     len(list_of_base_models) > 1
                 ):  # take mean of base predictors with different sample ids
-                    ######################################################################################################
-                    #  This code is a work around and may be fragile. We use VotingClassifier to combine models trained on
-                    #  different samples (taking a mean of model output). The current sklearn implementation of
-                    #  VotingClassifier does not accept pretrained models, so we set parameters ourselves to allow it. In
-                    #  the future it may be possible to use VotingClassifier alone without additional code. An
-                    #  sklearn-like model is needed to be passed to permutation_importance
+                    ###################################################################
+                    #  This code is a work around and may be fragile. We use VotingClassifier
+                    # to combine models trained on different samples (taking a mean of model
+                    # output). The current sklearn implementation of VotingClassifier does not
+                    # accept pretrained models, so we set parameters ourselves to allow it. In
+                    # the future it may be possible to use VotingClassifier alone without
+                    # additional code. An sklearn-like model is needed to be passed to
+                    # permutation_importance.
 
                     model = VotingClassifier(
                         estimators=list_of_base_models,
@@ -197,7 +211,7 @@ class PermutationInterpreter:
                     model.le_ = LabelEncoder().fit(y)
                     model.classes_ = model.le_.classes_
 
-                    ######################################################################################################
+                    ##################################################################
 
                 else:
                     model = list_of_base_models[0][1]
@@ -236,18 +250,17 @@ class PermutationInterpreter:
 
         self.LFR = pd.concat(importance_list)
 
-        print("complete!")
-
         return self
 
     def _local_model_rank(self, meta_predictor_keys):
         """
-        Local Model Ranks (LFRs)
+        Local Model Ranks (LMRs)
 
         Parameters
         ----------
         meta_predictor_keys : list of str
-            List of meta predictor keys that will be used to select ensembles classifiers to interpret.
+            List of meta predictor keys that will be used to select
+            ensembles classifiers to interpret.
 
         Returns
         -------
@@ -273,7 +286,11 @@ class PermutationInterpreter:
 
         ensemble_models = dict(zip(meta_predictor_keys, ensemble_models))
 
-        for model_name, model in tqdm(ensemble_models.items(), desc='Calculating local model ranks', bar_format=bar_format):
+        for model_name, model in tqdm(
+            ensemble_models.items(),
+            desc="Calculating local model ranks",
+            bar_format=bar_format,
+        ):
             meta_predictor = pickle.loads(model)
 
             if ("Mean" in model_name) or ("Median" in model_name):
@@ -283,7 +300,9 @@ class PermutationInterpreter:
             elif model_name == "CES":
                 model_selected_freq = []
                 for bp in meta_X_train.columns:
-                    model_selected_freq.append(meta_predictor.selected_ensemble.count(bp))
+                    model_selected_freq.append(
+                        meta_predictor.selected_ensemble.count(bp)
+                    )
                 importances_mean = model_selected_freq
                 importances_std = np.ones(len(meta_X_train.columns)) * np.nan
 
@@ -326,8 +345,6 @@ class PermutationInterpreter:
             )
             lm_pi_list.append(pi_df)
         self.LMR = pd.concat(lm_pi_list)
-
-        print("complete!")
 
         return self
 
