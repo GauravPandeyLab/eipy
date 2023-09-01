@@ -21,7 +21,7 @@ class PermutationInterpreter:
     """
     Permuation importance based interpreter.
 
-    This method utilizes sklearn's `PermutationImportance
+    This method utilizes sklearn's `permutation_importance
     <https://scikit-learn.org/stable/modules/generated/sklearn.inspection.permutation_importance.html>`_
     function.
 
