@@ -43,12 +43,6 @@ def test_ensemble_integration(sampling_strategy):
         'XGB': XGBClassifier()
     }
 
-    additional_ensemble_methods = {
-        "Mean": MeanAggregation(),
-        "Median": MedianAggregation(),
-        "CES": CES()
-    }
-
     # Initialize EnsembleIntegration
     EI = EnsembleIntegration(base_predictors=base_predictors,
                              k_outer=2,
@@ -59,7 +53,6 @@ def test_ensemble_integration(sampling_strategy):
                              n_jobs=-1,
                              random_state=42,
                              project_name="demo",
-                             additional_ensemble_methods=additional_ensemble_methods,
                              model_building=True)
 
     # Train base models
@@ -68,9 +61,12 @@ def test_ensemble_integration(sampling_strategy):
 
     # Train meta models
     meta_predictors = {
-        "DT": DecisionTreeClassifier(),
-        "LR": LogisticRegression(),
-        "NB": GaussianNB(),
+        "Mean": MeanAggregation(),
+        "Median": MedianAggregation(),
+        "S.CES": CES(),
+        "S.DT": DecisionTreeClassifier(),
+        "S.LR": LogisticRegression(),
+        "S.NB": GaussianNB(),
     }
 
     EI.train_meta(meta_predictors=meta_predictors)
@@ -81,3 +77,14 @@ def test_ensemble_integration(sampling_strategy):
     assert EI.base_summary is not None
     assert EI.meta_summary is not None
     assert EI.final_models is not {"base models": {}, "meta models": {}}
+
+    from eipy.interpretation import PermutationInterpreter
+    from eipy.utils import f_minority_score
+
+    interpreter = PermutationInterpreter(EI=EI,
+                                     metric=f_minority_score,
+                                     meta_predictor_keys=['S.LR'])
+    
+    interpreter.rank_product_score(X_dict=modalities, y=y)
+
+    assert interpreter.ensemble_feature_ranking is not None
