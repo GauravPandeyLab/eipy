@@ -74,7 +74,11 @@ class MedianAggregation(BaseEstimator, ClassifierMixin):
 
 class CES(BaseEstimator, ClassifierMixin):
     """
-    Caruana et al's Ensemble Selection
+    Caruana et al's Ensemble Selection. 
+    
+    Caruana R. et al. (2006) Getting the most out of ensemble selection. 
+    In: Sixth International Conference on Data
+    Mining (ICDM'06), 2006 IEEE, Piscataway, NJ, USA, pp. 828-833.
     """
 
     def __init__(
