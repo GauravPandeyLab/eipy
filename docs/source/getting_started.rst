@@ -8,8 +8,8 @@ as a method for late data fusion, but other ensemble methods including
 comparison. 
 
 Base predictor training is performed in a nested cross validation set up, to allow for an unbiased comparison
-and selection the ensembmle method with the best performance. A final model can then be trained on all available
-data.
+of ensemble methods, allowing the user to select the method with the best performance. 
+A final model can then be trained on all available data.
 
 Source code
 -----------
