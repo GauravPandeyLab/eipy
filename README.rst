@@ -12,7 +12,7 @@ Installation
 
 Create a virtual environment and install with pip:
 
-``pip install "git+https://github.com/03bennej/ei-python.git"``
+``pip install "https://github.com/GauravPandeyLab/eipy.git"``
 
 Citation
 --------
