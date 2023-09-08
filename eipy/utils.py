@@ -1,16 +1,25 @@
 import pandas as pd
 import numpy as np
 import random
-from sklearn.metrics import roc_auc_score, precision_recall_curve, \
-    matthews_corrcoef, precision_recall_fscore_support, make_scorer
+from sklearn.metrics import (
+    roc_auc_score,
+    precision_recall_curve,
+    matthews_corrcoef,
+    precision_recall_fscore_support,
+    make_scorer,
+)
 from imblearn.under_sampling import RandomUnderSampler
 from imblearn.over_sampling import RandomOverSampler
-#from tensorflow.keras.backend import clear_session
+
+# from tensorflow.keras.backend import clear_session
 import warnings
 import sklearn
 import sklearn.metrics
 from sklearn.exceptions import UndefinedMetricWarning
-warnings.filterwarnings(action='ignore', category=UndefinedMetricWarning)
+
+warnings.filterwarnings(action="ignore", category=UndefinedMetricWarning)
+
+bar_format = "{desc}: |{bar}|{percentage:3.0f}%"
 
 class TFWrapper:
     def __init__(self, tf_fun, compile_kwargs, fit_kwargs):
@@ -22,7 +31,7 @@ class TFWrapper:
         # self.tf_model.compile(**self.compile_kwargs)
 
     def fit(self, X, y):
-        #clear_session()
+        # clear_session()
         self.model = self.tf_fun()
         self.model.compile(**self.compile_kwargs)
         # self.model.set_weights(self.initial_weights)  # re-initialises weights for multiple .fit calls
@@ -36,6 +45,7 @@ class TFWrapper:
             text = separator * 2
         else:
             text = f"{separator} {modality} modality {separator}"
+
 
 def fancy_print(text=None, length=None):
     print("\n")
@@ -59,14 +69,18 @@ class dummy_cv:
 def create_base_summary(meta_test_dataframe):
     labels = pd.concat([df["labels"] for df in meta_test_dataframe])
     meta_test_averaged_samples = pd.concat(
-        [df.drop(columns=["labels"], level=0).groupby(level=(0, 1), axis=1).mean() for df in meta_test_dataframe])
+        [
+            df.drop(columns=["labels"], level=0).groupby(level=(0, 1), axis=1).mean()
+            for df in meta_test_dataframe
+        ]
+    )
     meta_test_averaged_samples["labels"] = labels
     return metric_threshold_dataframes(meta_test_averaged_samples)
 
 
 def safe_predict_proba(model, X):  # uses predict_proba method where possible
     if hasattr(model, "predict_proba"):
-        y_pred = model.predict_proba(X)[:, 1] 
+        y_pred = model.predict_proba(X)[:, 1]
     else:
         y_pred = model.predict(X)
     return y_pred
@@ -115,9 +129,11 @@ def metric_threshold_dataframes(df):
 
 def fmax_score(y_true, y_pred, beta=1):
     # beta = 0 for precision, beta -> infinity for recall, beta=1 for harmonic mean
-    np.seterr(divide='ignore', invalid='ignore')
+    np.seterr(divide="ignore", invalid="ignore")
     precision, recall, thresholds = precision_recall_curve(y_true, y_pred)
-    fmeasure = (1 + beta ** 2) * (precision * recall) / ((beta ** 2 * precision) + recall)
+    fmeasure = (
+        (1 + beta**2) * (precision * recall) / ((beta**2 * precision) + recall)
+    )
     argmax = np.nanargmax(fmeasure)
 
     fmax = fmeasure[argmax]
@@ -125,29 +141,32 @@ def fmax_score(y_true, y_pred, beta=1):
 
     return fmax, max_fmax_threshold
 
-def fmeasure_score(labels, predictions, thres=None, 
-                    beta = 1.0, pos_label = 1, thres_same_cls = False):
+
+def fmeasure_score(
+    labels, predictions, thres=None, beta=1.0, pos_label=1, thres_same_cls=False
+):
     """
-        Radivojac, P. et al. (2013). A Large-Scale Evaluation of Computational Protein Function Prediction. Nature Methods, 10(3), 221-227.
-        Manning, C. D. et al. (2008). Evaluation in Information Retrieval. In Introduction to Information Retrieval. Cambridge University Press.
+    Radivojac, P. et al. (2013). A Large-Scale Evaluation of Computational Protein Function Prediction. Nature Methods, 10(3), 221-227.
+    Manning, C. D. et al. (2008). Evaluation in Information Retrieval. In Introduction to Information Retrieval. Cambridge University Press.
     """
-    np.seterr(divide='ignore', invalid='ignore')
+    np.seterr(divide="ignore", invalid="ignore")
     if pos_label == 0:
-        labels = 1-np.array(labels)
-        predictions = 1-np.array(predictions)
+        labels = 1 - np.array(labels)
+        predictions = 1 - np.array(predictions)
         # if not(thres is None):
         #     thres = 1-thres
     # else:
 
-
     if thres is None:  # calculate fmax here
-        np.seterr(divide='ignore', invalid='ignore')
-        precision, recall, threshold = sklearn.metrics.precision_recall_curve(labels, predictions,
-                                                                            #   pos_label=pos_label
-                                                                              )
+        np.seterr(divide="ignore", invalid="ignore")
+        precision, recall, threshold = sklearn.metrics.precision_recall_curve(
+            labels,
+            predictions,
+            #   pos_label=pos_label
+        )
 
-        fs = (1 + beta ** 2) * (precision * recall) / ((beta ** 2 * precision) + recall)
-        fmax_point = np.where(fs==np.nanmax(fs))[0]
+        fs = (1 + beta**2) * (precision * recall) / ((beta**2 * precision) + recall)
+        fmax_point = np.where(fs == np.nanmax(fs))[0]
         p_maxes = precision[fmax_point]
         r_maxes = recall[fmax_point]
         pr_diff = np.abs(p_maxes - r_maxes)
@@ -156,7 +175,13 @@ def fmeasure_score(labels, predictions, thres=None,
         r_max = r_maxes[balance_fmax_point[0]]
         opt_threshold = threshold[fmax_point][balance_fmax_point[0]]
 
-        return {'F':np.nanmax(fs), 'thres':opt_threshold, 'P':p_max, 'R':r_max, 'PR-curve': [precision, recall]}
+        return {
+            "F": np.nanmax(fs),
+            "thres": opt_threshold,
+            "P": p_max,
+            "R": r_max,
+            "PR-curve": [precision, recall],
+        }
 
     else:  # calculate fmeasure for specific threshold
         binary_predictions = np.array(predictions)
@@ -166,12 +191,15 @@ def fmeasure_score(labels, predictions, thres=None,
         else:
             binary_predictions[binary_predictions > thres] = 1.0
             binary_predictions[binary_predictions <= thres] = 0.0
-        precision, recall, fmeasure, _ = precision_recall_fscore_support(labels,
-                                                                        binary_predictions, 
-                                                                        average='binary',
-                                                                        # pos_label=pos_label
-                                                                        )
-        return {'P':precision, 'R':recall, 'F':fmeasure}
+        precision, recall, fmeasure, _ = precision_recall_fscore_support(
+            labels,
+            binary_predictions,
+            average="binary",
+            zero_division=0.0,
+            # pos_label=pos_label
+        )
+        return {"P": precision, "R": recall, "F": fmeasure}
+
 
 def matthews_max_score(y_true, y_pred):
     thresholds = np.arange(0, 1, 0.01)
@@ -197,25 +225,27 @@ def scores(y_true, y_pred, beta=1, metric_to_maximise="fscore", verbose=0):
     else:
         minor_class = 1
         major_class = 0
-    
+
     # fmax = fmax_score(y_true, y_pred, beta=1)
     f_measure_minor = fmeasure_score(y_true, y_pred, pos_label=minor_class)
     # f_measure_minor_0 = fmeasure_score(y_true, y_pred, pos_label=minor_class,
-                                            # thres=f_measure_minor['thres'])
+    # thres=f_measure_minor['thres'])
     # print('without thres', f_measure_minor)
     # print('with thres', f_measure_minor_0)
-    f_measure_major = fmeasure_score(y_true, y_pred, pos_label=major_class,
-                                    thres=1-f_measure_minor['thres'])
+    f_measure_major = fmeasure_score(
+        y_true, y_pred, pos_label=major_class, thres=1 - f_measure_minor["thres"]
+    )
 
     max_mcc = matthews_max_score(y_true, y_pred)
 
     auc = roc_auc_score(y_true, y_pred)
 
-    scores_threshold_dict = {"fmax (minority)": (f_measure_minor['F'], f_measure_minor['thres']),
-                            "f (majority)": (f_measure_major['F'], f_measure_minor['thres']),
-                             "AUC": (auc, np.nan),
-                             "max MCC": max_mcc
-                             }  # dictionary of (score, threshold)
+    scores_threshold_dict = {
+        "fmax (minority)": (f_measure_minor["F"], f_measure_minor["thres"]),
+        "f (majority)": (f_measure_major["F"], f_measure_minor["thres"]),
+        "AUC": (auc, np.nan),
+        "max MCC": max_mcc,
+    }  # dictionary of (score, threshold)
 
     if verbose > 0:
         for metric_name, score in scores_threshold_dict.items():
@@ -225,16 +255,16 @@ def scores(y_true, y_pred, beta=1, metric_to_maximise="fscore", verbose=0):
 
 
 def read_arff_to_pandas_df(arff_path):
-    df = pd.read_csv(arff_path, comment='@', header=None)
+    df = pd.read_csv(arff_path, comment="@", header=None)
     columns = []
-    file = open(arff_path, 'r')
+    file = open(arff_path, "r")
     lines = file.readlines()
 
     # Strips the newline character
     for line_idx, line in enumerate(lines):
         # if line_idx > num_col
-        if '@attribute' in line.lower():
-            columns.append(line.strip().split(' ')[1])
+        if "@attribute" in line.lower():
+            columns.append(line.strip().split(" ")[1])
 
     df.columns = columns
     return df
@@ -256,30 +286,32 @@ def sample(X, y, strategy, random_state):
         sampler = RandomUnderSampler(random_state=random_state)
     elif strategy == "oversampling":
         sampler = RandomOverSampler(random_state=random_state)
-    elif strategy == 'hybrid':
-        y_pos = float(sum(y==1))
+    elif strategy == "hybrid":
+        y_pos = float(sum(y == 1))
         y_total = y.shape[0]
-        if (y_pos/y_total) < 0.5:
+        if (y_pos / y_total) < 0.5:
             y_min_count = y_pos
-            y_maj_count = (y_total - y_pos)
+            y_maj_count = y_total - y_pos
             maj_class = 0
         else:
             y_maj_count = y_pos
-            y_min_count = (y_total - y_pos)
+            y_min_count = y_total - y_pos
             maj_class = 1
-        rus = RandomUnderSampler(random_state=random_state, 
-                                sampling_strategy=y_min_count/(y_total/2))
-        ros = RandomOverSampler(random_state=random_state,   
-                                sampling_strategy=(y_total/2)/y_maj_count)
+        rus = RandomUnderSampler(
+            random_state=random_state, sampling_strategy=y_min_count / (y_total / 2)
+        )
+        ros = RandomOverSampler(
+            random_state=random_state, sampling_strategy=(y_total / 2) / y_maj_count
+        )
         X_maj, y_maj = rus.fit_resample(X=X, y=y)
-        X_maj = X_maj[y_maj==maj_class]
-        y_maj = y_maj[y_maj==maj_class]
+        X_maj = X_maj[y_maj == maj_class]
+        y_maj = y_maj[y_maj == maj_class]
         X_min, y_min = ros.fit_resample(X=X, y=y)
-        X_min = X_min[y_min!=maj_class]
-        y_min = y_min[y_min!=maj_class]
+        X_min = X_min[y_min != maj_class]
+        y_min = y_min[y_min != maj_class]
         X_resampled = np.concatenate([X_maj, X_min])
         y_resampled = np.concatenate([y_maj, y_min])
-    
+
     if (strategy == "undersampling") or (strategy == "oversampling"):
         X_resampled, y_resampled = sampler.fit_resample(X=X, y=y)
     return X_resampled, y_resampled
@@ -298,21 +330,30 @@ def append_modality(current_data, modality_data, model_building=False):
         combined_dataframe = []
         for fold, dataframe in enumerate(current_data):
             if not model_building:
-                if (dataframe.iloc[:, -1].to_numpy() != modality_data[fold].iloc[:, -1].to_numpy()).all():
-                    print("Error: something is wrong. Labels do not match across modalities")
+                if (
+                    dataframe.iloc[:, -1].to_numpy()
+                    != modality_data[fold].iloc[:, -1].to_numpy()
+                ).all():
+                    print(
+                        "Error: something is wrong. Labels do not match across modalities"
+                    )
                     break
-                combined_dataframe.append(pd.concat((dataframe.iloc[:, :-1],
-                                                    modality_data[fold]), axis=1))
+                combined_dataframe.append(
+                    pd.concat((dataframe.iloc[:, :-1], modality_data[fold]), axis=1)
+                )
             else:
-                combined_dataframe.append(pd.concat((dataframe.iloc[:, :],
-                                                    modality_data[fold]), axis=1))
+                combined_dataframe.append(
+                    pd.concat((dataframe.iloc[:, :], modality_data[fold]), axis=1)
+                )
     return combined_dataframe
 
 
 def auprc(y_true, y_scores):
     return sklearn.metrics.average_precision_score(y_true, y_scores)
 
+
 auprc_sklearn = make_scorer(auprc, greater_is_better=True, needs_proba=True)
+
 
 def f_minority_score(y_true, y_pred):
     # if (len(y_pred.shape) > 2):
@@ -324,16 +365,23 @@ def f_minority_score(y_true, y_pred):
     else:
         minor_class = 1
     # return fmeasure_score(y_true, y_pred_pos, pos_label=minor_class)['F']
-    return fmeasure_score(y_true, y_pred, pos_label=minor_class)['F']
+    return fmeasure_score(y_true, y_pred, pos_label=minor_class)["F"]
+
 
 def generate_scorer_by_model(score_func, model, greater_is_better):
     needs_proba = False
-    if hasattr(model, 'predict_proba'):
+    if hasattr(model, "predict_proba"):
         needs_proba = True
     print(model, needs_proba)
-    new_scorer = make_scorer(score_func=score_func, greater_is_better=greater_is_better, needs_proba=True)
+    new_scorer = make_scorer(
+        score_func=score_func, greater_is_better=greater_is_better, needs_proba=True
+    )
     return new_scorer
 
 
-f_minor_sklearn = make_scorer(f_minority_score, greater_is_better=True, needs_proba=True)
-f_minor_sklearn_bin_only = make_scorer(f_minority_score, greater_is_better=True, needs_proba=False)
+f_minor_sklearn = make_scorer(
+    f_minority_score, greater_is_better=True, needs_proba=True
+)
+f_minor_sklearn_bin_only = make_scorer(
+    f_minority_score, greater_is_better=True, needs_proba=False
+)
