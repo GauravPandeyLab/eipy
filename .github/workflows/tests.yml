@@ -1,34 +1,38 @@
 name: Tests
 
 on:
-    push:
-      branches:
-        - main
-    pull_request:
-      branches:
-        - main
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
 
 jobs:
-    tests:
-        runs-on: ${{ matrix.os }}
-        strategy:
-            matrix:
-                os: [ubuntu-latest, windows-latest]
-                python-version: ['3.8', '3.9', '3.10']
+  tests:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+        python-version: ['3.8', '3.9', '3.10']
 
-        steps:
-            - name: Check out repo
-              uses: actions/checkout
-            - name: Set up Python ${{ matrix.python-version }}
-              uses: actions/setup-python
-              with:
-                python-version: ${{ matrix.python-version }}
-            - name: Install Poetry
-              run: |
-                pip install poetry
-            - name: Install dependencies
-              run: |
-                poetry install
-                pip install tox tox-gh-actions
-            - name: Test with tox
-              run: tox
+    steps:
+      - name: Check out the repository
+        uses: actions/checkout@v1
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Install Poetry
+        run: |
+          pip install poetry
+
+      - name: Install dependencies
+        run: |
+          poetry install
+          pip install tox tox-gh-actions
+
+      - name: Test with tox
+        run: tox
