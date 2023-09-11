@@ -1,10 +1,13 @@
-|Tests|_ |Black|_
+|Tests|_ |Black|_ |PythonVersion|_
 
 .. |Tests| image:: https://github.com/GauravPandeyLab/eipy/actions/workflows/tests.yml/badge.svg
 .. _Tests: https://github.com/GauravPandeyLab/eipy/actions/workflows/tests.yml
 
 .. |Black| image:: https://img.shields.io/badge/code%20style-black-000000.svg
 .. _Black: https://github.com/psf/black
+
+.. |PythonVersion| image:: https://img.shields.io/badge/python-3.8%20%7C%203.9%20%7C%203.10-blue
+.. _PythonVersion: https://github.com/GauravPandeyLab/eipy
 
 Ensemble Integration
 ====================
