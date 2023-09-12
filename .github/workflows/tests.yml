@@ -5,12 +5,12 @@ on:
     branches:
       - main
     paths-ignore:
-      - '**/README.md'
+      - '**/README.rst'
   pull_request:
     branches:
       - main
     paths-ignore:
-      - '**/README.md'
+      - '**/README.rst'
 
 jobs:
   tests:
