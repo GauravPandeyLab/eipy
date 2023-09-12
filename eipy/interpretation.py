@@ -58,13 +58,15 @@ class PermutationInterpreter:
         self,
         EI,
         metric,
-        n_repeats=10,
         meta_predictor_keys="all",
+        n_repeats=10,
+        n_jobs=1,
         metric_greater_is_better=True,  # can be "all" or a list of keys for ensemble methods
     ):
         self.EI = EI
         self.metric = metric
         self.n_repeats = n_repeats
+        self.n_jobs = n_jobs
         self.meta_predictor_keys = meta_predictor_keys
         self.metric_greater_is_better = metric_greater_is_better
 
@@ -232,7 +234,7 @@ class PermutationInterpreter:
                     X=X,
                     y=y,
                     n_repeats=self.n_repeats,
-                    n_jobs=self.EI.n_jobs,
+                    n_jobs=self.n_jobs,
                     random_state=self.EI.random_state,
                     scoring=scorer_,
                 )

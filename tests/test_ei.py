@@ -12,13 +12,10 @@ import pytest
 
 def test_ensemble_integration(sampling_strategy):
 
-    from sklearn.ensemble import AdaBoostClassifier, GradientBoostingClassifier, RandomForestClassifier
-    from sklearn.naive_bayes import GaussianNB
     from sklearn.linear_model import LogisticRegression
-    from sklearn.tree import DecisionTreeClassifier
-    from sklearn.neural_network import MLPClassifier
-    from sklearn.neighbors import KNeighborsClassifier
-    from sklearn.svm import SVC
+    from sklearn.calibration import CalibratedClassifierCV
+    from sklearn.pipeline import Pipeline
+    from sklearn.preprocessing import StandardScaler
     from xgboost import XGBClassifier
     from sklearn.datasets import make_classification
     from eipy.ei import EnsembleIntegration
@@ -37,9 +34,7 @@ def test_ensemble_integration(sampling_strategy):
 
     # Create base predictor models
     base_predictors = {
-        'DT': DecisionTreeClassifier(),
-        'LR': LogisticRegression(),
-        'NB': GaussianNB(),
+        'LR': Pipeline([('scaler', StandardScaler()), ('lr', LogisticRegression())]),
         'XGB': XGBClassifier()
     }
 
@@ -53,6 +48,7 @@ def test_ensemble_integration(sampling_strategy):
                              n_jobs=-1,
                              random_state=42,
                              project_name="demo",
+                             calibration_model=CalibratedClassifierCV(cv=2),
                              model_building=True)
 
     # Train base models
@@ -63,13 +59,14 @@ def test_ensemble_integration(sampling_strategy):
     meta_predictors = {
         "Mean": MeanAggregation(),
         "Median": MedianAggregation(),
-        "S.CES": CES(),
-        "S.DT": DecisionTreeClassifier(),
-        "S.LR": LogisticRegression(),
-        "S.NB": GaussianNB(),
+        "CES": CES(),
+        "S.LR": Pipeline([('scaler', StandardScaler()), ('lr', LogisticRegression())]),
     }
 
     EI.train_meta(meta_predictors=meta_predictors)
+
+    # Predict
+    EI.predict(modalities, meta_model_key='S.LR')
 
     # Assertions
 
@@ -81,9 +78,14 @@ def test_ensemble_integration(sampling_strategy):
     from eipy.interpretation import PermutationInterpreter
     from eipy.utils import f_minority_score
 
-    interpreter = PermutationInterpreter(EI=EI,
-                                     metric=f_minority_score,
-                                     meta_predictor_keys=['S.LR'])
+    interpreter = PermutationInterpreter(
+                                        EI=EI,
+                                        metric=f_minority_score,
+                                        meta_predictor_keys=['S.LR', 'Mean', 'CES'],
+                                        n_repeats=5,
+                                        n_jobs=-1,
+                                        metric_greater_is_better=True
+                                        )
     
     interpreter.rank_product_score(X_dict=modalities, y=y)
 
