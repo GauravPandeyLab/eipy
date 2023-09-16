@@ -27,6 +27,7 @@ from eipy.utils import (
     safe_predict_proba,
     dummy_cv,
     bar_format,
+    format_input_datatype
 )
 
 warnings.filterwarnings("ignore", category=DeprecationWarning)
@@ -170,6 +171,7 @@ class EnsembleIntegration:
         self.random_numbers_for_samples = random_integers(
             n_integers=n_samples, seed=self.random_state
         )
+        self.feature_names_dict = {}
 
     @ignore_warnings(category=ConvergenceWarning)
     def train_base(self, X, y, base_predictors=None, modality=None):
@@ -196,12 +198,14 @@ class EnsembleIntegration:
                 for ensemble performance analysis..."
         )
 
+        X_np, feature_names = format_input_datatype(X, modality_name=modality)
         self.modality_names.append(modality)
-        self.n_features_per_modality.append(X.shape[1])
+        self.feature_names_dict[modality] = feature_names
+        self.n_features_per_modality.append(X_np.shape[1])
 
         if base_predictors is not None:
             self.base_predictors = base_predictors  # update base predictors
-
+        
         for _, v in self.base_predictors.items():
             if type(v) == Pipeline:
                 est_ = list(v.named_steps)[-1]
@@ -211,7 +215,7 @@ class EnsembleIntegration:
                 v.set_params(**{"random_state": self.random_state})
 
         meta_training_data_modality = self._train_base_inner(
-            X=X,
+            X=X_np,
             y=y,
             cv_outer=self.cv_outer,
             cv_inner=self.cv_inner,
@@ -224,7 +228,7 @@ class EnsembleIntegration:
         )
 
         meta_test_data_modality = self._train_base_outer(
-            X=X,
+            X=X_np,
             y=y,
             cv_outer=self.cv_outer,
             base_predictors=self.base_predictors,
@@ -239,7 +243,7 @@ class EnsembleIntegration:
         self.base_summary = create_base_summary(self.meta_test_data)
 
         if self.model_building:
-            self._train_base_final(X=X, y=y, modality=modality)
+            self._train_base_final(X=X_np, y=y, modality=modality)
 
         print("\n")
 
@@ -349,6 +353,8 @@ class EnsembleIntegration:
         y_pred : array of shape (n_samples,)
             Vector containing the class labels for each sample.
         """
+
+        # TODO: follow the order of feature?
 
         meta_prediction_data = None
 

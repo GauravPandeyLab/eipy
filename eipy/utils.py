@@ -127,6 +127,23 @@ def metric_threshold_dataframes(df):
     return df_dict
 
 
+def format_input_datatype(X, modality_name):
+    if type(X) == pd.core.frame.DataFrame:
+        """if the data input is dataframe, store the feature name"""
+        feature_names = list(X.columns)
+        X_np = X.values
+        # print(modal_name, modality.shape)
+    elif type(X) == np.ndarray:
+        """If there is no feature name in input/feature name dictionary"""
+        feature_names = [f'{modality_name}_{i}' for i in range(X.shape[1])]
+        X_np = X
+    else:
+        print('Input X can only be either numpy array or pandas dataframe object.')
+        return None, None
+
+    return X_np, feature_names
+
+
 def fmax_score(y_true, y_pred, beta=1):
     # beta = 0 for precision, beta -> infinity for recall, beta=1 for harmonic mean
     np.seterr(divide="ignore", invalid="ignore")
@@ -385,3 +402,5 @@ f_minor_sklearn = make_scorer(
 f_minor_sklearn_bin_only = make_scorer(
     f_minority_score, greater_is_better=True, needs_proba=False
 )
+
+

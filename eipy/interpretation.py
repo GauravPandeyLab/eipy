@@ -1,11 +1,10 @@
 from sklearn.inspection import permutation_importance
-from eipy.utils import retrieve_X_y, bar_format
+from eipy.utils import retrieve_X_y, bar_format, format_input_datatype
 import pandas as pd
 from tqdm import tqdm
 import numpy as np
 import copy
 from sklearn.metrics import make_scorer
-import shap
 import pickle
 from itertools import groupby
 from operator import itemgetter
@@ -92,7 +91,7 @@ class PermutationInterpreter:
         print("Interpreting ensembles...\n")
 
         if self.meta_predictor_keys == "all":
-            meta_predictor_keys = self.EI.meta_predictor.keys()
+            meta_predictor_keys = self.EI.meta_predictors.keys()
         else:
             meta_predictor_keys = self.meta_predictor_keys
 
@@ -171,7 +170,9 @@ class PermutationInterpreter:
             desc="Calculating local feature ranks",
             bar_format=bar_format,
         ):
+            # TODO: handle dataframe here
             X = X_dict[modality_name]
+            X_np, feature_names = format_input_datatype(X, modality_name=modality_name)
 
             base_models = copy.deepcopy(
                 self.EI.final_models["base models"][modality_name]
@@ -229,7 +230,7 @@ class PermutationInterpreter:
 
                 pi = permutation_importance(
                     estimator=model,
-                    X=X,
+                    X=X_np,
                     y=y,
                     n_repeats=self.n_repeats,
                     n_jobs=self.EI.n_jobs,
@@ -241,7 +242,7 @@ class PermutationInterpreter:
                     {
                         "local_importance_mean": pi.importances_mean,
                         "local_importance_std": pi.importances_std,
-                        "local_feature_id": range(X.shape[1]),
+                        "local_feature_id": self.EI.feature_names_dict[modality_name],
                     }
                 )
 
@@ -351,13 +352,3 @@ class PermutationInterpreter:
         self.LMR = pd.concat(lm_pi_list)
 
         return self
-
-    def shap_val_mean(self, m, x):
-        if hasattr(m, "predict_proba"):
-            shap_exp = shap.Explainer(m.predict_proba, x)
-        else:
-            shap_exp = shap.Explainer(m.predict, x)
-
-        shap_vals = shap_exp(x)
-
-        return np.mean(shap_vals, axis=1)
