@@ -28,5 +28,5 @@ Create a virtual environment and install with pip:
 Citation
 --------
 
-If you use EI in a scientific publication please cite the original study 
+If you use EI in a scientific publication please cite the `original study <https://academic.oup.com/bioinformaticsadvances/article/2/1/vbac065/6696243>`_.
 

@@ -1,8 +1,8 @@
 from eipy.utils import (
-    set_seed,
     f_minority_score,
 )
 
+import random
 import numpy as np
 from numpy import (
     argmax,
@@ -76,7 +76,8 @@ class CES(BaseEstimator, ClassifierMixin):
         random_state=0,
         greater_is_better=True,
     ):
-        set_seed(random_state)
+        if random_state is not None:
+            random.seed(random_state)
         self.seed = random_state
         self.scoring_func = scoring_func
         self.max_ensemble_size = max_ensemble_size
@@ -88,7 +89,7 @@ class CES(BaseEstimator, ClassifierMixin):
         self.random_state = random_state
 
     def fit(self, X, y):
-        # X, y = check_X_y(X, y)
+
         # Store the classes seen during fit
         self.classes_ = unique_labels(y)
 
@@ -98,7 +99,7 @@ class CES(BaseEstimator, ClassifierMixin):
 
         self.selected_ensemble = []
         self.train_performance = []
-        # print(X, y)
+
         self.rng_generator = np.random.default_rng(seed=self.random_state)
         best_classifiers = X.apply(lambda x: self.scoring_func(y, x)).sort_values(
             ascending=self.greater_is_better
@@ -117,13 +118,13 @@ class CES(BaseEstimator, ClassifierMixin):
         self.best_ensemble = train_performance_df["ensemble"][
             : best_ensemble_size.item(0) + 1
         ]
-        # print(self.best_ensemble)
+
         return self
 
     def predict_proba(self, X):
-        # print(self.best_ensemble)
+
         check_is_fitted(self)
-        # X = check_array(X)
+
         ces_bp_df = X[self.best_ensemble]
         predict_positive = ces_bp_df.mean(axis=1).values
         return np.transpose(np.array([1 - predict_positive, predict_positive]))
