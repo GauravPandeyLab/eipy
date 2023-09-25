@@ -5,6 +5,7 @@ Ensemble Integration
 """
 import pandas as pd
 import numpy as np
+import random
 import pickle
 import copy
 from tqdm import tqdm
@@ -14,10 +15,12 @@ from sklearn.model_selection import StratifiedKFold
 from sklearn.base import clone
 from joblib import Parallel, delayed
 import warnings
-from sklearn.pipeline import Pipeline
 from eipy.utils import (
+    X_is_dict,
+    X_to_numpy,
+    y_to_numpy,
+    set_predictor_seeds,
     scores,
-    set_seed,
     random_integers,
     sample,
     retrieve_X_y,
@@ -97,6 +100,8 @@ class EnsembleIntegration:
         List of modalities in the order in which they were passed to EnsembleIntegration.
     n_features_per_modality : list of int
         List of number of features in each modality corresponding to modality_names.
+    feature_names : dict
+        Feature names for each modality passed to train_base.
     random_numbers_for_samples : list of int
         Random numbers used to sample each training fold.
     final_models : dict
@@ -129,7 +134,8 @@ class EnsembleIntegration:
         model_building=False,
         verbose=1,
     ):
-        set_seed(random_state)
+        if random_state is not None:
+            random.seed(random_state)
 
         self.base_predictors = base_predictors
         self.meta_predictors = meta_predictors
@@ -170,80 +176,32 @@ class EnsembleIntegration:
         self.random_numbers_for_samples = random_integers(
             n_integers=n_samples, seed=self.random_state
         )
+        self.feature_names = {}
 
-    @ignore_warnings(category=ConvergenceWarning)
-    def train_base(self, X, y, base_predictors=None, modality=None):
-        """
-        Train base predictors and generate meta train/test data.
+    def train_base(self, X, y, base_predictors=None, modality_name=None):
+        #  convert y to a numpy array
+        y = y_to_numpy(y)
 
-        Parameters
-        ----------
-        X : array of shape (n_samples, n_features)
-            Training vector, where n_samples is the number of samples and
-            n_features is the number of features.
-        y : array of shape (n_samples,)
-            Target vector relative to X.
-
-        Returns
-        -------
-        self
-            Meta train/test data and fitted final base predictors.
-
-        """
-
-        print(
-            f"Training base predictors on {modality}...\n\n... \
-                for ensemble performance analysis..."
-        )
-
-        self.modality_names.append(modality)
-        self.n_features_per_modality.append(X.shape[1])
-
+        #  check if base_predictors are passed here
         if base_predictors is not None:
             self.base_predictors = base_predictors  # update base predictors
 
-        for _, v in self.base_predictors.items():
-            if type(v) == Pipeline:
-                est_ = list(v.named_steps)[-1]
-                if hasattr(v[est_], "random_state") and hasattr(v[est_], "set_params"):
-                    v.set_params(**{"{}__random_state".format(est_): self.random_state})
-            if hasattr(v, "random_state") and hasattr(v, "set_params"):
-                v.set_params(**{"random_state": self.random_state})
+        #  set random_states in base_predictors
+        set_predictor_seeds(self.base_predictors, self.random_state)
 
-        meta_training_data_modality = self._train_base_inner(
-            X=X,
-            y=y,
-            cv_outer=self.cv_outer,
-            cv_inner=self.cv_inner,
-            base_predictors=self.base_predictors,
-            modality=modality,
-        )
-
-        self.meta_training_data = append_modality(
-            self.meta_training_data, meta_training_data_modality
-        )
-
-        meta_test_data_modality = self._train_base_outer(
-            X=X,
-            y=y,
-            cv_outer=self.cv_outer,
-            base_predictors=self.base_predictors,
-            modality=modality,
-        )
-
-        self.meta_test_data = append_modality(
-            self.meta_test_data, meta_test_data_modality
-        )  # append data to dataframe
-
-        # create a summary of base predictor performance
-        self.base_summary = create_base_summary(self.meta_test_data)
-
-        if self.model_building:
-            self._train_base_final(X=X, y=y, modality=modality)
-
-        print("\n")
-
-        return self
+        #  check data format and train accordingly
+        if X_is_dict(X):
+            for modality_name, modality in X.items():
+                self._train_base(
+                    X=modality,
+                    y=y,
+                    base_predictors=base_predictors,
+                    modality_name=modality_name,
+                )
+        else:
+            self._train_base(
+                X=X, y=y, base_predictors=base_predictors, modality_name=modality_name
+            )
 
     @ignore_warnings(category=ConvergenceWarning)
     def train_meta(self, meta_predictors=None):
@@ -264,13 +222,7 @@ class EnsembleIntegration:
         if meta_predictors is not None:
             self.meta_predictors = meta_predictors
 
-        for _, v in self.meta_predictors.items():
-            if type(v) == Pipeline:
-                est_ = list(v.named_steps)[-1]
-                if hasattr(v[est_], "random_state") and hasattr(v[est_], "set_params"):
-                    v.set_params(**{"{}__random_state".format(est_): self.random_state})
-            if hasattr(v, "random_state"):
-                v.set_params(**{"random_state": self.random_state})
+        set_predictor_seeds(self.meta_predictors, self.random_state)
 
         y_test_combined = []
 
@@ -350,18 +302,16 @@ class EnsembleIntegration:
             Vector containing the class labels for each sample.
         """
 
+        # TODO: follow the order of feature?
+
         meta_prediction_data = None
 
         for i in range(len(self.modality_names)):
             modality_name = self.modality_names[i]
-            n_features = self.n_features_per_modality[i]
+            # n_features = self.n_features_per_modality[i]
             X = X_dict[modality_name]
 
-            # check number of features is the same
-            assert X.shape[1] == n_features, (
-                f"{X.shape[1]} features were given for {modality_name} modality, but"
-                f" {n_features} were used during training."
-            )
+            X, _ = X_to_numpy(X)
 
             base_models = copy.deepcopy(self.final_models["base models"][modality_name])
             for base_model_dict in base_models:
@@ -388,9 +338,75 @@ class EnsembleIntegration:
         y_pred = safe_predict_proba(meta_model, meta_prediction_data)
         return y_pred
 
-    def _train_base_final(self, X, y, modality=None):
+    @ignore_warnings(category=ConvergenceWarning)
+    def _train_base(self, X, y, base_predictors=None, modality_name=None):
         """
-        Train final base predictor model.
+        Train base predictors and generate meta train/test data.
+
+        Parameters
+        ----------
+        X : array of shape (n_samples, n_features)
+            Training vector, where n_samples is the number of samples and
+            n_features is the number of features.
+        y : array of shape (n_samples,)
+            Target vector relative to X.
+
+        Returns
+        -------
+        self
+            Meta train/test data and fitted final base predictors.
+
+        """
+
+        print(
+            f"""Training base predictors on {modality_name}...
+        \n... for ensemble performance analysis..."""
+        )
+
+        X, feature_names = X_to_numpy(X)
+
+        self.modality_names.append(modality_name)
+        self.feature_names[modality_name] = feature_names
+        self.n_features_per_modality.append(X.shape[1])
+
+        meta_training_data_modality = self._train_base_inner(
+            X=X,
+            y=y,
+            cv_outer=self.cv_outer,
+            cv_inner=self.cv_inner,
+            base_predictors=self.base_predictors,
+            modality_name=modality_name,
+        )
+
+        self.meta_training_data = append_modality(
+            self.meta_training_data, meta_training_data_modality
+        )
+
+        meta_test_data_modality = self._train_base_outer(
+            X=X,
+            y=y,
+            cv_outer=self.cv_outer,
+            base_predictors=self.base_predictors,
+            modality_name=modality_name,
+        )
+
+        self.meta_test_data = append_modality(
+            self.meta_test_data, meta_test_data_modality
+        )  # append data to dataframe
+
+        # create a summary of base predictor performance
+        self.base_summary = create_base_summary(self.meta_test_data)
+
+        if self.model_building:
+            self._train_base_final(X=X, y=y, modality_name=modality_name)
+
+        print("\n")
+
+        return self
+
+    def _train_base_final(self, X, y, modality_name=None):
+        """
+        Train a final base predictor model to be used by predict()
         """
         print("\n... for final ensemble...")
 
@@ -400,7 +416,7 @@ class EnsembleIntegration:
             cv_inner=self.cv_inner,
             cv_outer=dummy_cv(),  # returns indices of X with an empty set of test indices
             base_predictors=self.base_predictors,
-            modality=modality,
+            modality_name=modality_name,
         )
 
         self.meta_training_data_final = append_modality(
@@ -412,14 +428,14 @@ class EnsembleIntegration:
             y=y,
             cv_outer=dummy_cv(),  # returns indices of X with an empty set of test indices
             base_predictors=self.base_predictors,
-            modality=modality,
+            modality_name=modality_name,
             model_building=self.model_building,
         )
 
-        self.final_models["base models"][modality] = base_model_list_of_dicts
+        self.final_models["base models"][modality_name] = base_model_list_of_dicts
 
     def _train_base_inner(
-        self, X, y, cv_outer, cv_inner, base_predictors=None, modality=None
+        self, X, y, cv_outer, cv_inner, base_predictors=None, modality_name=None
     ):
         """
         Perform a round of (inner) k-fold cross validation on each outer
@@ -463,13 +479,21 @@ class EnsembleIntegration:
                     for sample_state in enumerate(self.random_numbers_for_samples)
                 )
 
-                combined_predictions = self._combine_predictions_inner(output, modality)
+                combined_predictions = self._combine_predictions_inner(
+                    output, modality_name
+                )
                 meta_training_data_modality.append(combined_predictions)
 
         return meta_training_data_modality
 
     def _train_base_outer(
-        self, X, y, cv_outer, base_predictors=None, modality=None, model_building=False
+        self,
+        X,
+        y,
+        cv_outer,
+        base_predictors=None,
+        modality_name=None,
+        model_building=False,
     ):
         """
         Train each base predictor on each outer training set.
@@ -509,7 +533,7 @@ class EnsembleIntegration:
         if model_building:
             return output
         else:
-            return self._combine_predictions_outer(output, modality)
+            return self._combine_predictions_outer(output, modality_name)
 
     @ignore_warnings(category=ConvergenceWarning)
     def _train_predict_single_base_predictor(

@@ -15,43 +15,85 @@ from imblearn.over_sampling import RandomOverSampler
 import warnings
 import sklearn
 import sklearn.metrics
+from sklearn.pipeline import Pipeline
 from sklearn.exceptions import UndefinedMetricWarning
 
 warnings.filterwarnings(action="ignore", category=UndefinedMetricWarning)
 
 bar_format = "{desc}: |{bar}|{percentage:3.0f}%"
 
-class TFWrapper:
-    def __init__(self, tf_fun, compile_kwargs, fit_kwargs):
-        self.tf_fun = tf_fun
-        # self.initial_weights = self.tf_fun().get_weights()
-        self.compile_kwargs = compile_kwargs
-        self.fit_kwargs = fit_kwargs
 
-        # self.tf_model.compile(**self.compile_kwargs)
-
-    def fit(self, X, y):
-        # clear_session()
-        self.model = self.tf_fun()
-        self.model.compile(**self.compile_kwargs)
-        # self.model.set_weights(self.initial_weights)  # re-initialises weights for multiple .fit calls
-        self.model.fit(X, y, verbose=0, **self.fit_kwargs)
-
-    def predict_proba(self, X):
-        return np.squeeze(self.model.predict(X))
-
-        separator = "#" * 40
-        if modality is None:
-            text = separator * 2
-        else:
-            text = f"{separator} {modality} modality {separator}"
+def set_predictor_seeds(base_predictors, random_state):
+    for _, v in base_predictors.items():
+        if type(v) == Pipeline:
+            est_ = list(v.named_steps)[-1]
+            if hasattr(v[est_], "random_state") and hasattr(v[est_], "set_params"):
+                v.set_params(**{"{}__random_state".format(est_): random_state})
+        if hasattr(v, "random_state") and hasattr(v, "set_params"):
+            v.set_params(**{"random_state": random_state})
 
 
-def fancy_print(text=None, length=None):
-    print("\n")
-    print("#" * len(text))
-    print(f"{separator} {text} {separator}")
-    print("#" * len(text), "\n")
+def X_is_dict(X):
+    if isinstance(X, dict):
+        return True
+    else:
+        return False
+
+
+def X_dict_to_numpy(X_dict):
+    """
+    Retrieve feature names and convert arrays to numpy.
+    """
+    X_dict_numpy = {}
+    feature_names = {}
+    for key, X in X_dict.items():
+        X_dict_numpy[key], feature_names[key] = X_to_numpy(X)
+    return X_dict_numpy, feature_names
+
+
+def X_to_numpy(X):
+    """
+    Return X as a numpy array, with feature names if applicable.
+    """
+    if isinstance(X, np.ndarray):
+        return X, []
+    elif isinstance(X, pd.DataFrame):
+        return X.to_numpy(), X.columns.to_list()
+    else:
+        raise TypeError(
+            """Object must be a numpy array, a pandas dataframe 
+            or a dictionary containing either."""
+        )
+
+
+def y_to_numpy(y):
+    """
+    Check y is numpy array and convert if not.
+    """
+    _y = None
+    if isinstance(y, np.ndarray):
+        _y = y
+    elif isinstance(y, list):
+        _y = np.array(y)
+    elif isinstance(y, (pd.Series)):
+        _y = y.to_numpy()
+    else:
+        raise TypeError(
+            """Object must be a numpy array, list 
+            or pandas Series."""
+        )
+
+    if not is_binary_array(_y):
+        raise ValueError("y must contain binary values.")
+
+    return _y
+
+
+def is_binary_array(arr):
+    if all(x == 0 or x == 1 or x == 0.0 or x == 1.0 for x in arr):
+        return True
+    else:
+        return False
 
 
 class dummy_cv:
@@ -100,15 +142,6 @@ def score_threshold_vectors(df, labels):
     return scores_dict
 
 
-# def score_vector_split(list_of_tuples): # don't think this is needed anymore
-#     score = []
-#     threshold = []
-#     for score_tuple in list_of_tuples:
-#         score.append(score_tuple[0])
-#         threshold.append(score_tuple[1])
-#     return score, threshold
-
-
 def metrics_per_fold(df, labels):
     scores_dict = score_threshold_vectors(df, labels)
 
@@ -125,6 +158,23 @@ def metric_threshold_dataframes(df):
     df_dict = {}
     df_dict["metrics"], df_dict["thresholds"] = metrics_per_fold(data, labels)
     return df_dict
+
+
+# def format_input_datatype(X, modality_name):
+#     if type(X) == pd.core.frame.DataFrame:
+#         """if the data input is dataframe, store the feature name"""
+#         feature_names = list(X.columns)
+#         X_np = X.values
+#         # print(modal_name, modality.shape)
+#     elif type(X) == np.ndarray:
+#         """If there is no feature name in input/feature name dictionary"""
+#         feature_names = [f'{modality_name}_{i}' for i in range(X.shape[1])]
+#         X_np = X
+#     else:
+#         print('Input X must be numpy array or pandas dataframe object.')
+#         return None, None
+
+#     return X_np, feature_names
 
 
 def fmax_score(y_true, y_pred, beta=1):
@@ -268,10 +318,6 @@ def read_arff_to_pandas_df(arff_path):
 
     df.columns = columns
     return df
-
-
-def set_seed(random_state=1):
-    random.seed(random_state)
 
 
 def random_integers(n_integers=1, seed=42):

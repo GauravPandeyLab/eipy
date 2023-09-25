@@ -1,16 +1,17 @@
 import pytest
 
 @pytest.mark.parametrize(
-    "sampling_strategy",
+    "sampling_strategy, dtype",
     [   
-        (None),
-        ("undersampling"),
-        ("oversampling"),
-        ("hybrid")
+        (None, "numpy_array"),
+        ("undersampling", "numpy_array"),
+        ("oversampling", "numpy_array"),
+        ("hybrid", "numpy_array"),
+        ("undersampling", "pandas_df")
     ],
 )
 
-def test_ensemble_integration(sampling_strategy):
+def test_ensemble_integration(sampling_strategy, dtype):
 
     from sklearn.linear_model import LogisticRegression
     from sklearn.calibration import CalibratedClassifierCV
@@ -20,6 +21,7 @@ def test_ensemble_integration(sampling_strategy):
     from sklearn.datasets import make_classification
     from eipy.ei import EnsembleIntegration
     from eipy.additional_ensembles import MeanAggregation, MedianAggregation, CES
+    import pandas as pd
 
     # Generate toy data for testing
     X, y = make_classification(n_samples=200, n_features=10, n_classes=2, weights=[0.7, 0.3], n_redundant=0)
@@ -27,10 +29,16 @@ def test_ensemble_integration(sampling_strategy):
     X_1 = X[:, :4]
     X_2 = X[:, 4:]
 
-    modalities = {
-                "modality_1": X_1,
-                "modality_2": X_2
-                }
+    if dtype=="numpy_array":
+        modalities = {
+                    "modality_1": X_1,
+                    "modality_2": X_2
+                    }
+    elif dtype=="pandas_df":
+        modalities = {
+                    "modality_1": pd.DataFrame(X_1, columns=['a', 'b', 'c', 'd']),
+                    "modality_2": pd.DataFrame(X_2, columns=['e', 'f', 'g', 'h', 'i', 'j']),
+                    }
 
     # Create base predictor models
     base_predictors = {
@@ -51,9 +59,9 @@ def test_ensemble_integration(sampling_strategy):
                              calibration_model=CalibratedClassifierCV(cv=2),
                              model_building=True)
 
-    # Train base models
+        # Train base models
     for name, modality in modalities.items():
-        EI.train_base(modality, y, base_predictors, modality=name)
+        EI.train_base(modality, y, base_predictors, modality_name=name)
 
     # Train meta models
     meta_predictors = {
@@ -90,3 +98,8 @@ def test_ensemble_integration(sampling_strategy):
     interpreter.rank_product_score(X_dict=modalities, y=y)
 
     assert interpreter.ensemble_feature_ranking is not None
+
+    if dtype=="pandas_df":
+        assert list(EI.feature_names.keys()) == ["modality_1", "modality_2"]
+        assert EI.feature_names["modality_1"] == ["a", "b", "c", "d"]
+        assert EI.feature_names["modality_2"] == ["e", "f", "g", "h", "i", "j"]

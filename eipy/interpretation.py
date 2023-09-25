@@ -1,11 +1,10 @@
 from sklearn.inspection import permutation_importance
-from eipy.utils import retrieve_X_y, bar_format
+from eipy.utils import X_to_numpy, retrieve_X_y, bar_format, y_to_numpy
 import pandas as pd
 from tqdm import tqdm
 import numpy as np
 import copy
 from sklearn.metrics import make_scorer
-import shap
 import pickle
 from itertools import groupby
 from operator import itemgetter
@@ -14,7 +13,7 @@ from sklearn.preprocessing import LabelEncoder
 
 import warnings
 
-warnings.filterwarnings("ignore")
+# warnings.filterwarnings("ignore")
 
 
 class PermutationInterpreter:
@@ -94,12 +93,12 @@ class PermutationInterpreter:
         print("Interpreting ensembles...\n")
 
         if self.meta_predictor_keys == "all":
-            meta_predictor_keys = self.EI.meta_predictor.keys()
+            meta_predictor_keys = self.EI.meta_predictors.keys()
         else:
             meta_predictor_keys = self.meta_predictor_keys
 
         if self.LFR is None:
-            self.local_feature_rank(X_dict, y)
+            self.local_feature_rank(X_dict, y_to_numpy(y))
 
         if self.LMR is None:
             self.local_model_rank(meta_predictor_keys=meta_predictor_keys)
@@ -174,6 +173,28 @@ class PermutationInterpreter:
             bar_format=bar_format,
         ):
             X = X_dict[modality_name]
+            X, feature_names = X_to_numpy(X)
+
+            # check feature names were seen during training
+            if len(self.EI.feature_names[modality_name]) > 1:
+                # check feature names are the same and warn if not
+                if self.EI.feature_names[modality_name] != feature_names:
+                    warnings.warn(
+                        "Feature names do not match those seen during training",
+                        category=Warning,
+                    )
+            else:
+                # check if features have been passed now
+                if len(feature_names) > 1:
+                    warnings.warn(
+                        """Feature names have been passed to interpreter but none
+                        were seen during training.""",
+                        category=Warning,
+                    )
+
+            # if no feature names passed assign an id
+            if len(feature_names) != X.shape[1]:
+                feature_names = np.arange(X.shape[1])
 
             base_models = copy.deepcopy(
                 self.EI.final_models["base models"][modality_name]
@@ -243,7 +264,7 @@ class PermutationInterpreter:
                     {
                         "local_importance_mean": pi.importances_mean,
                         "local_importance_std": pi.importances_std,
-                        "local_feature_id": range(X.shape[1]),
+                        "local_feature_id": feature_names,
                     }
                 )
 
@@ -353,13 +374,3 @@ class PermutationInterpreter:
         self.LMR = pd.concat(lm_pi_list)
 
         return self
-
-    def shap_val_mean(self, m, x):
-        if hasattr(m, "predict_proba"):
-            shap_exp = shap.Explainer(m.predict_proba, x)
-        else:
-            shap_exp = shap.Explainer(m.predict, x)
-
-        shap_vals = shap_exp(x)
-
-        return np.mean(shap_vals, axis=1)
