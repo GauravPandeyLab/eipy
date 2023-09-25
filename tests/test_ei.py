@@ -61,7 +61,7 @@ def test_ensemble_integration(sampling_strategy, dtype):
 
         # Train base models
     for name, modality in modalities.items():
-        EI.train_base(modality, y, base_predictors, modality=name)
+        EI.train_base(modality, y, base_predictors, modality_name=name)
 
     # Train meta models
     meta_predictors = {
@@ -100,6 +100,6 @@ def test_ensemble_integration(sampling_strategy, dtype):
     assert interpreter.ensemble_feature_ranking is not None
 
     if dtype=="pandas_df":
-        assert EI.feature_names_dict.keys() == ["Modality_1", "Modality_2"]
-        assert EI.feature_names_dict["Modality_1"] == ["a", "b", "c", "d"]
-        assert EI.feature_names_dict["Modality_2"] == ["e", "f", "g", "h", "i", "j"]
+        assert list(EI.feature_names.keys()) == ["modality_1", "modality_2"]
+        assert EI.feature_names["modality_1"] == ["a", "b", "c", "d"]
+        assert EI.feature_names["modality_2"] == ["e", "f", "g", "h", "i", "j"]
