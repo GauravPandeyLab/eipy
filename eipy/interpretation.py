@@ -301,7 +301,7 @@ class PermutationInterpreter:
         )
 
         if self.EI.sampling_aggregation == "mean":
-            meta_X_train = meta_X_train.groupby(level=[0, 1], axis=1).mean()
+            meta_X_train = meta_X_train.T.groupby(level=[0, 1]).mean().T
 
         #  calculate importance for ensemble models of interest
 

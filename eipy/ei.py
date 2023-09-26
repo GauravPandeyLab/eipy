@@ -247,8 +247,8 @@ class EnsembleIntegration:
                 X_test, _ = retrieve_X_y(labelled_data=self.meta_test_data[fold_id])
 
                 if self.sampling_aggregation == "mean":
-                    X_train = X_train.groupby(level=[0, 1], axis=1).mean()
-                    X_test = X_test.groupby(level=[0, 1], axis=1).mean()
+                    X_train = X_train.T.groupby(level=[0, 1]).mean().T
+                    X_test = X_test.T.groupby(level=[0, 1]).mean().T
 
                 model.fit(X_train, y_train)
                 y_pred = safe_predict_proba(model, X_test)
@@ -275,8 +275,8 @@ class EnsembleIntegration:
                 )
 
                 if self.sampling_aggregation == "mean":
-                    X_train = X_train.groupby(level=[0, 1], axis=1).mean()
-                    X_test = X_test.groupby(level=[0, 1], axis=1).mean()
+                    X_train = X_train.T.groupby(level=[0, 1]).mean().T
+                    X_test = X_test.T.groupby(level=[0, 1]).mean().T
 
                 model.fit(X_train, y_train)
 
@@ -330,7 +330,7 @@ class EnsembleIntegration:
 
         if self.sampling_aggregation == "mean":
             meta_prediction_data = (
-                meta_prediction_data[0].groupby(level=[0, 1], axis=1).mean()
+                meta_prediction_data[0].T.groupby(level=[0, 1]).mean().T
             )
 
         meta_model = pickle.loads(self.final_models["meta models"][meta_model_key])
