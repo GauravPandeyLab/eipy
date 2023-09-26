@@ -89,7 +89,6 @@ class CES(BaseEstimator, ClassifierMixin):
         self.random_state = random_state
 
     def fit(self, X, y):
-
         # Store the classes seen during fit
         self.classes_ = unique_labels(y)
 
@@ -122,7 +121,6 @@ class CES(BaseEstimator, ClassifierMixin):
         return self
 
     def predict_proba(self, X):
-
         check_is_fitted(self)
 
         ces_bp_df = X[self.best_ensemble]
