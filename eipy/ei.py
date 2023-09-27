@@ -179,6 +179,28 @@ class EnsembleIntegration:
         self.feature_names = {}
 
     def train_base(self, X, y, base_predictors=None, modality_name=None):
+        """
+        Train base predictors and generate meta train/test data.
+
+        Parameters
+        ----------
+        X : array of shape (n_samples, n_features)
+            Training vector, where n_samples is the number of samples and
+            n_features is the number of features.
+        y : array of shape (n_samples,)
+            Target vector relative to X.
+
+        Returns
+        -------
+        self
+            Meta train/test data and fitted final base predictors.
+
+        """
+
+        print(
+            f"""Training base predictors on {modality_name}...
+        \n... for ensemble performance analysis..."""
+        )
         #  convert y to a numpy array
         y = y_to_numpy(y)
 
@@ -340,28 +362,6 @@ class EnsembleIntegration:
 
     @ignore_warnings(category=ConvergenceWarning)
     def _train_base(self, X, y, base_predictors=None, modality_name=None):
-        """
-        Train base predictors and generate meta train/test data.
-
-        Parameters
-        ----------
-        X : array of shape (n_samples, n_features)
-            Training vector, where n_samples is the number of samples and
-            n_features is the number of features.
-        y : array of shape (n_samples,)
-            Target vector relative to X.
-
-        Returns
-        -------
-        self
-            Meta train/test data and fitted final base predictors.
-
-        """
-
-        print(
-            f"""Training base predictors on {modality_name}...
-        \n... for ensemble performance analysis..."""
-        )
 
         X, feature_names = X_to_numpy(X)
 
