@@ -7,6 +7,9 @@ from sklearn.metrics import (
     matthews_corrcoef,
     precision_recall_fscore_support,
     make_scorer,
+    precision_score, 
+    recall_score, 
+    f1_score
 )
 from imblearn.under_sampling import RandomUnderSampler
 from imblearn.over_sampling import RandomOverSampler
@@ -83,8 +86,8 @@ def y_to_numpy(y):
             or pandas Series."""
         )
 
-    if not is_binary_array(_y):
-        raise ValueError("y must contain binary values.")
+    #if not is_binary_array(_y):
+        #raise ValueError("y must contain binary values.")
 
     return _y
 
@@ -122,7 +125,14 @@ def create_base_summary(meta_test_dataframe):
 
 def safe_predict_proba(model, X):  # uses predict_proba method where possible
     if hasattr(model, "predict_proba"):
-        y_pred = model.predict_proba(X)[:, 1]
+        y_pred = model.predict_proba(X)
+        if len(y_pred[0]) == 2: #binary classification
+            y_pred=y_pred[:, 1]
+        else:
+            # multiclass classification. Finds "expected class" for each data point.
+            def expected_class(prob_vector):
+                return sum(i* prob for i,prob in enumerate(prob_vector))
+            y_pred = [expected_class(pred) for pred in y_pred]
     else:
         y_pred = model.predict(X)
     return y_pred
@@ -269,37 +279,54 @@ def matthews_max_score(y_true, y_pred):
 
 
 def scores(y_true, y_pred, beta=1, metric_to_maximise="fscore", verbose=0):
-    if np.bincount(y_true)[0] < np.bincount(y_true)[1]:
-        minor_class = 0
-        major_class = 1
+    if len(set(y_true)) == 2: #binary classification
+        if np.bincount(y_true)[0] < np.bincount(y_true)[1]:
+            minor_class = 0
+            major_class = 1
+        else:
+            minor_class = 1
+            major_class = 0
+
+        # fmax = fmax_score(y_true, y_pred, beta=1)
+        f_measure_minor = fmeasure_score(y_true, y_pred, pos_label=minor_class)
+        # f_measure_minor_0 = fmeasure_score(y_true, y_pred, pos_label=minor_class,
+        # thres=f_measure_minor['thres'])
+        # print('without thres', f_measure_minor)
+        # print('with thres', f_measure_minor_0)
+        f_measure_major = fmeasure_score(
+            y_true, y_pred, pos_label=major_class, thres=1 - f_measure_minor["thres"]
+        )
+
+        max_mcc = matthews_max_score(y_true, y_pred)
+
+        auc = roc_auc_score(y_true, y_pred)
+
+        scores_threshold_dict = {
+            "fmax (minority)": (f_measure_minor["F"], f_measure_minor["thres"]),
+            "f (majority)": (f_measure_major["F"], f_measure_minor["thres"]),
+            "AUC": (auc, np.nan),
+            "max MCC": max_mcc,
+        }  # dictionary of (score, threshold)
+
+        if verbose > 0:
+            for metric_name, score in scores_threshold_dict.items():
+                print(metric_name + ": ", score[0])
+    
     else:
-        minor_class = 1
-        major_class = 0
+        y_pred = [int(round(pred)) for pred in y_pred]
+        precision_macro = precision_score(y_true, y_pred, average='macro')
+        recall_macro = recall_score(y_true, y_pred, average='macro')
+        f1_macro = f1_score(y_true, y_pred, average='macro')
 
-    # fmax = fmax_score(y_true, y_pred, beta=1)
-    f_measure_minor = fmeasure_score(y_true, y_pred, pos_label=minor_class)
-    # f_measure_minor_0 = fmeasure_score(y_true, y_pred, pos_label=minor_class,
-    # thres=f_measure_minor['thres'])
-    # print('without thres', f_measure_minor)
-    # print('with thres', f_measure_minor_0)
-    f_measure_major = fmeasure_score(
-        y_true, y_pred, pos_label=major_class, thres=1 - f_measure_minor["thres"]
-    )
+        precision_micro = precision_score(y_true, y_pred, average='micro')
+        recall_micro = recall_score(y_true, y_pred, average='micro')
+        f1_micro = f1_score(y_true, y_pred, average='micro')
 
-    max_mcc = matthews_max_score(y_true, y_pred)
-
-    auc = roc_auc_score(y_true, y_pred)
-
-    scores_threshold_dict = {
-        "fmax (minority)": (f_measure_minor["F"], f_measure_minor["thres"]),
-        "f (majority)": (f_measure_major["F"], f_measure_minor["thres"]),
-        "AUC": (auc, np.nan),
-        "max MCC": max_mcc,
-    }  # dictionary of (score, threshold)
-
-    if verbose > 0:
-        for metric_name, score in scores_threshold_dict.items():
-            print(metric_name + ": ", score[0])
+        scores_threshold_dict = {
+            "precision" : (precision_macro, precision_micro),
+            "recall" : (recall_macro, recall_micro),
+            "f1" : (f1_macro,f1_micro)
+        }
 
     return scores_threshold_dict
 
