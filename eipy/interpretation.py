@@ -80,7 +80,7 @@ class PermutationInterpreter:
         ----------
         X_dict : dict
             Dictionary of X modalities. Keys and n_features
-            must match those seen by EnsembleIntegration.train_base().
+            must match those seen by EnsembleIntegration.fit_base().
         y : array of shape (n_samples,)
             Target vector relative to X.
 
@@ -155,7 +155,7 @@ class PermutationInterpreter:
         ----------
         X_dict : dict
             Dictionary of X modalities. Keys and n_features
-            must match those seen by EnsembleIntegration.train_base().
+            must match those seen by EnsembleIntegration.fit_base().
         y : array of shape (n_samples,)
             Target vector relative to X.
 
@@ -182,6 +182,7 @@ class PermutationInterpreter:
                     warnings.warn(
                         "Feature names do not match those seen during training",
                         category=Warning,
+                        stacklevel=2
                     )
             else:
                 # check if features have been passed now
@@ -190,6 +191,7 @@ class PermutationInterpreter:
                         """Feature names have been passed to interpreter but none
                         were seen during training.""",
                         category=Warning,
+                        stacklevel=2
                     )
 
             # if no feature names passed assign an id

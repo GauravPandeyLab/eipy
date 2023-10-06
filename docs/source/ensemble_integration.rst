@@ -2,4 +2,4 @@ EnsembleIntegration
 -------------------
 
 .. autoclass:: eipy.ei.EnsembleIntegration
-    :members: train_base, train_meta, predict, save, load
+    :members: fit_base, fit_meta, predict, save, load
