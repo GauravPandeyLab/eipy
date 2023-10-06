@@ -362,7 +362,6 @@ class EnsembleIntegration:
 
     @ignore_warnings(category=ConvergenceWarning)
     def _fit_base(self, X, y, base_predictors=None, modality_name=None):
-
         X, feature_names = X_to_numpy(X)
 
         self.modality_names.append(modality_name)
