@@ -480,7 +480,7 @@ class EnsembleIntegration:
                 )
 
                 combined_predictions = self._combine_predictions_inner(
-                    output, modality_name
+                        output, modality_name
                 )
                 meta_training_data_modality.append(combined_predictions)
 
@@ -598,16 +598,16 @@ class EnsembleIntegration:
         # combine fold predictions for each model
         for model_name in self.base_predictors.keys():
             for sample_id in range(self.n_samples):
-                model_predictions = np.concatenate(
-                    list(
+                model_predictions = np.vstack([
                         d["y_pred"]
                         for d in list_of_dicts
                         if d["model name"] == model_name and d["sample id"] == sample_id
-                    )
+                    ]
                 )
-                combined_predictions[
-                    modality, model_name, sample_id
-                ] = model_predictions
+                for class_id in range(model_predictions.shape[1]):
+                    combined_predictions[
+                        (modality, model_name, sample_id, class_id)
+                    ] = model_predictions[:, class_id]
         labels = np.concatenate(
             list(
                 d["labels"]
@@ -617,7 +617,7 @@ class EnsembleIntegration:
             )
         )
         combined_predictions = pd.DataFrame(combined_predictions).rename_axis(
-            ["modality", "base predictor", "sample"], axis=1
+            ["modality", "base predictor", "sample", "class"], axis=1
         )
         combined_predictions["labels"] = labels
         return combined_predictions
@@ -638,14 +638,16 @@ class EnsembleIntegration:
             predictions = {}
             for model_name in self.base_predictors.keys():
                 for sample_id in range(self.n_samples):
-                    model_predictions = list(
+                    model_predictions = np.vstack([
                         d["y_pred"]
                         for d in list_of_dicts
                         if d["fold id"] == fold_id
                         and d["model name"] == model_name
                         and d["sample id"] == sample_id
-                    )
-                    predictions[modality, model_name, sample_id] = model_predictions[0]
+                    ])
+                    
+                    for class_id in range(model_predictions.shape[1]):
+                        predictions[modality, model_name, sample_id, class_id] = model_predictions[:, class_id]
             predictions = pd.DataFrame(predictions)
 
             if not model_building:
@@ -660,7 +662,7 @@ class EnsembleIntegration:
 
             combined_predictions.append(
                 predictions.rename_axis(
-                    ["modality", "base predictor", "sample"], axis=1
+                    ["modality", "base predictor", "sample", "class"], axis=1
                 )
             )
 

@@ -112,6 +112,10 @@ class dummy_cv:
 
 
 def create_base_summary(meta_test_dataframe):
+    def concat_subcolumns(sub_df):
+        return pd.Series([' '.join(sub_df.astype(str).values)], index=['Class prediction'])
+    
+
     labels = pd.concat([df["labels"] for df in meta_test_dataframe])
     meta_test_averaged_samples = pd.concat(
         [
@@ -128,8 +132,7 @@ def safe_predict_proba(model, X):  # uses predict_proba method where possible
         y_pred = model.predict_proba(X)
         if len(y_pred[0]) == 2: #binary classification
             y_pred=y_pred[:, 1]
-        else:
-            y_pred = [y.argmax() for y in y_pred]
+        
     else:
         y_pred = model.predict(X)
     return y_pred
