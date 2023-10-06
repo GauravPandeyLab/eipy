@@ -12,7 +12,7 @@
 ``eipy``: Ensemble Integration in Python
 ====================================
 
-**``eipy``** is a Python module for developing multi-modal, heterogeneous ensemble classifiers.
+``eipy`` is a Python module for developing multi-modal, heterogeneous ensemble classifiers.
 A key feature of ``eipy`` is its built in nested cross validation approach, allowing for a fair comparison of a 
 collection of user defined meta algorithms. 
 
