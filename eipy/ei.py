@@ -74,7 +74,7 @@ class EnsembleIntegration:
     calibration_model : sklearn estimator, default=None
         Calibrate base predictor predictions with calibration_model. Intended for use
         with sklearn's CalibratedClassifierCV().
-    model_building : bool, default=False
+    model_building : bool, default=True
         Whether or not to train and save final models.
     verbose : int, default=1
         Verbosity level. Can be set to 0 or 1.
@@ -131,7 +131,7 @@ class EnsembleIntegration:
         parallel_backend="loky",
         project_name="project",
         calibration_model=None,
-        model_building=False,
+        model_building=True,
         verbose=1,
     ):
         if random_state is not None:
