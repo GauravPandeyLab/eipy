@@ -8,9 +8,18 @@ version = "0.1.0"
 description = "Ensemble Integration: a customizable pipeline for generating diverse ensembles of heterogeneous classifiers"
 authors = ["Jamie Bennett", "Yan Chak (Richard) Li"]
 license = "Creative Commons Attribution-NonCommercial 4.0 International"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+]
 packages = [
     { include = "eipy"},
 ]
+
+[tool.poetry.urls]
+"Homepage" = "https://github.com/GauravPandeyLab/eipy"
+"Documentation" = "https://eipy.readthedocs.io/en/latest/"
 
 [tool.poetry.dependencies]
 python = ">=3.8"
