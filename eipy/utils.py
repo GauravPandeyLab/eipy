@@ -129,10 +129,7 @@ def safe_predict_proba(model, X):  # uses predict_proba method where possible
         if len(y_pred[0]) == 2: #binary classification
             y_pred=y_pred[:, 1]
         else:
-            # multiclass classification. Finds "expected class" for each data point.
-            def expected_class(prob_vector):
-                return sum(i* prob for i,prob in enumerate(prob_vector))
-            y_pred = [expected_class(pred) for pred in y_pred]
+            y_pred = [y.argmax() for y in y_pred]
     else:
         y_pred = model.predict(X)
     return y_pred
