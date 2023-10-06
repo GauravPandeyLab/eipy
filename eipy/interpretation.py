@@ -80,7 +80,7 @@ class PermutationInterpreter:
         ----------
         X_dict : dict
             Dictionary of X modalities. Keys and n_features
-            must match those seen by EnsembleIntegration.train_base().
+            must match those seen by EnsembleIntegration.fit_base().
         y : array of shape (n_samples,)
             Target vector relative to X.
 
@@ -155,7 +155,7 @@ class PermutationInterpreter:
         ----------
         X_dict : dict
             Dictionary of X modalities. Keys and n_features
-            must match those seen by EnsembleIntegration.train_base().
+            must match those seen by EnsembleIntegration.fit_base().
         y : array of shape (n_samples,)
             Target vector relative to X.
 

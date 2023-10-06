@@ -61,7 +61,7 @@ def test_ensemble_integration(sampling_strategy, dtype):
 
         # Train base models
     for name, modality in modalities.items():
-        EI.train_base(modality, y, base_predictors, modality_name=name)
+        EI.fit_base(modality, y, base_predictors, modality_name=name)
 
     # Train meta models
     meta_predictors = {
@@ -71,7 +71,7 @@ def test_ensemble_integration(sampling_strategy, dtype):
         "S.LR": Pipeline([('scaler', StandardScaler()), ('lr', LogisticRegression())]),
     }
 
-    EI.train_meta(meta_predictors=meta_predictors)
+    EI.fit_meta(meta_predictors=meta_predictors)
 
     # Predict
     EI.predict(modalities, meta_model_key='S.LR')
