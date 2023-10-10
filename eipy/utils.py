@@ -112,9 +112,17 @@ class dummy_cv:
 
 
 def create_base_summary(meta_test_dataframe):
-    def concat_subcolumns(sub_df):
-        return pd.Series([' '.join(sub_df.astype(str).values)], index=['Class prediction'])
-    
+    # turning probabilistic multiclass meta testing data into predictive data
+    for i,df in enumerate(meta_test_dataframe):
+        if len(set(df["labels"])) > 2: #multiclass
+            new_modality = df.columns.get_level_values(0)[-2]
+            pred_frame = df.loc[:, df.columns.get_level_values(0) == new_modality].groupby(level=[0,1,2], axis=1).idxmax()
+            pred_frame = pred_frame.applymap(lambda x: x[-1])
+            existing_frame = df.loc[:, df.columns.get_level_values(0) != new_modality]
+            print(pred_frame)
+        
+            
+            meta_test_dataframe[i] = pd.concat([existing_frame,pred_frame], axis=1, names=["Modality", "Model", "Sample"])
 
     labels = pd.concat([df["labels"] for df in meta_test_dataframe])
     meta_test_averaged_samples = pd.concat(
@@ -313,7 +321,6 @@ def scores(y_true, y_pred, beta=1, metric_to_maximise="fscore", verbose=0):
                 print(metric_name + ": ", score[0])
     
     else:
-        y_pred = [int(round(pred)) for pred in y_pred]
         precision_macro = precision_score(y_true, y_pred, average='macro')
         recall_macro = recall_score(y_true, y_pred, average='macro')
         f1_macro = f1_score(y_true, y_pred, average='macro')
