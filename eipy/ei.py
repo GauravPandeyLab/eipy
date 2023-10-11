@@ -219,7 +219,8 @@ class EnsembleIntegration:
                     y=y,
                     base_predictors=base_predictors,
                     modality_name=modality_name,
-                )
+                )        
+            
         else:
             self._train_base(
                 X=X, y=y, base_predictors=base_predictors, modality_name=modality_name
@@ -393,9 +394,6 @@ class EnsembleIntegration:
         self.meta_test_data = append_modality(
             self.meta_test_data, meta_test_data_modality
         )  # append data to dataframe
-
-        # create a summary of base predictor performance
-        self.base_summary = create_base_summary(self.meta_test_data)
 
         if self.model_building:
             self._train_base_final(X=X, y=y, modality_name=modality_name)

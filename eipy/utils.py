@@ -115,14 +115,25 @@ def create_base_summary(meta_test_dataframe):
     # turning probabilistic multiclass meta testing data into predictive data
     for i,df in enumerate(meta_test_dataframe):
         if len(set(df["labels"])) > 2: #multiclass
+            label_col = df["labels"]
+            pred_frame = df.loc[:, df.columns.get_level_values(0) != "labels"].groupby(level=[0,1,2], axis=1).idxmax()
+            pred_frame = pred_frame.applymap(lambda x: x[-1])
+            meta_test_dataframe[i] = pd.concat([pred_frame, label_col], axis=1)
+            '''
             new_modality = df.columns.get_level_values(0)[-2]
             pred_frame = df.loc[:, df.columns.get_level_values(0) == new_modality].groupby(level=[0,1,2], axis=1).idxmax()
             pred_frame = pred_frame.applymap(lambda x: x[-1])
             existing_frame = df.loc[:, df.columns.get_level_values(0) != new_modality]
-            print(pred_frame)
-        
+            if "class" in existing_frame.columns.names:
+                existing_frame = existing_frame.droplevel("class", axis=1)
+            meta_test_dataframe[i] = pd.concat([existing_frame,pred_frame], axis=1)
+            label_col = meta_test_dataframe[i].pop("labels")
+            meta_test_dataframe[i].insert(len(meta_test_dataframe[i].columns), "labels", label_col)
+            '''
+    
+    print(meta_test_dataframe[0])
+    
             
-            meta_test_dataframe[i] = pd.concat([existing_frame,pred_frame], axis=1, names=["Modality", "Model", "Sample"])
 
     labels = pd.concat([df["labels"] for df in meta_test_dataframe])
     meta_test_averaged_samples = pd.concat(
