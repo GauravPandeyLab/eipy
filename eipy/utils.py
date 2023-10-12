@@ -116,22 +116,12 @@ def create_base_summary(meta_test_dataframe):
     for i,df in enumerate(meta_test_dataframe):
         if len(set(df["labels"])) > 2: #multiclass
             label_col = df["labels"]
+        
             pred_frame = df.loc[:, df.columns.get_level_values(0) != "labels"].groupby(level=[0,1,2], axis=1).idxmax()
             pred_frame = pred_frame.applymap(lambda x: x[-1])
-            meta_test_dataframe[i] = pd.concat([pred_frame, label_col], axis=1)
-            '''
-            new_modality = df.columns.get_level_values(0)[-2]
-            pred_frame = df.loc[:, df.columns.get_level_values(0) == new_modality].groupby(level=[0,1,2], axis=1).idxmax()
-            pred_frame = pred_frame.applymap(lambda x: x[-1])
-            existing_frame = df.loc[:, df.columns.get_level_values(0) != new_modality]
-            if "class" in existing_frame.columns.names:
-                existing_frame = existing_frame.droplevel("class", axis=1)
-            meta_test_dataframe[i] = pd.concat([existing_frame,pred_frame], axis=1)
-            label_col = meta_test_dataframe[i].pop("labels")
-            meta_test_dataframe[i].insert(len(meta_test_dataframe[i].columns), "labels", label_col)
-            '''
-    
-    print(meta_test_dataframe[0])
+            pred_frame["labels"] = label_col
+
+            meta_test_dataframe[i] = pred_frame
     
             
 
@@ -332,6 +322,8 @@ def scores(y_true, y_pred, beta=1, metric_to_maximise="fscore", verbose=0):
                 print(metric_name + ": ", score[0])
     
     else:
+        if isinstance(y_pred[0], np.ndarray):
+            y_pred = [np.argmax(y) for y in  y_pred]
         precision_macro = precision_score(y_true, y_pred, average='macro')
         recall_macro = recall_score(y_true, y_pred, average='macro')
         f1_macro = f1_score(y_true, y_pred, average='macro')

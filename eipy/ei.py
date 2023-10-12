@@ -225,6 +225,8 @@ class EnsembleIntegration:
             self._train_base(
                 X=X, y=y, base_predictors=base_predictors, modality_name=modality_name
             )
+        
+        self.base_summary = create_base_summary(self.meta_test_data)
 
     @ignore_warnings(category=ConvergenceWarning)
     def train_meta(self, meta_predictors=None):
