@@ -110,21 +110,25 @@ class dummy_cv:
     def get_n_splits(self, X, y, groups=None):
         return self.n_splits
 
-
-def create_base_summary(meta_test_dataframe):
-    # turning probabilistic multiclass meta testing data into predictive data
-    for i,df in enumerate(meta_test_dataframe):
-        if len(set(df["labels"])) > 2: #multiclass
-            label_col = df["labels"]
-        
+def  predictive_multiclass_data(meta_dataframe): #turning probabilistic multiclass meta data into predictions
+    for i,df in enumerate(meta_dataframe):
+        if df.columns.names[-1] == "class": #multiclass check
             pred_frame = df.loc[:, df.columns.get_level_values(0) != "labels"].groupby(level=[0,1,2], axis=1).idxmax()
             pred_frame = pred_frame.applymap(lambda x: x[-1])
-            pred_frame["labels"] = label_col
-
-            meta_test_dataframe[i] = pred_frame
-    
             
+            if "labels" in list(df.columns.get_level_values(level=0)):
+                pred_frame["labels"] = df["labels"]
 
+            meta_dataframe[i] = pred_frame
+    
+    return  meta_dataframe
+    
+    
+
+def create_base_summary(meta_test_dataframe):
+    
+    predictive_multiclass_data(meta_test_dataframe)
+            
     labels = pd.concat([df["labels"] for df in meta_test_dataframe])
     meta_test_averaged_samples = pd.concat(
         [

@@ -26,6 +26,7 @@ from eipy.utils import (
     retrieve_X_y,
     append_modality,
     metric_threshold_dataframes,
+    predictive_multiclass_data,
     create_base_summary,
     safe_predict_proba,
     dummy_cv,
@@ -196,11 +197,6 @@ class EnsembleIntegration:
             Meta train/test data and fitted final base predictors.
 
         """
-
-        print(
-            f"""Training base predictors on {modality_name}...
-        \n... for ensemble performance analysis..."""
-        )
         #  convert y to a numpy array
         y = y_to_numpy(y)
 
@@ -214,18 +210,25 @@ class EnsembleIntegration:
         #  check data format and train accordingly
         if X_is_dict(X):
             for modality_name, modality in X.items():
+                print(
+            f"""Training base predictors on {modality_name}...
+        \n... for ensemble performance analysis..."""
+        )
                 self._fit_base(
                     X=modality,
                     y=y,
                     base_predictors=base_predictors,
                     modality_name=modality_name,
                 )        
-            
         else:
+            print(
+            f"""Training base predictors on {modality_name}...
+        \n... for ensemble performance analysis..."""
+        )
             self._fit_base(
                 X=X, y=y, base_predictors=base_predictors, modality_name=modality_name
             )
-        
+
         self.base_summary = create_base_summary(self.meta_test_data)
 
     @ignore_warnings(category=ConvergenceWarning)
@@ -360,6 +363,7 @@ class EnsembleIntegration:
 
         meta_model = pickle.loads(self.final_models["meta models"][meta_model_key])
 
+        meta_prediction_data =  pd.concat([data for data in meta_prediction_data], axis=1)
         y_pred = safe_predict_proba(meta_model, meta_prediction_data)
         return y_pred
 
@@ -479,7 +483,7 @@ class EnsembleIntegration:
                 )
 
                 combined_predictions = self._combine_predictions_inner(
-                        output, modality_name
+                    output, modality_name
                 )
                 meta_training_data_modality.append(combined_predictions)
 
