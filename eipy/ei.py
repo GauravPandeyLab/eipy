@@ -26,7 +26,6 @@ from eipy.utils import (
     retrieve_X_y,
     append_modality,
     metric_threshold_dataframes,
-    predictive_multiclass_data,
     create_base_summary,
     safe_predict_proba,
     dummy_cv,
@@ -363,7 +362,7 @@ class EnsembleIntegration:
 
         meta_model = pickle.loads(self.final_models["meta models"][meta_model_key])
 
-        meta_prediction_data =  pd.concat([data for data in meta_prediction_data], axis=1)
+        meta_prediction_data = pd.concat([data for data in meta_prediction_data], axis=1)
         y_pred = safe_predict_proba(meta_model, meta_prediction_data)
         return y_pred
 
