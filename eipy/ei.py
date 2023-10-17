@@ -125,7 +125,7 @@ class EnsembleIntegration:
         k_inner=5,
         n_samples=1,
         sampling_strategy="undersampling",
-        sampling_aggregation="mean",
+        sampling_aggregation=None,
         n_jobs=1,
         random_state=None,
         parallel_backend="loky",
@@ -618,9 +618,14 @@ class EnsembleIntegration:
                 and d["sample id"] == 0
             )
         )
-        combined_predictions = pd.DataFrame(combined_predictions).rename_axis(
-            ["modality", "base predictor", "sample", "class"], axis=1
-        )
+        if len(set(labels)) > 2: #multiclass
+            combined_predictions = pd.DataFrame(combined_predictions).rename_axis(
+                ["modality", "base predictor", "sample", "class"], axis=1
+            )
+        else:
+            combined_predictions = pd.DataFrame(combined_predictions).rename_axis(
+                ["modality", "base predictor", "sample"], axis=1
+            )
         combined_predictions["labels"] = labels
         return combined_predictions
 
@@ -662,11 +667,14 @@ class EnsembleIntegration:
                 ]
                 predictions["labels"] = labels[0]
 
-            combined_predictions.append(
-                predictions.rename_axis(
+            if len(set(labels)) > 2: #multiclass
+                combined_predictions = pd.DataFrame(combined_predictions).rename_axis(
                     ["modality", "base predictor", "sample", "class"], axis=1
                 )
-            )
+            else:
+                combined_predictions = pd.DataFrame(combined_predictions).rename_axis(
+                    ["modality", "base predictor", "sample"], axis=1
+                )
 
         return combined_predictions
 
