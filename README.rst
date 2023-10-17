@@ -17,8 +17,8 @@
 ========================================
 
 ``eipy`` is a Python module for developing multi-modal, heterogeneous ensemble classifiers.
-A key feature of ``eipy`` is its built in nested cross validation approach, allowing for a fair comparison of a 
-collection of user defined meta algorithms. 
+A key feature of ``eipy`` is its built-in nested cross-validation approach, allowing for a fair comparison of a 
+collection of user-defined meta algorithms. 
 
 Documentation including tutorials are available at `https://eipy.readthedocs.io/en/latest/ <https://eipy.readthedocs.io/en/latest/>`_.
 
@@ -33,4 +33,7 @@ Citation
 --------
 
 If you use ``eipy`` in a scientific publication please cite the `original study <https://academic.oup.com/bioinformaticsadvances/article/2/1/vbac065/6696243>`_.
+
+Full citation:
+Yan Chak Li, Linhua Wang, Jeffrey N Law, T M Murali, Gaurav Pandey, Integrating multimodal data through interpretable heterogeneous ensembles, Bioinformatics Advances, Volume 2, Issue 1, 2022, vbac065, https://doi.org/10.1093/bioadv/vbac065
 
