@@ -667,14 +667,14 @@ class EnsembleIntegration:
                 ]
                 predictions["labels"] = labels[0]
 
-            if len(set(labels)) > 2: #multiclass
-                combined_predictions = pd.DataFrame(combined_predictions).rename_axis(
+            if len(list_of_dicts[0]["y_pred"][0]) > 2: #multiclass
+                combined_predictions.append(predictions.rename_axis(
                     ["modality", "base predictor", "sample", "class"], axis=1
-                )
+                ))
             else:
-                combined_predictions = pd.DataFrame(combined_predictions).rename_axis(
+                combined_predictions.append(predictions.rename_axis(
                     ["modality", "base predictor", "sample"], axis=1
-                )
+                ))
 
         return combined_predictions
 
