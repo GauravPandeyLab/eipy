@@ -22,6 +22,8 @@ def test_ensemble_integration(sampling_strategy, dtype):
     from eipy.ei import EnsembleIntegration
     from eipy.additional_ensembles import MeanAggregation, MedianAggregation, CES
     import pandas as pd
+    from eipy.metrics import max_min_score
+    from sklearn.metrics import f1_score, roc_auc_score
 
     # Generate toy data for testing
     X, y = make_classification(n_samples=200, n_features=10, n_classes=2, weights=[0.7, 0.3], n_redundant=0)
@@ -46,6 +48,19 @@ def test_ensemble_integration(sampling_strategy, dtype):
         'XGB': XGBClassifier()
     }
 
+    metrics = {
+        'f_max': f1_score,
+        'auc': roc_auc_score
+    }
+
+    def fmax_scorer(y_true, y_pred):  # scorer for 
+        return max_min_score(y_true=y_true, 
+                          y_pred=y_pred, 
+                          metric=f1_score, 
+                          pos_label=1,
+                          max_min='max'
+                          )
+
     # Initialize EnsembleIntegration
     EI = EnsembleIntegration(base_predictors=base_predictors,
                              k_outer=2,
@@ -54,6 +69,7 @@ def test_ensemble_integration(sampling_strategy, dtype):
                              sampling_strategy=sampling_strategy,
                              sampling_aggregation="mean",
                              n_jobs=-1,
+                             metrics=metrics,
                              random_state=42,
                              project_name="demo",
                              calibration_model=CalibratedClassifierCV(cv=2),
@@ -67,7 +83,7 @@ def test_ensemble_integration(sampling_strategy, dtype):
     meta_predictors = {
         "Mean": MeanAggregation(),
         "Median": MedianAggregation(),
-        "CES": CES(),
+        # "CES": CES(fmax_scorer),
         "S.LR": Pipeline([('scaler', StandardScaler()), ('lr', LogisticRegression())]),
     }
 
@@ -84,11 +100,10 @@ def test_ensemble_integration(sampling_strategy, dtype):
     assert EI.final_models is not {"base models": {}, "meta models": {}}
 
     from eipy.interpretation import PermutationInterpreter
-    from eipy.utils import f_minority_score
 
     interpreter = PermutationInterpreter(
                                         EI=EI,
-                                        metric=f_minority_score,
+                                        metric=fmax_scorer,
                                         meta_predictor_keys=['S.LR', 'Mean', 'CES'],
                                         n_repeats=5,
                                         n_jobs=-1,

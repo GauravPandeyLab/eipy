@@ -20,16 +20,17 @@ from eipy.utils import (
     X_to_numpy,
     y_to_numpy,
     set_predictor_seeds,
-    scores,
     random_integers,
     sample,
     retrieve_X_y,
     append_modality,
-    metric_threshold_dataframes,
-    create_base_summary,
     safe_predict_proba,
     dummy_cv,
     bar_format,
+)
+from eipy.metrics import (
+    base_summary,
+    meta_summary,
 )
 
 warnings.filterwarnings("ignore", category=DeprecationWarning)
@@ -63,8 +64,14 @@ class EnsembleIntegration:
     sampling_aggregation : str, default='mean'
         Method for combining multiple samples. Only used when n_samples>1. Can be
         'mean' or None.
+    metrics : dict, default=None
+        A dictionary of metrics for which to evaluate ensembles. If left as default=None,
+        a selection of internal metrics are used.
     n_jobs : int, default=1
         Number of workers for parallelization in joblib.
+    metrics : dict, default=None
+        If None, the maximized F1-score and AUC scores are calculated. If specified, keys ending
+        in 'max' or 'min' will maximize/minimize the given metric by calculating a threshold.
     random_state : int, default=None
         Random state for cross-validation and use in some models.
     parallel_backend : str, default='loky'
@@ -127,6 +134,7 @@ class EnsembleIntegration:
         sampling_strategy="undersampling",
         sampling_aggregation="mean",
         n_jobs=1,
+        metrics=None,
         random_state=None,
         parallel_backend="loky",
         project_name="project",
@@ -145,6 +153,7 @@ class EnsembleIntegration:
         self.sampling_strategy = sampling_strategy
         self.sampling_aggregation = sampling_aggregation
         self.n_jobs = n_jobs
+        self.metrics = metrics
         self.random_state = random_state
         self.parallel_backend = parallel_backend
         self.project_name = project_name
@@ -253,7 +262,6 @@ class EnsembleIntegration:
             y_test_combined.extend(y_test)
 
         meta_predictions = {}
-        performance_metrics = []
 
         for model_name, model in tqdm(
             self.meta_predictors.items(),
@@ -277,14 +285,11 @@ class EnsembleIntegration:
                 y_pred_combined.extend(y_pred)
 
             meta_predictions[model_name] = y_pred_combined
-            performance_metrics.append(
-                scores(y_test_combined, y_pred_combined, verbose=0)
-            )
 
         meta_predictions["labels"] = y_test_combined
 
         self.meta_predictions = pd.DataFrame.from_dict(meta_predictions)
-        self.meta_summary = metric_threshold_dataframes(self.meta_predictions)
+        self.meta_summary = meta_summary(self.meta_predictions, self.metrics)
 
         if self.model_building:
             for model_name, model in tqdm(
@@ -394,7 +399,7 @@ class EnsembleIntegration:
         )  # append data to dataframe
 
         # create a summary of base predictor performance
-        self.base_summary = create_base_summary(self.meta_test_data)
+        self.base_summary = base_summary(self.meta_test_data, self.metrics)
 
         if self.model_building:
             self._fit_base_final(X=X, y=y, modality_name=modality_name)

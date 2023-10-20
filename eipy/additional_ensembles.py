@@ -1,7 +1,3 @@
-from eipy.utils import (
-    f_minority_score,
-)
-
 import random
 import numpy as np
 from numpy import (
@@ -71,7 +67,7 @@ class CES(BaseEstimator, ClassifierMixin):
 
     def __init__(
         self,
-        scoring_func=f_minority_score,
+        scoring,
         max_ensemble_size=50,
         random_state=0,
         greater_is_better=True,
@@ -79,7 +75,7 @@ class CES(BaseEstimator, ClassifierMixin):
         if random_state is not None:
             random.seed(random_state)
         self.seed = random_state
-        self.scoring_func = scoring_func
+        self.scoring = scoring
         self.max_ensemble_size = max_ensemble_size
         self.selected_ensemble = []
         self.train_performance = []
@@ -89,18 +85,20 @@ class CES(BaseEstimator, ClassifierMixin):
         self.random_state = random_state
 
     def fit(self, X, y):
+
         # Store the classes seen during fit
         self.classes_ = unique_labels(y)
 
         self.X_ = X
         self.y_ = y
+        
         # Return the classifier
 
         self.selected_ensemble = []
         self.train_performance = []
 
         self.rng_generator = np.random.default_rng(seed=self.random_state)
-        best_classifiers = X.apply(lambda x: self.scoring_func(y, x)).sort_values(
+        best_classifiers = X.apply(lambda x: self.scoring(y, x)).sort_values(
             ascending=self.greater_is_better
         )
         for i in range(min(self.max_ensemble_size, len(best_classifiers))):
@@ -137,7 +135,7 @@ class CES(BaseEstimator, ClassifierMixin):
                 replace=False,
             )
             candidate_scores = [
-                self.scoring_func(y, X[ensemble + [candidate]].mean(axis=1))
+                self.scoring(y, X[ensemble + [candidate]].mean(axis=1))
                 for candidate in candidates
             ]
             best_candidate = candidates[self.argbest(candidate_scores)]
@@ -147,7 +145,7 @@ class CES(BaseEstimator, ClassifierMixin):
 
     def get_performance(self, X, y):
         predictions = X[self.selected_ensemble].mean(axis=1)
-        score = self.scoring_func(y, predictions)
+        score = self.scoring(y, predictions)
 
         return {
             "seed": self.seed,
