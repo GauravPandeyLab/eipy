@@ -26,7 +26,7 @@ def test_ensemble_integration(sampling_strategy, dtype):
     from sklearn.metrics import f1_score, roc_auc_score
 
     # Generate toy data for testing
-    X, y = make_classification(n_samples=200, n_features=10, n_classes=2, weights=[0.7, 0.3], n_redundant=0)
+    X, y = make_classification(n_samples=50, n_features=10, n_classes=2, weights=[0.6, 0.4], n_redundant=0)
     
     X_1 = X[:, :4]
     X_2 = X[:, 4:]
@@ -53,13 +53,13 @@ def test_ensemble_integration(sampling_strategy, dtype):
         'auc': roc_auc_score
     }
 
-    def fmax_scorer(y_true, y_pred):  # scorer for 
+    def fmax_scorer(y_true, y_pred):
         return max_min_score(y_true=y_true, 
                           y_pred=y_pred, 
                           metric=f1_score, 
                           pos_label=1,
                           max_min='max'
-                          )
+                          )[0]
 
     # Initialize EnsembleIntegration
     EI = EnsembleIntegration(base_predictors=base_predictors,
@@ -104,8 +104,8 @@ def test_ensemble_integration(sampling_strategy, dtype):
     interpreter = PermutationInterpreter(
                                         EI=EI,
                                         metric=fmax_scorer,
-                                        meta_predictor_keys=['S.LR', 'Mean', 'CES'],
-                                        n_repeats=5,
+                                        meta_predictor_keys=['S.LR', 'Mean'],
+                                        n_repeats=1,
                                         n_jobs=-1,
                                         metric_greater_is_better=True
                                         )

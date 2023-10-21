@@ -1,5 +1,6 @@
 import numpy as np
 import pandas as pd
+from scipy.optimize import minimize_scalar
 import inspect
 from eipy.utils import minority_class, retrieve_X_y
 from sklearn.metrics import (
@@ -17,24 +18,49 @@ def try_metric_with_pos_label(y_true, y_pred, metric, pos_label):
         score = metric(y_true, y_pred)
     return score
 
-def max_min_score(y_true, y_pred, metric, pos_label, max_min):
+def metric_scaler_function(arg, y_true, y_pred, metric, pos_label):
+        threshold = np.sort(np.unique(y_pred))[int(np.round(arg))]
+        y_binary = (y_pred >= threshold).astype(int)
+        return try_metric_with_pos_label(y_true, y_binary, metric, pos_label)
 
+def max_min_score(y_true, y_pred, metric, pos_label, max_min):
     '''
     Compute maximized/minimized score for a given metric.
     '''
 
-    thresholds = np.unique(y_pred)  # following sklearn approach (see sklearn.metrics.precision_recall_curve)
-    scores = []
-    for threshold in thresholds:
-        y_binary = (y_pred >= threshold).astype(int)
-        scores.append(try_metric_with_pos_label(y_true, y_binary, metric, pos_label))
-
     if max_min=='max':
-        index = np.argmax(scores)  # find index where max occurs
+        multiplier = -1
     elif max_min=='min':
-        index = np.argmin(scores)  # find index where min occurs
+        multiplier = 1
+    
+    metric_func = lambda arg: multiplier * metric_scaler_function(arg, y_true, y_pred, metric, pos_label)
+    optimized_result = minimize_scalar(metric_func, 
+                                                 bounds=(0, len(np.unique(y_pred))-1), 
+                                                 method='bounded')
 
-    return scores[index], thresholds[index]
+    threshold = np.sort(np.unique(y_pred))[int(np.round(optimized_result.x))]
+    score = multiplier * optimized_result.fun
+
+    return score, threshold
+
+# def max_min_score(y_true, y_pred, metric, pos_label, max_min):
+
+#     '''
+#     Compute maximized/minimized score for a given metric.
+#     '''
+
+#     thresholds = np.unique(y_pred)  # following sklearn approach (see sklearn.metrics.precision_recall_curve)
+#     scores = []
+#     for threshold in thresholds:
+#         y_binary = (y_pred >= threshold).astype(int)
+#         scores.append(try_metric_with_pos_label(y_true, y_binary, metric, pos_label))
+
+#     if max_min=='max':
+#         index = np.argmax(scores)  # find index where max occurs
+#     elif max_min=='min':
+#         index = np.argmin(scores)  # find index where min occurs
+
+#     return scores[index], thresholds[index]
 
 def scores(y_true, y_pred, metrics):
     '''
@@ -57,10 +83,11 @@ def scores(y_true, y_pred, metrics):
             # if y_pred parameter exists in metric function then y should be target prediction vector
             if 'y_pred' in inspect.signature(metric).parameters:
                 y = (np.array(y_pred) >= .5).astype(int)  # threshold is 0.5
+                metric_threshold_dict[metric_key] = try_metric_with_pos_label(y_true, y, metric, pos_label), 0.5
             # if y_score parameter exists in metric function then y should be probability vector
             elif 'y_score' in inspect.signature(metric).parameters:
                 y = y_pred
-            metric_threshold_dict[metric_key] = try_metric_with_pos_label(y_true, y, metric, pos_label), np.nan
+                metric_threshold_dict[metric_key] = try_metric_with_pos_label(y_true, y, metric, pos_label), np.nan
 
     return metric_threshold_dict
 
