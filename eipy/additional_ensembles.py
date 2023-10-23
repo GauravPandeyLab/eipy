@@ -97,10 +97,9 @@ class CES(BaseEstimator, ClassifierMixin):
         self.train_performance = []
 
         self.rng_generator = np.random.default_rng(seed=self.random_state)
-        # best_classifiers = X.apply(lambda x: self.scoring(y, x)).sort_values(
-        #     ascending=self.greater_is_better
-        # )
-        best_classifiers = self.calculate_scores(X, y)
+        best_classifiers = X.apply(lambda x: self.scoring(y, x)).sort_values(
+            ascending=self.greater_is_better
+        )
 
         for i in range(min(self.max_ensemble_size, len(best_classifiers))):
             best_candidate = self.select_candidate_enhanced(
@@ -162,11 +161,3 @@ class CES(BaseEstimator, ClassifierMixin):
         if self.greater_is_better:
             return df[df.score >= (self.best(df.score) - se)].head(1)
         return df[df.score <= (self.best(df.score) + se)].head(1)
-
-    def calculate_scores(self, X, y_true):
-        scores = X.apply(self.scoring_switched_args, y_true=y_true)
-        sorted_scores = scores.sort_values(ascending=self.greater_is_better)
-        return sorted_scores
-
-    def scoring_switched_args(self, y_pred, y_true):
-        return self.scoring(y_true, y_pred)
