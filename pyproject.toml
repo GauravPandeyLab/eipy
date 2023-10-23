@@ -32,6 +32,7 @@ scipy = {version = ">=1.0,<1.12", python = ">=3.8,<3.13"}
 shap = ">=0.42"
 xgboost = ">=1.7"
 pandoc = "^2.3"
+dill = "^0.3.7"
 
 [tool.poetry.group.dev.dependencies]
 pytest = ">=6.0"
@@ -40,6 +41,7 @@ flake8-bugbear = ">=23"
 tox = ">=3.9"
 pytest-cov = ">=3.0"
 black = ">=23.0"
+ipykernel = "^6.25.2"
 
 [tool.poetry.group.docs]
 optional = true

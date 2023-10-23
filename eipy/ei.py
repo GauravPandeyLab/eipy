@@ -6,7 +6,7 @@ Ensemble Integration
 import pandas as pd
 import numpy as np
 import random
-import pickle
+import dill as pickle
 import copy
 from tqdm import tqdm
 from sklearn.utils._testing import ignore_warnings
