@@ -7,7 +7,6 @@ from imblearn.over_sampling import RandomOverSampler
 
 # from tensorflow.keras.backend import clear_session
 import warnings
-import sklearn
 import sklearn.metrics
 from sklearn.pipeline import Pipeline
 from sklearn.exceptions import UndefinedMetricWarning
