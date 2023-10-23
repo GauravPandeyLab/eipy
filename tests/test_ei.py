@@ -75,7 +75,7 @@ def test_ensemble_integration(sampling_strategy, dtype):
     meta_predictors = {
         "Mean": MeanAggregation(),
         "Median": MedianAggregation(),
-        "CES": CES(scoring=fmax_score),
+        "CES": CES(scoring=lambda y_test, y_pred: fmax_score(y_test, y_pred)[0]),
         "S.LR": Pipeline([('scaler', StandardScaler()), ('lr', LogisticRegression())]),
     }
 
