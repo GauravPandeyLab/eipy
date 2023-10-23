@@ -85,13 +85,12 @@ class CES(BaseEstimator, ClassifierMixin):
         self.random_state = random_state
 
     def fit(self, X, y):
-
         # Store the classes seen during fit
         self.classes_ = unique_labels(y)
 
         self.X_ = X
         self.y_ = y
-        
+
         # Return the classifier
 
         self.selected_ensemble = []
@@ -163,7 +162,7 @@ class CES(BaseEstimator, ClassifierMixin):
         if self.greater_is_better:
             return df[df.score >= (self.best(df.score) - se)].head(1)
         return df[df.score <= (self.best(df.score) + se)].head(1)
-    
+
     def calculate_scores(self, X, y_true):
         scores = X.apply(self.scoring_switched_args, y_true=y_true)
         sorted_scores = scores.sort_values(ascending=self.greater_is_better)

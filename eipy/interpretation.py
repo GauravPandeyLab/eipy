@@ -13,6 +13,7 @@ from sklearn.preprocessing import LabelEncoder
 
 import warnings
 
+
 class PermutationInterpreter:
     """
     Permuation importance based interpreter.
@@ -179,7 +180,7 @@ class PermutationInterpreter:
                     warnings.warn(
                         "Feature names do not match those seen during training",
                         category=Warning,
-                        stacklevel=2
+                        stacklevel=2,
                     )
             else:
                 # check if features have been passed now
@@ -188,7 +189,7 @@ class PermutationInterpreter:
                         """Feature names have been passed to interpreter but none
                         were seen during training.""",
                         category=Warning,
-                        stacklevel=2
+                        stacklevel=2,
                     )
 
             # if no feature names passed assign an id
