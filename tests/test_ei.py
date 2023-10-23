@@ -22,8 +22,8 @@ def test_ensemble_integration(sampling_strategy, dtype):
     from eipy.ei import EnsembleIntegration
     from eipy.additional_ensembles import MeanAggregation, MedianAggregation, CES
     import pandas as pd
-    from eipy.metrics import max_min_score
-    from sklearn.metrics import f1_score, roc_auc_score
+    from sklearn.metrics import roc_auc_score
+    from eipy.metrics import fmax_score
 
     # Generate toy data for testing
     X, y = make_classification(n_samples=50, n_features=10, n_classes=2, weights=[0.6, 0.4], n_redundant=0)
@@ -49,17 +49,9 @@ def test_ensemble_integration(sampling_strategy, dtype):
     }
 
     metrics = {
-        'f_max': f1_score,
+        'f_max': fmax_score,
         'auc': roc_auc_score
     }
-
-    def fmax_scorer(y_true, y_pred):
-        return max_min_score(y_true=y_true, 
-                          y_pred=y_pred, 
-                          metric=f1_score, 
-                          pos_label=1,
-                          max_min='max'
-                          )[0]
 
     # Initialize EnsembleIntegration
     EI = EnsembleIntegration(base_predictors=base_predictors,
@@ -83,7 +75,7 @@ def test_ensemble_integration(sampling_strategy, dtype):
     meta_predictors = {
         "Mean": MeanAggregation(),
         "Median": MedianAggregation(),
-        # "CES": CES(fmax_scorer),
+        "CES": CES(scoring=fmax_score),
         "S.LR": Pipeline([('scaler', StandardScaler()), ('lr', LogisticRegression())]),
     }
 
@@ -103,7 +95,7 @@ def test_ensemble_integration(sampling_strategy, dtype):
 
     interpreter = PermutationInterpreter(
                                         EI=EI,
-                                        metric=fmax_scorer,
+                                        metric=lambda y_test, y_pred: fmax_score(y_test, y_pred)[0],
                                         meta_predictor_keys=['S.LR', 'Mean'],
                                         n_repeats=1,
                                         n_jobs=-1,
