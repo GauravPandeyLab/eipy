@@ -66,7 +66,7 @@ class EnsembleIntegration:
         'mean' or None.
     metrics : dict, default=None
         A dictionary of metrics for which to evaluate ensembles. If left as default=None,
-        a selection of internal metrics are used.
+        the fmax_score and roc_auc_score are calculated.
     n_jobs : int, default=1
         Number of workers for parallelization in joblib.
     metrics : dict, default=None
