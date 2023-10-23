@@ -5,15 +5,13 @@ from tqdm import tqdm
 import numpy as np
 import copy
 from sklearn.metrics import make_scorer
-import pickle
+import dill as pickle
 from itertools import groupby
 from operator import itemgetter
 from sklearn.ensemble import VotingClassifier
 from sklearn.preprocessing import LabelEncoder
 
 import warnings
-
-# warnings.filterwarnings("ignore")
 
 
 class PermutationInterpreter:
@@ -57,10 +55,10 @@ class PermutationInterpreter:
         self,
         EI,
         metric,
-        meta_predictor_keys="all",
+        meta_predictor_keys="all",  # can be "all" or a list of keys for ensemble methods
         n_repeats=10,
         n_jobs=1,
-        metric_greater_is_better=True,  # can be "all" or a list of keys for ensemble methods
+        metric_greater_is_better=True,
     ):
         self.EI = EI
         self.metric = metric
@@ -182,7 +180,7 @@ class PermutationInterpreter:
                     warnings.warn(
                         "Feature names do not match those seen during training",
                         category=Warning,
-                        stacklevel=2
+                        stacklevel=2,
                     )
             else:
                 # check if features have been passed now
@@ -191,7 +189,7 @@ class PermutationInterpreter:
                         """Feature names have been passed to interpreter but none
                         were seen during training.""",
                         category=Warning,
-                        stacklevel=2
+                        stacklevel=2,
                     )
 
             # if no feature names passed assign an id

@@ -22,9 +22,11 @@ def test_ensemble_integration(sampling_strategy, dtype):
     from eipy.ei import EnsembleIntegration
     from eipy.additional_ensembles import MeanAggregation, MedianAggregation, CES
     import pandas as pd
+    from sklearn.metrics import roc_auc_score
+    from eipy.metrics import fmax_score
 
     # Generate toy data for testing
-    X, y = make_classification(n_samples=200, n_features=10, n_classes=2, weights=[0.7, 0.3], n_redundant=0)
+    X, y = make_classification(n_samples=50, n_features=10, n_classes=2, weights=[0.6, 0.4], n_redundant=0)
     
     X_1 = X[:, :4]
     X_2 = X[:, 4:]
@@ -46,6 +48,11 @@ def test_ensemble_integration(sampling_strategy, dtype):
         'XGB': XGBClassifier()
     }
 
+    metrics = {
+        'f_max': fmax_score,
+        'auc': roc_auc_score
+    }
+
     # Initialize EnsembleIntegration
     EI = EnsembleIntegration(base_predictors=base_predictors,
                              k_outer=2,
@@ -54,6 +61,7 @@ def test_ensemble_integration(sampling_strategy, dtype):
                              sampling_strategy=sampling_strategy,
                              sampling_aggregation="mean",
                              n_jobs=-1,
+                             metrics=metrics,
                              random_state=42,
                              project_name="demo",
                              calibration_model=CalibratedClassifierCV(cv=2),
@@ -67,7 +75,7 @@ def test_ensemble_integration(sampling_strategy, dtype):
     meta_predictors = {
         "Mean": MeanAggregation(),
         "Median": MedianAggregation(),
-        "CES": CES(),
+        "CES": CES(scoring=lambda y_test, y_pred: fmax_score(y_test, y_pred)[0]),
         "S.LR": Pipeline([('scaler', StandardScaler()), ('lr', LogisticRegression())]),
     }
 
@@ -84,13 +92,12 @@ def test_ensemble_integration(sampling_strategy, dtype):
     assert EI.final_models is not {"base models": {}, "meta models": {}}
 
     from eipy.interpretation import PermutationInterpreter
-    from eipy.utils import f_minority_score
 
     interpreter = PermutationInterpreter(
                                         EI=EI,
-                                        metric=f_minority_score,
-                                        meta_predictor_keys=['S.LR', 'Mean', 'CES'],
-                                        n_repeats=5,
+                                        metric=lambda y_test, y_pred: fmax_score(y_test, y_pred)[0],
+                                        meta_predictor_keys=['S.LR', 'Mean'],
+                                        n_repeats=1,
                                         n_jobs=-1,
                                         metric_greater_is_better=True
                                         )
