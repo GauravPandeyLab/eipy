@@ -30,7 +30,7 @@ from eipy.utils import (
 )
 from eipy.metrics import (
     base_summary,
-    meta_summary,
+    ensemble_summary,
 )
 
 warnings.filterwarnings("ignore", category=DeprecationWarning)
@@ -48,9 +48,9 @@ class EnsembleIntegration:
     base_predictors : dict, default=None
         Dictionary of (sklearn-like) base predictors. Can also be passed in the
         fit_base method.
-    meta_predictors : dict, default=None
+    ensemble_predictors : dict, default=None
         Dictionary of (sklearn-like) stacking algorithms. Can also be passed in the
-        fit_meta method.
+        fit_ensemble method.
     k_outer : int, default=5
         Number of outer folds.
     k_inner : int, default=5
@@ -92,16 +92,16 @@ class EnsembleIntegration:
         Summary of performance scores for each base predictor. Scores can be accessed
         using the 'metrics' key and corresponding thresholds (if applicable) can be
         accessed in the 'thresholds' key.
-    meta_summary : dict
+    ensemble_summary : dict
         Summary of performance scores for each ensemble method. Scores can be accessed
         using the 'metrics' key and corresponding thresholds (if applicable) can be
         accessed in the 'thresholds' key.
-    meta_training_data : list of pandas.DataFrame
+    ensemble_training_data : list of pandas.DataFrame
         Training data for ensemble methods, for each outer fold.
-        len(meta_training_data) = len(k_outer)
-    meta_test_data : list of pandas.DataFrame
-        Test data for ensemble methods, for each outer fold. len(meta_test_data) = len(k_outer)
-    meta_predictions : pandas.DataFrame
+        len(ensemble_training_data) = len(k_outer)
+    ensemble_test_data : list of pandas.DataFrame
+        Test data for ensemble methods, for each outer fold. len(ensemble_test_data) = len(k_outer)
+    ensemble_predictions : pandas.DataFrame
         Combined predictions (across all outer folds) made by each ensemble method.
     modality_names : list of str
         List of modalities in the order in which they were passed to EnsembleIntegration.
@@ -112,9 +112,9 @@ class EnsembleIntegration:
     random_numbers_for_samples : list of int
         Random numbers used to sample each training fold.
     final_models : dict
-        Dictionary of the form {"base models": {}, "meta models": {}}.
+        Dictionary of the form {"base models": {}, "ensemble models": {}}.
         Populated if model_building=True.
-    meta_training_data_final: list of pandas.DataFrame
+    ensemble_training_data_final: list of pandas.DataFrame
         List containing single dataframe of training data. Final models are
         trained on all available data.
     cv_outer : StratifiedKFold
@@ -127,7 +127,7 @@ class EnsembleIntegration:
     def __init__(
         self,
         base_predictors=None,
-        meta_predictors=None,
+        ensemble_predictors=None,
         k_outer=5,
         k_inner=5,
         n_samples=1,
@@ -146,7 +146,7 @@ class EnsembleIntegration:
             random.seed(random_state)
 
         self.base_predictors = base_predictors
-        self.meta_predictors = meta_predictors
+        self.ensemble_predictors = ensemble_predictors
         self.k_outer = k_outer
         self.k_inner = k_inner
         self.n_samples = n_samples
@@ -161,8 +161,8 @@ class EnsembleIntegration:
         self.model_building = model_building
         self.verbose = verbose
 
-        self.final_models = {"base models": {}, "meta models": {}}  # for final model
-        self.meta_training_data_final = None  # for final model
+        self.final_models = {"base models": {}, "ensemble models": {}}  # for final model
+        self.ensemble_training_data_final = None  # for final model
 
         self.cv_outer = StratifiedKFold(
             n_splits=self.k_outer, shuffle=True, random_state=self.random_state
@@ -172,12 +172,12 @@ class EnsembleIntegration:
             n_splits=self.k_inner, shuffle=True, random_state=self.random_state
         )
 
-        self.meta_training_data = None
-        self.meta_test_data = None
+        self.ensemble_training_data = None
+        self.ensemble_test_data = None
         self.base_summary = None
 
-        self.meta_predictions = None
-        self.meta_summary = None
+        self.ensemble_predictions = None
+        self.ensemble_summary = None
 
         self.modality_names = []
         self.n_features_per_modality = []
@@ -189,7 +189,7 @@ class EnsembleIntegration:
 
     def fit_base(self, X, y, base_predictors=None, modality_name=None):
         """
-        Train base predictors and generate meta train/test data.
+        Train base predictors and generate ensemble train/test data.
 
         Parameters
         ----------
@@ -202,7 +202,7 @@ class EnsembleIntegration:
         Returns
         -------
         self
-            Meta train/test data and fitted final base predictors.
+            Ensemble train/test data and fitted final base predictors.
 
         """
 
@@ -235,36 +235,36 @@ class EnsembleIntegration:
             )
 
     @ignore_warnings(category=ConvergenceWarning)
-    def fit_meta(self, meta_predictors=None):
+    def fit_ensemble(self, ensemble_predictors=None):
         """
-        Train meta predictors on data generated by fit_base.
+        Train ensemble predictors on data generated by fit_base.
 
         Parameters
         ----------
-        meta_predictors : dict, default=None
+        ensemble_predictors : dict, default=None
             Dictionary of (sklearn-like) stacking algorithms.
 
         Returns
         -------
         self
-            Summary of meta predictor performance and fitted final meta models.
+            Summary of ensemble predictor performance and fitted final ensemble models.
         """
 
-        if meta_predictors is not None:
-            self.meta_predictors = meta_predictors
+        if ensemble_predictors is not None:
+            self.ensemble_predictors = ensemble_predictors
 
-        set_predictor_seeds(self.meta_predictors, self.random_state)
+        set_predictor_seeds(self.ensemble_predictors, self.random_state)
 
         y_test_combined = []
 
         for fold_id in range(self.k_outer):
-            _, y_test = retrieve_X_y(labelled_data=self.meta_test_data[fold_id])
+            _, y_test = retrieve_X_y(labelled_data=self.ensemble_test_data[fold_id])
             y_test_combined.extend(y_test)
 
-        meta_predictions = {}
+        ensemble_predictions = {}
 
         for model_name, model in tqdm(
-            self.meta_predictors.items(),
+            self.ensemble_predictors.items(),
             desc="Analyzing ensembles",
             bar_format=bar_format,
         ):
@@ -272,9 +272,9 @@ class EnsembleIntegration:
 
             for fold_id in range(self.k_outer):
                 X_train, y_train = retrieve_X_y(
-                    labelled_data=self.meta_training_data[fold_id]
+                    labelled_data=self.ensemble_training_data[fold_id]
                 )
-                X_test, _ = retrieve_X_y(labelled_data=self.meta_test_data[fold_id])
+                X_test, _ = retrieve_X_y(labelled_data=self.ensemble_test_data[fold_id])
 
                 if self.sampling_aggregation == "mean":
                     X_train = X_train.T.groupby(level=[0, 1]).mean().T
@@ -284,21 +284,21 @@ class EnsembleIntegration:
                 y_pred = safe_predict_proba(model, X_test)
                 y_pred_combined.extend(y_pred)
 
-            meta_predictions[model_name] = y_pred_combined
+            ensemble_predictions[model_name] = y_pred_combined
 
-        meta_predictions["labels"] = y_test_combined
+        ensemble_predictions["labels"] = y_test_combined
 
-        self.meta_predictions = pd.DataFrame.from_dict(meta_predictions)
-        self.meta_summary = meta_summary(self.meta_predictions, self.metrics)
+        self.ensemble_predictions = pd.DataFrame.from_dict(ensemble_predictions)
+        self.ensemble_summary = ensemble_summary(self.ensemble_predictions, self.metrics)
 
         if self.model_building:
             for model_name, model in tqdm(
-                self.meta_predictors.items(),
-                desc="Training final meta models",
+                self.ensemble_predictors.items(),
+                desc="Training final ensemble models",
                 bar_format=bar_format,
             ):
                 X_train, y_train = retrieve_X_y(
-                    labelled_data=self.meta_training_data_final[0]
+                    labelled_data=self.ensemble_training_data_final[0]
                 )
 
                 if self.sampling_aggregation == "mean":
@@ -307,11 +307,11 @@ class EnsembleIntegration:
 
                 model.fit(X_train, y_train)
 
-                self.final_models["meta models"][model_name] = pickle.dumps(model)
+                self.final_models["ensemble models"][model_name] = pickle.dumps(model)
 
         return self
 
-    def predict(self, X_dict, meta_model_key):
+    def predict(self, X_dict, ensemble_model_key):
         """
         Predict class labels for samples in X
 
@@ -320,7 +320,7 @@ class EnsembleIntegration:
         X_dict : dict
             Dictionary of X modalities each having n_samples. Keys and n_features
             must match those seen by fit_base.
-        meta_model_key :
+        ensemble_model_key :
             The key of the ensemble method selected during performance analysis.
 
         Returns
@@ -331,7 +331,7 @@ class EnsembleIntegration:
 
         # TODO: follow the order of feature?
 
-        meta_prediction_data = None
+        ensemble_prediction_data = None
 
         for i in range(len(self.modality_names)):
             modality_name = self.modality_names[i]
@@ -351,18 +351,18 @@ class EnsembleIntegration:
             combined_predictions = self._combine_predictions_outer(
                 base_models, modality_name, model_building=True
             )
-            meta_prediction_data = append_modality(
-                meta_prediction_data, combined_predictions, model_building=True
+            ensemble_prediction_data = append_modality(
+                ensemble_prediction_data, combined_predictions, model_building=True
             )
 
         if self.sampling_aggregation == "mean":
-            meta_prediction_data = (
-                meta_prediction_data[0].T.groupby(level=[0, 1]).mean().T
+            ensemble_prediction_data = (
+                ensemble_prediction_data[0].T.groupby(level=[0, 1]).mean().T
             )
 
-        meta_model = pickle.loads(self.final_models["meta models"][meta_model_key])
+        ensemble_model = pickle.loads(self.final_models["ensemble models"][ensemble_model_key])
 
-        y_pred = safe_predict_proba(meta_model, meta_prediction_data)
+        y_pred = safe_predict_proba(ensemble_model, ensemble_prediction_data)
         return y_pred
 
     @ignore_warnings(category=ConvergenceWarning)
@@ -373,7 +373,7 @@ class EnsembleIntegration:
         self.feature_names[modality_name] = feature_names
         self.n_features_per_modality.append(X.shape[1])
 
-        meta_training_data_modality = self._fit_base_inner(
+        ensemble_training_data_modality = self._fit_base_inner(
             X=X,
             y=y,
             cv_outer=self.cv_outer,
@@ -382,11 +382,11 @@ class EnsembleIntegration:
             modality_name=modality_name,
         )
 
-        self.meta_training_data = append_modality(
-            self.meta_training_data, meta_training_data_modality
+        self.ensemble_training_data = append_modality(
+            self.ensemble_training_data, ensemble_training_data_modality
         )
 
-        meta_test_data_modality = self._fit_base_outer(
+        ensemble_test_data_modality = self._fit_base_outer(
             X=X,
             y=y,
             cv_outer=self.cv_outer,
@@ -394,12 +394,12 @@ class EnsembleIntegration:
             modality_name=modality_name,
         )
 
-        self.meta_test_data = append_modality(
-            self.meta_test_data, meta_test_data_modality
+        self.ensemble_test_data = append_modality(
+            self.ensemble_test_data, ensemble_test_data_modality
         )  # append data to dataframe
 
         # create a summary of base predictor performance
-        self.base_summary = base_summary(self.meta_test_data, self.metrics)
+        self.base_summary = base_summary(self.ensemble_test_data, self.metrics)
 
         if self.model_building:
             self._fit_base_final(X=X, y=y, modality_name=modality_name)
@@ -414,7 +414,7 @@ class EnsembleIntegration:
         """
         print("\n... for final ensemble...")
 
-        meta_training_data_modality = self._fit_base_inner(
+        ensemble_training_data_modality = self._fit_base_inner(
             X=X,
             y=y,
             cv_inner=self.cv_inner,
@@ -423,8 +423,8 @@ class EnsembleIntegration:
             modality_name=modality_name,
         )
 
-        self.meta_training_data_final = append_modality(
-            self.meta_training_data_final, meta_training_data_modality
+        self.ensemble_training_data_final = append_modality(
+            self.ensemble_training_data_final, ensemble_training_data_modality
         )
 
         base_model_list_of_dicts = self._fit_base_outer(
@@ -449,8 +449,8 @@ class EnsembleIntegration:
         if base_predictors is not None:
             self.base_predictors = base_predictors  # update base predictors
 
-        # dictionaries for meta train/test data for each outer fold
-        meta_training_data_modality = []
+        # dictionaries for ensemble train/test data for each outer fold
+        ensemble_training_data_modality = []
 
         # define joblib Parallel function
         with Parallel(
@@ -460,7 +460,7 @@ class EnsembleIntegration:
                 tqdm(
                     cv_outer.split(X, y),
                     total=cv_outer.n_splits,
-                    desc="Generating meta training data",
+                    desc="Generating ensemble training data",
                     bar_format=bar_format,
                 )
             ):
@@ -486,9 +486,9 @@ class EnsembleIntegration:
                 combined_predictions = self._combine_predictions_inner(
                     output, modality_name
                 )
-                meta_training_data_modality.append(combined_predictions)
+                ensemble_training_data_modality.append(combined_predictions)
 
-        return meta_training_data_modality
+        return ensemble_training_data_modality
 
     def _fit_base_outer(
         self,
@@ -506,7 +506,7 @@ class EnsembleIntegration:
         if model_building:
             progress_string = "Training final base predictors"
         else:
-            progress_string = "Generating meta test data"
+            progress_string = "Generating ensemble test data"
 
         if base_predictors is not None:
             self.base_predictors = base_predictors  # update base predictors
