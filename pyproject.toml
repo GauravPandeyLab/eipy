@@ -5,12 +5,12 @@ build-backend = "poetry.core.masonry.api"
 [tool.poetry]
 name = "eipy"
 version = "0.1.0"
-description = "Ensemble Integration: a customizable pipeline for generating diverse ensembles of heterogeneous classifiers"
+description = "Ensemble Integration: a customizable pipeline for generating multi-modal, heterogeneous ensembles"
 authors = ["Jamie Bennett", "Yan Chak (Richard) Li"]
-license = "Creative Commons Attribution-NonCommercial 4.0 International"
+license = "GNU General Public License version 3"
 classifiers = [
     "Programming Language :: Python :: 3",
-    "License :: OSI Approved :: MIT License",
+    "License :: OSI Approved :: GPL-3.0-only",
     "Operating System :: OS Independent",
 ]
 packages = [
