@@ -28,9 +28,9 @@ class PermutationInterpreter:
         sklearn-like metric function.
     n_repeats : int, default=10
         Number of repeats in PermutationImportance.
-    meta_predictor_keys: default='all'
-        Meta predictor keys used in EnsembleIntegration. If 'all' then all meta predictors
-        seen by EI are interpreted. Recommended to pass a subset of meta_predctor keys as
+    ensemble_predictor_keys: default='all'
+        Ensemble predictor keys used in EnsembleIntegration. If 'all' then all ensemble predictors
+        seen by EI are interpreted. Recommended to pass a subset of ensemble_predctor keys as
         a list.
     metric_greater_is_better: default=True
         Metric greater is better.
@@ -55,7 +55,7 @@ class PermutationInterpreter:
         self,
         EI,
         metric,
-        meta_predictor_keys="all",  # can be "all" or a list of keys for ensemble methods
+        ensemble_predictor_keys="all",  # can be "all" or a list of keys for ensemble methods
         n_repeats=10,
         n_jobs=1,
         metric_greater_is_better=True,
@@ -64,7 +64,7 @@ class PermutationInterpreter:
         self.metric = metric
         self.n_repeats = n_repeats
         self.n_jobs = n_jobs
-        self.meta_predictor_keys = meta_predictor_keys
+        self.ensemble_predictor_keys = ensemble_predictor_keys
         self.metric_greater_is_better = metric_greater_is_better
 
         self.LFR = None
@@ -90,22 +90,22 @@ class PermutationInterpreter:
 
         print("Interpreting ensembles...\n")
 
-        if self.meta_predictor_keys == "all":
-            meta_predictor_keys = self.EI.meta_predictors.keys()
+        if self.ensemble_predictor_keys == "all":
+            ensemble_predictor_keys = self.EI.ensemble_predictors.keys()
         else:
-            meta_predictor_keys = self.meta_predictor_keys
+            ensemble_predictor_keys = self.ensemble_predictor_keys
 
         if self.LFR is None:
             self.local_feature_rank(X_dict, y_to_numpy(y))
 
         if self.LMR is None:
-            self.local_model_rank(meta_predictor_keys=meta_predictor_keys)
+            self.local_model_rank(ensemble_predictor_keys=ensemble_predictor_keys)
 
         print("Calculating combined rank product score...")
 
         feature_ranking_list = {}
         self.merged_lmr_lfr = {}
-        for model_name in meta_predictor_keys:
+        for model_name in ensemble_predictor_keys:
             lmr_interest = self.LMR[self.LMR["ensemble_method"] == model_name].copy()
             self.merged_lmr_lfr[model_name] = pd.merge(
                 lmr_interest,
@@ -279,14 +279,14 @@ class PermutationInterpreter:
 
         return self
 
-    def local_model_rank(self, meta_predictor_keys):
+    def local_model_rank(self, ensemble_predictor_keys):
         """
         Local Model Ranks (LMRs)
 
         Parameters
         ----------
-        meta_predictor_keys : list of str
-            List of meta predictor keys that will be used to select
+        ensemble_predictor_keys : list of str
+            List of ensemble predictor keys that will be used to select
             ensembles classifiers to interpret.
 
         Returns
@@ -294,44 +294,44 @@ class PermutationInterpreter:
         self
             Local model ranks.
         """
-        #  load meta training data from EI training
+        #  load ensemble training data from EI training
 
-        meta_X_train, meta_y_train = retrieve_X_y(
-            labelled_data=self.EI.meta_training_data_final[0]
+        ensemble_X_train, ensemble_y_train = retrieve_X_y(
+            labelled_data=self.EI.ensemble_training_data_final[0]
         )
 
         if self.EI.sampling_aggregation == "mean":
-            meta_X_train = meta_X_train.T.groupby(level=[0, 1]).mean().T
+            ensemble_X_train = ensemble_X_train.T.groupby(level=[0, 1]).mean().T
 
         #  calculate importance for ensemble models of interest
 
         lm_pi_list = []
 
-        ensemble_models = copy.deepcopy(self.EI.final_models["meta models"])
+        ensemble_models = copy.deepcopy(self.EI.final_models["ensemble models"])
 
-        ensemble_models = [ensemble_models[key] for key in meta_predictor_keys]
+        ensemble_models = [ensemble_models[key] for key in ensemble_predictor_keys]
 
-        ensemble_models = dict(zip(meta_predictor_keys, ensemble_models))
+        ensemble_models = dict(zip(ensemble_predictor_keys, ensemble_models))
 
         for model_name, model in tqdm(
             ensemble_models.items(),
             desc="Calculating local model ranks",
             bar_format=bar_format,
         ):
-            meta_predictor = pickle.loads(model)
+            ensemble_predictor = pickle.loads(model)
 
             if ("Mean" in model_name) or ("Median" in model_name):
-                importances_mean = np.ones(len(meta_X_train.columns))
-                importances_std = np.zeros(len(meta_X_train.columns))
+                importances_mean = np.ones(len(ensemble_X_train.columns))
+                importances_std = np.zeros(len(ensemble_X_train.columns))
 
             elif model_name == "CES":
                 model_selected_freq = []
-                for bp in meta_X_train.columns:
+                for bp in ensemble_X_train.columns:
                     model_selected_freq.append(
-                        meta_predictor.selected_ensemble.count(bp)
+                        ensemble_predictor.selected_ensemble.count(bp)
                     )
                 importances_mean = model_selected_freq
-                importances_std = np.ones(len(meta_X_train.columns)) * np.nan
+                importances_std = np.ones(len(ensemble_X_train.columns)) * np.nan
 
             else:
                 needs_proba = hasattr(model, "predict_proba")
@@ -341,9 +341,9 @@ class PermutationInterpreter:
                     needs_proba=needs_proba,
                 )
                 pi = permutation_importance(
-                    estimator=meta_predictor,
-                    X=meta_X_train,
-                    y=meta_y_train,
+                    estimator=ensemble_predictor,
+                    X=ensemble_X_train,
+                    y=ensemble_y_train,
                     n_repeats=self.n_repeats,
                     n_jobs=-1,
                     random_state=self.EI.random_state,
@@ -358,10 +358,10 @@ class PermutationInterpreter:
                     "local_importance_mean": importances_mean,
                     "local_importance_std": importances_std,
                     "base predictor": [
-                        column_name[1] for column_name in meta_X_train.columns
+                        column_name[1] for column_name in ensemble_X_train.columns
                     ],
                     "modality": [
-                        column_name[0] for column_name in meta_X_train.columns
+                        column_name[0] for column_name in ensemble_X_train.columns
                     ],
                 }
             )

@@ -71,32 +71,32 @@ def test_ensemble_integration(sampling_strategy, dtype):
     for name, modality in modalities.items():
         EI.fit_base(modality, y, base_predictors, modality_name=name)
 
-    # Train meta models
-    meta_predictors = {
+    # Train ensemble models
+    ensemble_predictors = {
         "Mean": MeanAggregation(),
         "Median": MedianAggregation(),
         "CES": CES(scoring=lambda y_test, y_pred: fmax_score(y_test, y_pred)[0]),
         "S.LR": Pipeline([('scaler', StandardScaler()), ('lr', LogisticRegression())]),
     }
 
-    EI.fit_meta(meta_predictors=meta_predictors)
+    EI.fit_ensemble(ensemble_predictors=ensemble_predictors)
 
     # Predict
-    EI.predict(modalities, meta_model_key='S.LR')
+    EI.predict(modalities, ensemble_model_key='S.LR')
 
     # Assertions
 
-    # Check if the trained base models and meta models are not None
+    # Check if the trained base models and ensemble models are not None
     assert EI.base_summary is not None
-    assert EI.meta_summary is not None
-    assert EI.final_models is not {"base models": {}, "meta models": {}}
+    assert EI.ensemble_summary is not None
+    assert EI.final_models is not {"base models": {}, "ensemble models": {}}
 
     from eipy.interpretation import PermutationInterpreter
 
     interpreter = PermutationInterpreter(
                                         EI=EI,
                                         metric=lambda y_test, y_pred: fmax_score(y_test, y_pred)[0],
-                                        meta_predictor_keys=['S.LR', 'Mean'],
+                                        ensemble_predictor_keys=['S.LR', 'Mean'],
                                         n_repeats=1,
                                         n_jobs=-1,
                                         metric_greater_is_better=True

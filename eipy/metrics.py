@@ -165,23 +165,23 @@ def create_metric_threshold_dict(X, labels, metrics):
     return df_dict
 
 
-def base_summary(meta_test_dataframes, metrics):
+def base_summary(ensemble_test_dataframes, metrics):
     """
     Create a base predictor performance summary by concatenating data across test folds
     """
-    labels = pd.concat([df["labels"] for df in meta_test_dataframes])
-    meta_test_averaged_samples = pd.concat(
+    labels = pd.concat([df["labels"] for df in ensemble_test_dataframes])
+    ensemble_test_averaged_samples = pd.concat(
         [
             df.drop(columns=["labels"], level=0).groupby(level=(0, 1), axis=1).mean()
-            for df in meta_test_dataframes
+            for df in ensemble_test_dataframes
         ]
     )
-    return create_metric_threshold_dict(meta_test_averaged_samples, labels, metrics)
+    return create_metric_threshold_dict(ensemble_test_averaged_samples, labels, metrics)
 
 
-def meta_summary(meta_predictions, metrics):
-    X = meta_predictions.drop(["labels"], axis=1)
-    labels = meta_predictions["labels"]
+def ensemble_summary(ensemble_predictions, metrics):
+    X = ensemble_predictions.drop(["labels"], axis=1)
+    labels = ensemble_predictions["labels"]
     return create_metric_threshold_dict(X, labels, metrics)
 
 
