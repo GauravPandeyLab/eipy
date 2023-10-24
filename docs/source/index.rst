@@ -17,6 +17,7 @@ For more details see the `original publication <https://doi.org/10.1093/bioadv/v
    getting_started
    tutorial.ipynb
    api_reference
+   development
 
 .. Indices and tables
 .. ==================

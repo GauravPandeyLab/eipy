@@ -6,11 +6,13 @@ on:
       - main
     paths-ignore:
       - '**/README.rst'
+      - 'docs/**'
   pull_request:
     branches:
       - main
     paths-ignore:
       - '**/README.rst'
+      - 'docs/**'
 
 jobs:
   tests:
