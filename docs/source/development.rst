@@ -32,7 +32,7 @@ We welcome contributions to the development of ``eipy``. To contribute follow th
 
    flake8 eipy/ei
 
-For formatting type, for example,
+   For formatting type, for example,
 
 .. code-block:: console
 
@@ -44,7 +44,7 @@ For formatting type, for example,
 
    pytest
 
-Note that new test file names must have the prefix "test_".
+   Note that new test file names must have the prefix `test_`.
 
 9. **Submit pull request**. Updates must be made via a pull request. Internal users should note that pushing to the main branch has been disabled.
 
