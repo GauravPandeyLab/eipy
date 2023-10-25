@@ -161,7 +161,7 @@ def ensemble_summary(ensemble_predictions, metrics):
     return create_metric_threshold_dict(X, labels, metrics)
 
 
-# These two functions are an attempt at maximizing/minimizing any metric but they were fairly slow
+# These two functions are an attempt at maximizing/minimizing any metric
 # def metric_scaler_function(arg, y_true, y_pred, metric, pos_label, multiplier):
 #         threshold = np.sort(np.unique(y_pred))[int(np.round(arg))]
 #         y_binary = (y_pred >= threshold).astype(int)
