@@ -7,8 +7,6 @@ from imblearn.over_sampling import RandomOverSampler
 
 # from tensorflow.keras.backend import clear_session
 import warnings
-import sklearn
-import sklearn.metrics
 from sklearn.pipeline import Pipeline
 from sklearn.exceptions import UndefinedMetricWarning
 
@@ -16,12 +14,14 @@ warnings.filterwarnings(action="ignore", category=UndefinedMetricWarning)
 
 bar_format = "{desc}: |{bar}|{percentage:3.0f}%"
 
+
 def minority_class(y_true):
     if np.bincount(y_true)[0] < np.bincount(y_true)[1]:
         minority_class = 0
     else:
         minority_class = 1
     return minority_class
+
 
 def set_predictor_seeds(base_predictors, random_state):
     for _, v in base_predictors.items():
@@ -61,7 +61,7 @@ def X_to_numpy(X):
         return X.to_numpy(), X.columns.to_list()
     else:
         raise TypeError(
-            """Object must be a numpy array, a pandas dataframe 
+            """Object must be a numpy array, a pandas dataframe
             or a dictionary containing either."""
         )
 
@@ -79,7 +79,7 @@ def y_to_numpy(y):
         _y = y.to_numpy()
     else:
         raise TypeError(
-            """Object must be a numpy array, list 
+            """Object must be a numpy array, list
             or pandas Series."""
         )
 
@@ -114,22 +114,6 @@ def safe_predict_proba(model, X):  # uses predict_proba method where possible
     else:
         y_pred = model.predict(X)
     return y_pred
-
-
-def read_arff_to_pandas_df(arff_path):
-    df = pd.read_csv(arff_path, comment="@", header=None)
-    columns = []
-    file = open(arff_path, "r")
-    lines = file.readlines()
-
-    # Strips the newline character
-    for line_idx, line in enumerate(lines):
-        # if line_idx > num_col
-        if "@attribute" in line.lower():
-            columns.append(line.strip().split(" ")[1])
-
-    df.columns = columns
-    return df
 
 
 def random_integers(n_integers=1, seed=42):

@@ -85,13 +85,12 @@ class CES(BaseEstimator, ClassifierMixin):
         self.random_state = random_state
 
     def fit(self, X, y):
-
         # Store the classes seen during fit
         self.classes_ = unique_labels(y)
 
         self.X_ = X
         self.y_ = y
-        
+
         # Return the classifier
 
         self.selected_ensemble = []
@@ -101,6 +100,7 @@ class CES(BaseEstimator, ClassifierMixin):
         best_classifiers = X.apply(lambda x: self.scoring(y, x)).sort_values(
             ascending=self.greater_is_better
         )
+
         for i in range(min(self.max_ensemble_size, len(best_classifiers))):
             best_candidate = self.select_candidate_enhanced(
                 X, y, best_classifiers, self.selected_ensemble, i
