@@ -6,3 +6,4 @@ API Reference
 
     ensemble_integration
     permutation_interpreter
+    datasets
