@@ -98,30 +98,6 @@ def scores(y_true, y_pred, metrics):
     return metric_threshold_dict
 
 
-# def convert_predictions_for_metric(y_pred, metric):
-#     metric_prediction_parameter = get_metric_prediction_parameter(metric)
-#     # if y_pred parameter exists in metric function then y should be target prediction vector
-#     if metric_prediction_parameter=='y_pred':
-#         threshold = 0.5
-#         predictions = (np.array(y_pred) >= .5).astype(int)
-#     # if y_score parameter exists in metric function then y should be probability vector
-#     elif metric_prediction_parameter=='y_score':
-#         threshold = np.nan
-#         predictions = y_pred
-#     return predictions, threshold
-
-# def get_metric_prediction_parameter(metric):
-#     '''
-#     Returns the parameter used in the sklearn metric, either y_pred or y_score. y_pred expects
-#     binary predictions, y_score expects probabilities.
-#     '''
-#     metric_prediction_parameter = None
-#     for parameter in ['y_pred', 'y_score']:
-#         if parameter in inspect.signature(metric).parameters:
-#             metric_prediction_parameter = parameter
-#     return metric_prediction_parameter
-
-
 def scores_matrix(X, labels, metrics):
     """
     Calculate metrics and threshold (if applicable) for each column
@@ -185,7 +161,7 @@ def ensemble_summary(ensemble_predictions, metrics):
     return create_metric_threshold_dict(X, labels, metrics)
 
 
-# These two functions are an attempt at maximizing any metric but it was slow
+# These two functions are an attempt at maximizing/minimizing any metric but they were fairly slow
 # def metric_scaler_function(arg, y_true, y_pred, metric, pos_label, multiplier):
 #         threshold = np.sort(np.unique(y_pred))[int(np.round(arg))]
 #         y_binary = (y_pred >= threshold).astype(int)
