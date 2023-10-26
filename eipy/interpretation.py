@@ -29,9 +29,9 @@ class PermutationInterpreter:
     n_repeats : int, default=10
         Number of repeats in PermutationImportance.
     ensemble_predictor_keys: default='all'
-        Ensemble predictor keys used in EnsembleIntegration. If 'all' then all ensemble predictors
-        seen by EI are interpreted. Recommended to pass a subset of ensemble_predctor keys as
-        a list.
+        Ensemble predictor keys used in EnsembleIntegration. If 'all' then all
+        ensemble predictors seen by EI are interpreted. Recommended to pass a
+        subset of ensemble_predctor keys as a list.
     metric_greater_is_better: default=True
         Metric greater is better.
 

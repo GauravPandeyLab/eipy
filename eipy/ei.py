@@ -100,7 +100,8 @@ class EnsembleIntegration:
         Training data for ensemble methods, for each outer fold.
         len(ensemble_training_data) = len(k_outer)
     ensemble_test_data : list of pandas.DataFrame
-        Test data for ensemble methods, for each outer fold. len(ensemble_test_data) = len(k_outer)
+        Test data for ensemble methods, for each outer fold.
+        len(ensemble_test_data) = len(k_outer)
     ensemble_predictions : pandas.DataFrame
         Combined predictions (across all outer folds) made by each ensemble method.
     modality_names : list of str
@@ -161,7 +162,10 @@ class EnsembleIntegration:
         self.model_building = model_building
         self.verbose = verbose
 
-        self.final_models = {"base models": {}, "ensemble models": {}}  # for final model
+        self.final_models = {
+            "base models": {},
+            "ensemble models": {},
+        }  # for final model
         self.ensemble_training_data_final = None  # for final model
 
         self.cv_outer = StratifiedKFold(
@@ -289,7 +293,9 @@ class EnsembleIntegration:
         ensemble_predictions["labels"] = y_test_combined
 
         self.ensemble_predictions = pd.DataFrame.from_dict(ensemble_predictions)
-        self.ensemble_summary = ensemble_summary(self.ensemble_predictions, self.metrics)
+        self.ensemble_summary = ensemble_summary(
+            self.ensemble_predictions, self.metrics
+        )
 
         if self.model_building:
             for model_name, model in tqdm(
@@ -360,7 +366,9 @@ class EnsembleIntegration:
                 ensemble_prediction_data[0].T.groupby(level=[0, 1]).mean().T
             )
 
-        ensemble_model = pickle.loads(self.final_models["ensemble models"][ensemble_model_key])
+        ensemble_model = pickle.loads(
+            self.final_models["ensemble models"][ensemble_model_key]
+        )
 
         y_pred = safe_predict_proba(ensemble_model, ensemble_prediction_data)
         return y_pred

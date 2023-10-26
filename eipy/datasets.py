@@ -1,19 +1,15 @@
 import pandas as pd
-import numpy as np
-import os 
-from os import environ, listdir, makedirs
-from os.path import expanduser, isdir, join, splitext
-
-from urllib.request import urlretrieve
+import os
+from os import environ, makedirs
+from os.path import expanduser, join
 import wget
 import zipfile
-    
+
+
 def _load_csv(file_path, fn, suffix):
-        return pd.read_csv(join(file_path, f"{fn}_{suffix}.csv"),
-                                          index_col=0)
+    return pd.read_csv(join(file_path, f"{fn}_{suffix}.csv"), index_col=0)
 
 
-    
 def get_data_home(data_home=None):
     """Return the path of the eipy data directory.
 
@@ -48,15 +44,19 @@ def get_data_home(data_home=None):
     makedirs(data_home, exist_ok=True)
     return data_home
 
-def _check_dirExist_mkdir(folder_path):
-    if os.path.exists(folder_path):
-        return True
-    else:
-        os.makedirs(folder_path)
-        return False
 
 def load_diabetes():
+    """
+    Loads a multi-modal youth diabetes dataset.
 
+    More information about this dataset can be found in the following publication
+
+    Catherine McDonough, Yan Chak Li, Nita Vangeepuram, Bian Liu, Gaurav Pandey.
+    Facilitating youth diabetes studies with the most comprehensive epidemiological
+    dataset available through a public web portal. medRxiv 2023.08.02.23293517.
+    https://doi.org/10.1101/2023.08.02.23293517
+
+    """
     zenodo_link = "https://zenodo.org/records/10035422/files/diabetes.zip?download=1"
     # Get data path
     data_path = get_data_home()
@@ -64,31 +64,38 @@ def load_diabetes():
     data_ext_path = join(data_path, folder_ext)
     # check data downloaded before
     folder_exist = os.path.exists(data_ext_path)
-    zip_exist = os.path.exists(data_ext_path+'.zip')
+    zip_exist = os.path.exists(data_ext_path + ".zip")
     if not folder_exist:
         if not zip_exist:
-            filename = wget.download(zenodo_link, out=data_path)
-        downloaded_path = data_ext_path+'.zip'
-        with zipfile.ZipFile(downloaded_path, 'r') as zip_ref:
+            wget.download(zenodo_link, out=data_path)
+        downloaded_path = data_ext_path + ".zip"
+        with zipfile.ZipFile(downloaded_path, "r") as zip_ref:
             zip_ref.extractall(data_path)
-    
+
     _file_path = data_ext_path
-    modality_keys = ['Sociodemographic', 'Health status',
-                            'Diet', 'Other lifestyle behaviors']
-    _train_suffix = '9916'
-    _test_suffix = '1618'
+    modality_keys = [
+        "Sociodemographic",
+        "Health status",
+        "Diet",
+        "Other lifestyle behaviors",
+    ]
+    _train_suffix = "9916"
+    _test_suffix = "1618"
     X_train = {k: _load_csv(_file_path, k, _train_suffix) for k in modality_keys}
     X_test = {k: _load_csv(_file_path, k, _test_suffix) for k in modality_keys}
-    y_train = _load_csv(_file_path, 'outcomes_label', _train_suffix)
-    y_test = _load_csv(_file_path, 'outcomes_label', _test_suffix)
+    y_train = _load_csv(_file_path, "outcomes_label", _train_suffix)
+    y_test = _load_csv(_file_path, "outcomes_label", _test_suffix)
     dictionary = pd.read_csv(join(_file_path, "data_dictionary.csv"))
 
-    return {'X_train': X_train,
-            'y_train': y_train,
-            'X_test': X_test,
-            'y_test': y_test,
-            'data_dict': dictionary}
+    return {
+        "X_train": X_train,
+        "y_train": y_train,
+        "X_test": X_test,
+        "y_test": y_test,
+        "data_dict": dictionary,
+    }
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     loaded_dictionary = load_diabetes()
-    print(loaded_dictionary['X_train'])
+    print(loaded_dictionary["X_train"])
