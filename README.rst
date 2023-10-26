@@ -27,7 +27,7 @@ Installation
 
 Create a virtual environment and install with pip:
 
-``pip install "https://github.com/GauravPandeyLab/eipy.git"``
+``pip install ensemble-integration``
 
 Citation
 --------
