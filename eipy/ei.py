@@ -61,8 +61,8 @@ class EnsembleIntegration:
     sampling_strategy : str, default=None
         The sampling method for class balancing. Can be set to 'undersampling',
         'oversampling', 'hybrid'.
-    sampling_aggregation : str, default='mean'
-        Method for combining multiple samples. Only used when n_samples>1. Can be
+    sampling_aggregation : str, default=None
+        Method for combining multiple samples. Only relevant when n_samples>1. Can be
         'mean' or None.
     metrics : dict, default=None
         A dictionary of metrics for which to evaluate ensembles. If left as default=None,
@@ -133,7 +133,7 @@ class EnsembleIntegration:
         k_inner=5,
         n_samples=1,
         sampling_strategy="undersampling",
-        sampling_aggregation="mean",
+        sampling_aggregation=None,
         n_jobs=1,
         metrics=None,
         random_state=None,
