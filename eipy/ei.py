@@ -358,10 +358,11 @@ class EnsembleIntegration:
             ensemble_prediction_data = append_modality(
                 ensemble_prediction_data, combined_predictions, model_building=True
             )
+        ensemble_prediction_data = ensemble_prediction_data[0]
 
         if self.sampling_aggregation == "mean":
             ensemble_prediction_data = (
-                ensemble_prediction_data[0].T.groupby(level=[0, 1]).mean().T
+                ensemble_prediction_data.T.groupby(level=[0, 1]).mean().T
             )
 
         ensemble_model = pickle.loads(
