@@ -339,7 +339,6 @@ class EnsembleIntegration:
 
         for i in range(len(self.modality_names)):
             modality_name = self.modality_names[i]
-            # n_features = self.n_features_per_modality[i]
             X = X_dict[modality_name]
 
             X, _ = X_to_numpy(X)
