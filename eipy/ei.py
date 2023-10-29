@@ -335,8 +335,6 @@ class EnsembleIntegration:
             Vector containing the class labels for each sample.
         """
 
-        # TODO: follow the order of feature?
-
         ensemble_prediction_data = None
 
         for i in range(len(self.modality_names)):
