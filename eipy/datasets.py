@@ -94,8 +94,3 @@ def load_diabetes():
         "y_test": y_test,
         "data_dict": dictionary,
     }
-
-
-if __name__ == "__main__":
-    loaded_dictionary = load_diabetes()
-    print(loaded_dictionary["X_train"])
