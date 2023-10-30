@@ -37,7 +37,7 @@ def fmax_precision_recall_threshold(labels, y_score, beta=1.0, pos_label=1):
         / ((beta**2 * precision_scores) + recall_scores)
     )
 
-    arg_fmax = np.argmax(f_scores)
+    arg_fmax = np.nanargmax(f_scores)
 
     fmax_score = f_scores[arg_fmax]
     precision_fmax = precision_scores[arg_fmax]

@@ -77,6 +77,8 @@ def y_to_numpy(y):
         _y = np.array(y)
     elif isinstance(y, (pd.Series)):
         _y = y.to_numpy()
+    elif isinstance(y, (pd.DataFrame)):
+        _y = np.squeeze(y.to_numpy())
     else:
         raise TypeError(
             """Object must be a numpy array, list

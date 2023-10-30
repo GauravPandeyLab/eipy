@@ -1,4 +1,4 @@
-|Tests|_ |ReadTheDocs|_ |PythonVersion|_ |Black|_
+|Tests|_ |ReadTheDocs|_ |PythonVersion|_ |Black|_ |License|_
 
 .. |Tests| image:: https://github.com/GauravPandeyLab/eipy/actions/workflows/tests.yml/badge.svg
 .. _Tests: https://github.com/GauravPandeyLab/eipy/actions/workflows/tests.yml
@@ -11,6 +11,9 @@
 
 .. |Black| image:: https://img.shields.io/badge/code%20style-black-000000.svg
 .. _Black: https://github.com/psf/black
+
+.. |License| image:: https://img.shields.io/badge/License-GPLv3-blue
+.. _License: https://github.com/GauravPandeyLab/eipy/blob/main/COPYING
 
 
 ``eipy``: Ensemble Integration in Python

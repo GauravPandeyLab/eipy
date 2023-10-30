@@ -61,8 +61,8 @@ class EnsembleIntegration:
     sampling_strategy : str, default=None
         The sampling method for class balancing. Can be set to 'undersampling',
         'oversampling', 'hybrid'.
-    sampling_aggregation : str, default='mean'
-        Method for combining multiple samples. Only used when n_samples>1. Can be
+    sampling_aggregation : str, default=None
+        Method for combining multiple samples. Only relevant when n_samples>1. Can be
         'mean' or None.
     metrics : dict, default=None
         A dictionary of metrics for which to evaluate ensembles. If left as default=None,
@@ -133,7 +133,7 @@ class EnsembleIntegration:
         k_inner=5,
         n_samples=1,
         sampling_strategy="undersampling",
-        sampling_aggregation="mean",
+        sampling_aggregation=None,
         n_jobs=1,
         metrics=None,
         random_state=None,
@@ -335,13 +335,10 @@ class EnsembleIntegration:
             Vector containing the class labels for each sample.
         """
 
-        # TODO: follow the order of feature?
-
         ensemble_prediction_data = None
 
         for i in range(len(self.modality_names)):
             modality_name = self.modality_names[i]
-            # n_features = self.n_features_per_modality[i]
             X = X_dict[modality_name]
 
             X, _ = X_to_numpy(X)
@@ -360,10 +357,11 @@ class EnsembleIntegration:
             ensemble_prediction_data = append_modality(
                 ensemble_prediction_data, combined_predictions, model_building=True
             )
+        ensemble_prediction_data = ensemble_prediction_data[0]
 
         if self.sampling_aggregation == "mean":
             ensemble_prediction_data = (
-                ensemble_prediction_data[0].T.groupby(level=[0, 1]).mean().T
+                ensemble_prediction_data.T.groupby(level=[0, 1]).mean().T
             )
 
         ensemble_model = pickle.loads(
