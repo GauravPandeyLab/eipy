@@ -10,6 +10,7 @@ from itertools import groupby
 from operator import itemgetter
 from sklearn.ensemble import VotingClassifier
 from sklearn.preprocessing import LabelEncoder
+from eipy.metrics import fmax_score
 
 import warnings
 
@@ -25,7 +26,7 @@ class PermutationInterpreter:
     EI : EnsembleIntegration class object
         Fitted EnsembleIntegration model, i.e. with model_building=True.
     metric : function
-        sklearn-like metric function.
+        sklearn-like metric function. If None, the fmax score is used.
     n_repeats : int, default=10
         Number of repeats in PermutationImportance.
     ensemble_predictor_keys: default='all'
@@ -54,14 +55,19 @@ class PermutationInterpreter:
     def __init__(
         self,
         EI,
-        metric,
+        metric=None,
         ensemble_predictor_keys="all",  # can be "all" or a list of keys for ensemble methods
         n_repeats=10,
         n_jobs=1,
         metric_greater_is_better=True,
     ):
         self.EI = EI
-        self.metric = metric
+
+        if metric is None:  # use fmax score if metric not specified
+            self.metric = lambda y_test, y_pred: fmax_score(y_test, y_pred)[0]
+        else:
+            self.metric = metric
+
         self.n_repeats = n_repeats
         self.n_jobs = n_jobs
         self.ensemble_predictor_keys = ensemble_predictor_keys
