@@ -31,6 +31,8 @@ from eipy.utils import (
 from eipy.metrics import (
     base_summary,
     ensemble_summary,
+    fmax_score,
+    roc_auc_score
 )
 
 warnings.filterwarnings("ignore", category=DeprecationWarning)
@@ -70,8 +72,7 @@ class EnsembleIntegration:
     n_jobs : int, default=1
         Number of workers for parallelization in joblib.
     metrics : dict, default=None
-        If None, the maximized F1-score and AUC scores are calculated. If specified, keys ending
-        in 'max' or 'min' will maximize/minimize the given metric by calculating a threshold.
+        If None, the maximized F1-score and AUC scores are calculated.
     random_state : int, default=None
         Random state for cross-validation and use in some models.
     parallel_backend : str, default='loky'
