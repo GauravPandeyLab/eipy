@@ -10,7 +10,7 @@ def load_diabetes():
     """
     Loads a multi-modal youth diabetes dataset.
 
-    More information about this dataset can be found in the following publication
+    More information about this dataset can be found in the following publication:
 
     Catherine McDonough, Yan Chak Li, Nita Vangeepuram, Bian Liu, Gaurav Pandey.
     Facilitating youth diabetes studies with the most comprehensive epidemiological
