@@ -5,7 +5,7 @@ from eipy.utils import minority_class
 from sklearn.metrics import roc_auc_score, precision_recall_curve
 
 
-def fmax_score(y_test, y_score, beta=1.0, pos_label=1, return_threshold=True):
+def fmax_score(y_test, y_score, beta=1.0, pos_label=1):
     fmax_score, _, _, threshold_fmax = fmax_precision_recall_threshold(
         y_test, y_score, beta=beta, pos_label=pos_label
     )
