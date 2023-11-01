@@ -24,7 +24,7 @@ To use eipy, first install it using pip:
 
 .. code-block:: console
 
-   pip install "git+https://github.com/03bennej/ei-python.git"
+   pip install ensemble-integration
 
 Citation
 --------
