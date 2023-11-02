@@ -48,3 +48,14 @@ Note that new test file names must have the prefix `test_`.
 
 9. **Submit pull request**. Updates must be made via a pull request. Internal users should note that pushing to the main branch has been disabled.
 
+10. **Publishing new versions to PyPI** (internal only). To release new versions of ``eipy`` to PyPI make sure you have a PyPI account
+and have been added as a collaborater to the project. When you want to published, change the version number in the ``[tool.poetry]`` section
+of the `pyproject.toml` and push changes to a secondary branch, before merging with the main branch. Switch to the main branch and sync changes.
+You can now type:
+
+.. code-block:: console
+
+   poetry publish
+
+Note that versions cannot be deleted, and bug fixes etc must be published as a new version. After this has been done publish a new release on GitHub
+making sure to match the version number with that in `pyproject.toml`.
