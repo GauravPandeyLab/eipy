@@ -31,8 +31,6 @@ from eipy.utils import (
 from eipy.metrics import (
     base_summary,
     ensemble_summary,
-    fmax_score,
-    roc_auc_score
 )
 
 warnings.filterwarnings("ignore", category=DeprecationWarning)
