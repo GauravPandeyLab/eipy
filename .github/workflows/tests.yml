@@ -1,4 +1,4 @@
-name: Test and deploy
+name: Tests
 
 on:
   push:
@@ -41,33 +41,3 @@ jobs:
 
       - name: Test with tox
         run: tox
-
-  deploy:
-    needs: tests
-    runs-on: ubuntu-latest
-#    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-  
-    steps:
-      - name: Check out the repository
-        uses: actions/checkout@v3
-  
-      - name: Set up Python
-        uses: actions/setup-python@v3
-        with:
-          python-version: '3.8'
-  
-      - name: Install poetry
-        run: |
-          pip install poetry
-  
-      - name: Install dependencies
-        run: |
-          poetry install
-  
-      - name: Build and publish to Test PyPI
-        run: |
-          poetry config repositories.test-pypi https://test.pypi.org/legacy/
-          poetry config pypi-token.test-pypi ${{ secrets.TEST_PYPI_TOKEN }}
-          poetry publish --build
-
-        
