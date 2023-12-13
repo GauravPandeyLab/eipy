@@ -60,7 +60,7 @@ def test_ensemble_integration(sampling_strategy, dtype):
                              n_samples=2,
                              sampling_strategy=sampling_strategy,
                              sampling_aggregation="mean",
-                             n_jobs=-1,
+                             n_jobs=1,
                              metrics=metrics,
                              random_state=42,
                              project_name="demo",
@@ -98,7 +98,7 @@ def test_ensemble_integration(sampling_strategy, dtype):
                                         metric=lambda y_test, y_pred: fmax_score(y_test, y_pred)[0],
                                         ensemble_predictor_keys=['S.LR', 'Mean'],
                                         n_repeats=1,
-                                        n_jobs=-1,
+                                        n_jobs=1,
                                         metric_greater_is_better=True
                                         )
     
