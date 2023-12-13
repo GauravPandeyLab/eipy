@@ -1,0 +1,44 @@
+name: Publish to Pypi
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version upload to pypi'
+        required: true
+      pypi_repo:
+        description: 'Repo to upload to (testpypi or pypi)'
+        default: 'testpypi'
+        required: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out the repository
+        uses: actions/checkout@v3
+  
+      - name: Set up Python
+        uses: actions/setup-python@v3
+        with:
+          python-version: '3.8'
+  
+      - name: Install poetry
+        run: |
+          pip install poetry
+  
+      - name: Install dependencies
+        run: |
+          poetry install
+      
+      - name: Publish package to TestPyPI
+        run: |
+          poetry config repositories.test-pypi https://test.pypi.org/legacy/
+          poetry config pypi-token.test-pypi ${{ secrets.TEST_PYPI_TOKEN }}
+          poetry publish --build
+        if: ${{ github.event.inputs.pypi_repo == 'testpypi' }}
+
+      - name: Publish package to PyPI
+        run: |
+          poetry config pypi-token.pypi ${{ secrets.PYPI_TOKEN }}
+          poetry publish --build
+        if: ${{ github.event.inputs.pypi_repo == 'pypi' }}
