@@ -7,12 +7,14 @@ on:
     paths-ignore:
       - '**/README.rst'
       - 'docs/**'
+      - '.github/workflows/**'
   pull_request:
     branches:
       - main
     paths-ignore:
       - '**/README.rst'
       - 'docs/**'
+      - '.github/workflows/**'
 
 jobs:
   tests:
