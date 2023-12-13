@@ -1,8 +1,6 @@
-name: Publish to PyPI
-
+name: Publish to Test PyPI
 on:
-  release:
-    types: [published]
+  workflow_dispatch:
 
 jobs:
   publish:
@@ -23,8 +21,9 @@ jobs:
       - name: Install dependencies
         run: |
           poetry install
-
-      - name: Publish package to PyPI
+      
+      - name: Publish package to TestPyPI
         run: |
-          poetry config pypi-token.pypi ${{ secrets.PYPI_TOKEN }}
-          poetry publish --build
+          poetry config repositories.test-pypi https://test.pypi.org/legacy/
+          poetry config pypi-token.test-pypi ${{ secrets.TEST_PYPI_TOKEN }}
+          poetry publish -r test-pypi --build
