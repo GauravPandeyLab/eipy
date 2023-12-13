@@ -26,7 +26,7 @@ def test_ensemble_integration(sampling_strategy, dtype):
     from eipy.metrics import fmax_score
 
     # Generate toy data for testing
-    X, y = make_classification(n_samples=50, n_features=10, n_classes=2, weights=[0.6, 0.4], n_redundant=0)
+    X, y = make_classification(n_samples=100, n_features=10, n_classes=2, weights=[0.6, 0.4], n_redundant=0)
     
     X_1 = X[:, :4]
     X_2 = X[:, 4:]
@@ -60,7 +60,7 @@ def test_ensemble_integration(sampling_strategy, dtype):
                              n_samples=2,
                              sampling_strategy=sampling_strategy,
                              sampling_aggregation="mean",
-                             n_jobs=1,
+                             n_jobs=-1,
                              metrics=metrics,
                              random_state=42,
                              project_name="demo",
