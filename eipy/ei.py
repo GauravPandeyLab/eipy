@@ -570,7 +570,7 @@ class EnsembleIntegration:
         )
 
         if self.calibration_model is not None:
-            self.calibration_model.base_estimator = model
+            self.calibration_model.estimator = model
             model = self.calibration_model
 
         model.fit(X_sample, y_sample)
