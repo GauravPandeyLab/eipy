@@ -40,7 +40,7 @@ You can install ensemble-integration with pip:
 Citation
 --------
 
-If you use ``eipy`` in a scientific publication please cite the following:
+If you use ``ensemble-integration`` in a scientific publication please cite the following:
 
 Jamie J. R. Bennett, Yan Chak Li and Gaurav Pandey. *An Open-Source Python Package for Multi-modal Data Integration using Heterogeneous Ensembles*, https://doi.org/10.48550/arXiv.2401.09582.
 
