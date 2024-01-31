@@ -20,7 +20,7 @@ Installation
 ------------
 
 As usual it is recommended to set up a virtual environment prior to installation. 
-To use eipy, first install it using pip:
+You can install ensemble-integration with pip:
 
 .. code-block:: console
 
@@ -29,5 +29,9 @@ To use eipy, first install it using pip:
 Citation
 --------
 
-If you use eipy in a scientific publication please cite the `original paper <https://doi.org/10.1093/bioadv/vbac065>`_.
+If you use eipy in a scientific publication please cite the following:
+
+Jamie J. R. Bennett, Yan Chak Li and Gaurav Pandey. An Open-Source Python Package for Multi-modal Data Integration using Heterogeneous Ensembles, https://doi.org/10.48550/arXiv.2401.09582.
+
+Yan Chak Li, Linhua Wang, Jeffrey N Law, T M Murali, Gaurav Pandey. Integrating multimodal data through interpretable heterogeneous ensembles, Bioinformatics Advances, Volume 2, Issue 1, 2022, vbac065, https://doi.org/10.1093/bioadv/vbac065.
 

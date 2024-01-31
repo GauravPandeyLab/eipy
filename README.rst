@@ -16,26 +16,31 @@
 .. _License: https://github.com/GauravPandeyLab/eipy/blob/main/COPYING
 
 
-``eipy``: Ensemble Integration in Python
-========================================
+``ensemble-integration``: Integrating multi-modal data for predictive modeling
+==============================================================================
 
-``eipy`` is a Python module for developing multi-modal, heterogeneous ensemble classifiers.
-A key feature of ``eipy`` is its built-in nested cross-validation approach, allowing for a fair comparison of a 
-collection of user-defined meta algorithms. 
+``ensemble-integration`` (or ``eipy``) leverages multi-modal data to build classifiers using a late fusion approach. 
+In eipy, base predictors are trained on each modality before being ensembled at the late stage. 
+
+This implementation of eipy can utilize `sklearn-like <https://scikit-learn.org/>`_ models only, therefore, for unstructured data,
+e.g. images, it is recommended to perform feature selection prior to using eipy. We hope to allow for a wider range of base predictors, 
+i.e. deep learning methods, in future releases. A key feature of ``eipy`` is its built-in nested cross-validation approach, allowing for a 
+fair comparison of a collection of user-defined ensemble methods.
 
 Documentation including tutorials are available at `https://eipy.readthedocs.io/en/latest/ <https://eipy.readthedocs.io/en/latest/>`_.
 
 Installation
 ------------
 
-Create a virtual environment and install with pip:
+As usual it is recommended to set up a virtual environment prior to installation. 
+You can install ensemble-integration with pip:
 
 ``pip install ensemble-integration``
 
 Citation
 --------
 
-If you use ``eipy`` in a scientific publication please cite the `original study <https://academic.oup.com/bioinformaticsadvances/article/2/1/vbac065/6696243>`_.
+If you use ``eipy`` in a scientific publication please cite the following:
 
 Full citation:
 
