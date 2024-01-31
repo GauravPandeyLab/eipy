@@ -14,7 +14,6 @@ import pytest
 def test_ensemble_integration(sampling_strategy, dtype):
 
     from sklearn.linear_model import LogisticRegression
-    from sklearn.calibration import CalibratedClassifierCV
     from sklearn.pipeline import Pipeline
     from sklearn.preprocessing import StandardScaler
     from xgboost import XGBClassifier
@@ -64,7 +63,6 @@ def test_ensemble_integration(sampling_strategy, dtype):
                              metrics=metrics,
                              random_state=42,
                              project_name="demo",
-                             calibration_model=CalibratedClassifierCV(cv=2),
                              model_building=True)
 
         # Train base models

@@ -77,9 +77,6 @@ class EnsembleIntegration:
         Backend to use in joblib. See joblib.Parallel() for other options.
     project_name : str, default='project'
         Name of project.
-    calibration_model : sklearn estimator, default=None
-        Calibrate base predictor predictions with calibration_model. Intended for use
-        with sklearn's CalibratedClassifierCV().
     model_building : bool, default=True
         Whether or not to train and save final models.
     verbose : int, default=1
@@ -138,7 +135,6 @@ class EnsembleIntegration:
         random_state=None,
         parallel_backend="loky",
         project_name="project",
-        calibration_model=None,
         model_building=True,
         verbose=1,
     ):
@@ -157,7 +153,6 @@ class EnsembleIntegration:
         self.random_state = random_state
         self.parallel_backend = parallel_backend
         self.project_name = project_name
-        self.calibration_model = calibration_model
         self.model_building = model_building
         self.verbose = verbose
 
@@ -568,11 +563,7 @@ class EnsembleIntegration:
             strategy=self.sampling_strategy,
             random_state=sample_random_state,
         )
-
-        if self.calibration_model is not None:
-            self.calibration_model.estimator = model
-            model = self.calibration_model
-
+        
         model.fit(X_sample, y_sample)
 
         if model_building:
