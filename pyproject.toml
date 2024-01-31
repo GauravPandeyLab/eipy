@@ -4,10 +4,10 @@ build-backend = "poetry.core.masonry.api"
 
 [tool.poetry]
 name = "ensemble-integration"
-version = "0.1.3"
+version = "0.1.4"
 readme = "README.rst"
 description = "Ensemble Integration: a customizable pipeline for generating multi-modal, heterogeneous ensembles"
-authors = ["Jamie Bennett", "Yan Chak (Richard) Li", "Gaurav Pandey"]
+authors = ["Jamie Bennett", "Yan Chak (Richard) Li", "Aviad Susman", "Gaurav Pandey"]
 license = "GNU General Public License version 3"
 classifiers = [
     "Programming Language :: Python :: 3",
