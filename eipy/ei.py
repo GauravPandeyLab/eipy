@@ -1,7 +1,7 @@
 """
 Ensemble Integration
 
-@author: Jamie Bennett, Yan Chak (Richard) Li
+@author: Jamie Bennett, Yan Chak (Richard) Li, Aviad Susman
 """
 import pandas as pd
 import numpy as np
@@ -338,7 +338,11 @@ class EnsembleIntegration:
             X, _ = X_to_numpy(X)
 
             base_models = copy.deepcopy(self.final_models["base models"][modality_name])
+            self.base_predictors = {}
             for base_model_dict in base_models:
+                if base_model_dict['model name'] not in self.base_predictors.keys():
+                    self.base_predictors[base_model_dict['model name']] = 0
+
                 base_model = pickle.loads(base_model_dict["pickled model"])
                 y_pred = safe_predict_proba(base_model, X)
 
