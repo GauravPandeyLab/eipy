@@ -447,7 +447,7 @@ class EnsembleIntegration:
     ):
         """
         Perform a round of (inner) k-fold cross validation on each outer
-        training set.
+        training set. For generating ensemble training data.
         """
 
         if base_predictors is not None:
@@ -504,7 +504,7 @@ class EnsembleIntegration:
         model_building=False,
     ):
         """
-        Train each base predictor on each outer training set.
+        Train each base predictor on each outer training set. For generating ensemble test data.
         """
 
         if model_building:
