@@ -11,9 +11,7 @@ build:
     python: "3.10"
   jobs:
     post_create_environment:
-      - pip install pipx
-      - pipx ensurepath
-      - pipx install poetry
+      - pip install poetry
       - poetry config virtualenvs.create false
     post_install:
       - poetry install --with docs
