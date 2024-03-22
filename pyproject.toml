@@ -13,6 +13,9 @@ classifiers = [
     "Programming Language :: Python :: 3",
     "License :: OSI Approved :: GNU General Public License v3 (GPLv3)",
     "Operating System :: OS Independent",
+    "Operating System :: Microsoft :: Windows",
+    "Operating System :: POSIX :: Linux",
+    "Operating System :: MacOS",
 ]
 packages = [
     { include = "eipy"},
@@ -44,6 +47,7 @@ tox = ">=3.9"
 pytest-cov = ">=3.0"
 black = ">=23.0"
 ipykernel = "^6.25.2"
+flask = "^3.0.2"
 
 [tool.poetry.group.docs]
 optional = true
@@ -57,7 +61,7 @@ sphinx-copybutton = "0.5.2"
 numpydoc = "1.5.0"
 
 [tool.pytest.ini_options]
-addopts = "--cov=eipy --cov-report html --cov-append"
+addopts = "--cov=eipy --cov-report xml --cov-append"
 testpaths = [
     "tests"
 ]
