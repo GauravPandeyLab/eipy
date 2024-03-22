@@ -61,3 +61,6 @@ addopts = "--cov=eipy --cov-report html --cov-append"
 testpaths = [
     "tests"
 ]
+
+[tool.poetry.classifiers]
+tested-oss = ["Windows", "Linux", "macOS"]
