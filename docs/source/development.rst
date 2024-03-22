@@ -30,7 +30,7 @@ We welcome contributions to the development of ``eipy``. To contribute follow th
 
 .. code-block:: console
 
-   flake8 eipy/ei
+   flake8 eipy/ei.py
 
 For formatting type, for example,
 
