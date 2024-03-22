@@ -3,7 +3,7 @@
 .. |Tests| image:: https://github.com/GauravPandeyLab/eipy/actions/workflows/tests.yml/badge.svg
 .. _Tests: https://github.com/GauravPandeyLab/eipy/actions/workflows/tests.yml
 
-.. |Coverage|:: https://codecov.io/gh/GauravPandeyLab/eipy/graph/badge.svg?token=M2AU2XWJB8 
+.. |Coverage| image:: https://codecov.io/gh/GauravPandeyLab/eipy/graph/badge.svg?token=M2AU2XWJB8 
 .. _Coverage: https://codecov.io/gh/GauravPandeyLab/eipy
 
 .. |ReadTheDocs| image:: https://readthedocs.org/projects/eipy/badge/?version=latest
