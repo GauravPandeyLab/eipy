@@ -20,9 +20,6 @@ project = 'Ensemble Integration'
 copyright = '2023, Jamie J. R. Bennett, Yan Chak Li, Aviad Susman, Gaurav Pandey'
 author = 'Jamie J. R. Bennett, Yan Chak Li, Aviad Susman, Gaurav Pandey'
 
-# The full version, including alpha/beta/rc tags
-release = '0.1.0'
-
 # -- General configuration ---------------------------------------------------
 
 # Add any Sphinx extension module names here, as strings. They can be
@@ -31,13 +28,12 @@ release = '0.1.0'
 extensions = ['sphinx.ext.autodoc', 
               'sphinx.ext.autosummary',
               'sphinx.ext.coverage', 
-              # 'numpydoc',
+              'numpydoc',
               'sphinx.ext.napoleon',
               'sphinx_autodoc_typehints',
               'sphinx_rtd_theme',
               'nbsphinx',
               'sphinx_copybutton',
-            #   'sphinx.ext.githubpages'
 ]
 
 # Set order in autodoc
