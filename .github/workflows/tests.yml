@@ -8,9 +8,9 @@ on:
       - '**/README.rst'
       - 'docs/**'
       - '.github/workflows/**'
-      - '.readthedocs.yml'
-      - 'COPYING'
-      - '.gitignore'
+      - '**/.readthedocs.yml'
+      - '**/COPYING'
+      - '**/.gitignore'
   pull_request:
     branches:
       - main
@@ -18,9 +18,9 @@ on:
       - '**/README.rst'
       - 'docs/**'
       - '.github/workflows/**'
-      - '.readthedocs.yml'
-      - 'COPYING'
-      - '.gitignore'
+      - '**/.readthedocs.yml'
+      - '**/COPYING'
+      - '**/.gitignore'
 
 jobs:
   tests:
