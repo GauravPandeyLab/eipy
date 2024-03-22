@@ -17,8 +17,8 @@ sys.path.insert(0, os.path.abspath('../eipy'))
 # -- Project information -----------------------------------------------------
 
 project = 'Ensemble Integration'
-copyright = '2023, Jamie J. R. Bennett, Yan Chak Li, Gaurav Pandey'
-author = 'Jamie J. R. Bennett, Yan Chak Li, Gaurav Pandey'
+copyright = '2023, Jamie J. R. Bennett, Yan Chak Li, Aviad Susman, Gaurav Pandey'
+author = 'Jamie J. R. Bennett, Yan Chak Li, Aviad Susman, Gaurav Pandey'
 
 # The full version, including alpha/beta/rc tags
 release = '0.1.0'
@@ -31,7 +31,7 @@ release = '0.1.0'
 extensions = ['sphinx.ext.autodoc', 
               'sphinx.ext.autosummary',
               'sphinx.ext.coverage', 
-              'numpydoc',
+              # 'numpydoc',
               'sphinx.ext.napoleon',
               'sphinx_autodoc_typehints',
               'sphinx_rtd_theme',
