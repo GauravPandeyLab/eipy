@@ -36,7 +36,7 @@ For formatting type, for example,
 
 .. code-block:: console
 
-   black eipy/ei
+   black eipy/ei.py
 
 8. **Run tests**. All tests can be found in the tests folder and can be run by typing
 
