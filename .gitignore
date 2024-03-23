@@ -4,3 +4,4 @@ __pycache__
 docs/build
 .coverage
 poetry.lock
+coverage.xml
