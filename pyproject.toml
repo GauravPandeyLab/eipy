@@ -65,5 +65,8 @@ addopts = "--cov=eipy --cov-report xml --cov-append"
 testpaths = [
     "tests"
 ]
+
 [tool.poetry-dynamic-versioning]
 enable = true
+vcs = "git"
+style = "semver"
