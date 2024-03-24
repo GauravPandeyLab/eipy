@@ -17,7 +17,6 @@ jobs:
       - name: Install poetry
         run: |
           pip install poetry
-          poetry self add "poetry-dynamic-versioning[plugin]"
   
       - name: Install dependencies
         run: |
