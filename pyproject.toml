@@ -70,3 +70,4 @@ testpaths = [
 enable = true
 vcs = "git"
 style = "semver"
+tag-branch = "dev-jamie"
