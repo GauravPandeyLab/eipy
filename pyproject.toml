@@ -1,10 +1,10 @@
 [build-system]
-requires = ["poetry-core"]
-build-backend = "poetry.core.masonry.api"
+requires = ["poetry-core>=1.0.0", "poetry-dynamic-versioning>=1.0.0,<2.0.0"]
+build-backend = "poetry_dynamic_versioning.backend"
 
 [tool.poetry]
 name = "ensemble-integration"
-version = "0.1.5"
+version = "0.0.0"
 readme = "README.rst"
 description = "Ensemble Integration: a customizable pipeline for generating multi-modal, heterogeneous ensembles"
 authors = ["Jamie Bennett", "Yan Chak (Richard) Li", "Aviad Susman", "Gaurav Pandey"]
@@ -65,3 +65,5 @@ addopts = "--cov=eipy --cov-report xml --cov-append"
 testpaths = [
     "tests"
 ]
+[tool.poetry-dynamic-versioning]
+enable = true
