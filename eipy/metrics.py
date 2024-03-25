@@ -1,7 +1,7 @@
 import numpy as np
 import pandas as pd
 import inspect
-from eipy.utils import minority_class
+from eipy.utils import _minority_class
 from sklearn.metrics import roc_auc_score, precision_recall_curve
 
 
@@ -27,13 +27,13 @@ def fmax_score(y_test, y_score, beta=1.0, pos_label=1):
     threshold_fmax : float64
         Threshold corresponding to returned fmax
     """
-    fmax_score, _, _, threshold_fmax = fmax_precision_recall_threshold(
+    fmax_score, _, _, threshold_fmax = _fmax_precision_recall_threshold(
         y_test, y_score, beta=beta, pos_label=pos_label
     )
     return fmax_score, threshold_fmax
 
 
-def fmax_precision_recall_threshold(labels, y_score, beta=1.0, pos_label=1):
+def _fmax_precision_recall_threshold(labels, y_score, beta=1.0, pos_label=1):
     """
     Radivojac, P. et al. (2013). A Large-Scale Evaluation of Computational Protein
     Function Prediction. Nature Methods, 10(3), 221-227.
@@ -65,7 +65,7 @@ def fmax_precision_recall_threshold(labels, y_score, beta=1.0, pos_label=1):
     return fmax_score, precision_fmax, recall_fmax, threshold_fmax
 
 
-def try_metric_with_pos_label(y_true, y_pred, metric, pos_label):
+def _try_metric_with_pos_label(y_true, y_pred, metric, pos_label):
     """
     Compute score for a given metric.
     """
@@ -76,7 +76,7 @@ def try_metric_with_pos_label(y_true, y_pred, metric, pos_label):
     return score
 
 
-def scores(y_true, y_pred, metrics):
+def _scores(y_true, y_pred, metrics):
     """
     Compute all metrics for a single set of predictions. Returns a dictionary
     containing metric keys, each paired to a tuple (score, threshold).
@@ -86,7 +86,7 @@ def scores(y_true, y_pred, metrics):
     if metrics is None:
         metrics = {"fmax (minority)": fmax_score, "auc": roc_auc_score}
 
-    pos_label = minority_class(y_true)  # gives value 1 or 0
+    pos_label = _minority_class(y_true)  # gives value 1 or 0
 
     metric_threshold_dict = {}
 
@@ -96,14 +96,14 @@ def scores(y_true, y_pred, metrics):
         if "y_pred" in inspect.signature(metric).parameters:
             # calculate metric for target vector with threshold=0.5
             metric_threshold_dict[metric_key] = (
-                try_metric_with_pos_label(
+                _try_metric_with_pos_label(
                     y_true, (np.array(y_pred) >= 0.5).astype(int), metric, pos_label
                 ),
                 0.5,
             )
         # if y_score parameter exists in metric function then y should be probability vector
         elif "y_score" in inspect.signature(metric).parameters:
-            metric_results = try_metric_with_pos_label(
+            metric_results = _try_metric_with_pos_label(
                 y_true, y_pred, metric, pos_label
             )
             if isinstance(
@@ -116,7 +116,7 @@ def scores(y_true, y_pred, metrics):
     return metric_threshold_dict
 
 
-def scores_matrix(X, labels, metrics):
+def _scores_matrix(X, labels, metrics):
     """
     Calculate metrics and threshold (if applicable) for each column
     (set of predictions) in matrix X
@@ -125,7 +125,7 @@ def scores_matrix(X, labels, metrics):
     scores_dict = {}
     for column in X.columns:
         column_temp = X[column]
-        metrics_per_column = scores(labels, column_temp, metrics)
+        metrics_per_column = _scores(labels, column_temp, metrics)
         # metric_names = list(metrics.keys())
         for metric_key in metrics_per_column.keys():
             if not (metric_key in scores_dict):
@@ -136,13 +136,13 @@ def scores_matrix(X, labels, metrics):
     return scores_dict
 
 
-def create_metric_threshold_dataframes(X, labels, metrics):
+def _create_metric_threshold_dataframes(X, labels, metrics):
     """
     Create a separate dataframe for metrics and thresholds. thresholds_df contains
     NaN if threshold not applicable.
     """
 
-    scores_dict = scores_matrix(X, labels, metrics)
+    scores_dict = _scores_matrix(X, labels, metrics)
 
     metrics_df = pd.DataFrame(columns=X.columns)
     thresholds_df = pd.DataFrame(columns=X.columns)
@@ -151,15 +151,15 @@ def create_metric_threshold_dataframes(X, labels, metrics):
     return metrics_df, thresholds_df
 
 
-def create_metric_threshold_dict(X, labels, metrics):
+def _create_metric_threshold_dict(X, labels, metrics):
     df_dict = {}
-    df_dict["metrics"], df_dict["thresholds"] = create_metric_threshold_dataframes(
+    df_dict["metrics"], df_dict["thresholds"] = _create_metric_threshold_dataframes(
         X, labels, metrics
     )
     return df_dict
 
 
-def base_summary(ensemble_test_dataframes, metrics):
+def _base_summary(ensemble_test_dataframes, metrics):
     """
     Create a base predictor performance summary by concatenating data across test folds
     """
@@ -173,10 +173,10 @@ def base_summary(ensemble_test_dataframes, metrics):
     return create_metric_threshold_dict(ensemble_test_averaged_samples, labels, metrics)
 
 
-def ensemble_summary(ensemble_predictions, metrics):
+def _ensemble_summary(ensemble_predictions, metrics):
     X = ensemble_predictions.drop(["labels"], axis=1)
     labels = ensemble_predictions["labels"]
-    return create_metric_threshold_dict(X, labels, metrics)
+    return _create_metric_threshold_dict(X, labels, metrics)
 
 
 # These two functions are an attempt at maximizing/minimizing any metric
