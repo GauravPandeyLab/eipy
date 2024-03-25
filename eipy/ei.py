@@ -313,7 +313,7 @@ class EnsembleIntegration:
 
     def predict(self, X_dict, ensemble_model_key):
         """
-        Predict class labels for samples in X
+        Predict class labels for samples in X.
 
         Parameters
         ----------
@@ -676,7 +676,6 @@ class EnsembleIntegration:
 
         Parameters
         ----------
-
         path : optional, default=None
             Path to save the EnsembleIntegration class object.
         """
@@ -694,7 +693,6 @@ class EnsembleIntegration:
 
         Parameters
         ----------
-
         path : str
             Path to load the EnsembleIntegration class object.
         """
