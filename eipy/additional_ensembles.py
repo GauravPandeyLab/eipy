@@ -14,7 +14,18 @@ from sklearn.utils.multiclass import unique_labels
 
 class MeanAggregation(BaseEstimator, ClassifierMixin):
     """
+    Mean Aggregation
+
     Trivially takes the mean of X.
+
+    Attributes
+    ----------
+    classes : array
+        Ordered arrray of unique labels for computing mean.
+    X_ : array of (n_samples, n_features)
+        Base predictor data for computing mean.
+    y_ : array of (n_samples,)
+        True labels of X_.
     """
 
     def __init__(self):
@@ -36,7 +47,18 @@ class MeanAggregation(BaseEstimator, ClassifierMixin):
 
 class MedianAggregation(BaseEstimator, ClassifierMixin):
     """
+    Median Aggregation
+
     Trivially takes the median of X.
+
+    Attributes
+    ----------
+    classes : array
+        Ordered arrray of unique labels for computing mean.
+    X_ : array of (n_samples, n_features)
+        Base predictor data for computing mean.
+    y_ : array of (n_samples,)
+        True labels of X_.
     """
 
     def __init__(self):
@@ -63,6 +85,28 @@ class CES(BaseEstimator, ClassifierMixin):
     Caruana R. et al. (2006) Getting the most out of ensemble selection.
     In: Sixth International Conference on Data
     Mining (ICDM'06), 2006 IEEE, Piscataway, NJ, USA, pp. 828-833.
+
+    Sort models by score with respect to chosen metric. Select best performer
+
+    Parameters
+    ----------
+    scoring :
+
+    max_ensemble_size : int
+        Maximum number of base models to ensemble.
+    random_state : int
+        For determining a rarndom state
+    greater_is_better : bool
+
+    
+    Attributes
+    ----------
+    classes : array
+        Ordered arrray of unique labels for computing mean.
+    X_ : array of (n_samples, n_features)
+        Base predictor data for computing mean.
+    y_ : array of (n_samples,)
+        True labels of X_.
     """
 
     def __init__(

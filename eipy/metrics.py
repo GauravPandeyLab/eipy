@@ -6,6 +6,27 @@ from sklearn.metrics import roc_auc_score, precision_recall_curve
 
 
 def fmax_score(y_test, y_score, beta=1.0, pos_label=1):
+    """
+    Computes the maximum F-score (the harmonic mean of precision and recall) and the corresponding threshold.
+
+    Parameters
+    ----------
+    y_test : array of shape (n_samples,)
+        Array of test labels.
+    y_pred : array of shape (n_samples,)
+        Array of predicted probabilities on test data.
+    beta : float
+        Parameter for weighing precision and recall in F score calculations.
+    pos_label : bool
+        Class selection for computing F scores.
+
+    Returns
+    -------
+    fmax_score : float64
+        Calculated fmax
+    threshold_fmax : float64
+        Threshold corresponding to returned fmax
+    """
     fmax_score, _, _, threshold_fmax = fmax_precision_recall_threshold(
         y_test, y_score, beta=beta, pos_label=pos_label
     )
