@@ -20,13 +20,13 @@ jobs:
   
       - name: Install poetry
         run: |
-          pip install poetry
-  
-      - name: Install dependencies
-        run: |
           pip install pipx
           pipx install poetry
           pipx inject poetry "poetry-dynamic-versioning[plugin]"
+  
+      - name: Install dependencies
+        run: |
+          poetry install
 
       - name: Publish package to PyPI
         run: |
