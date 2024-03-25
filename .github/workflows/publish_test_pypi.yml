@@ -18,9 +18,7 @@ jobs:
   
       - name: Install poetry
         run: |
-          pip install pipx
-          pipx install poetry
-          pipx inject poetry "poetry-dynamic-versioning[plugin]"
+          pip install poetry
   
       - name: Install dependencies
         run: |
