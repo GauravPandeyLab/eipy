@@ -86,8 +86,6 @@ class CES(BaseEstimator, ClassifierMixin):
     In: Sixth International Conference on Data
     Mining (ICDM'06), 2006 IEEE, Piscataway, NJ, USA, pp. 828-833.
 
-    Sort models by score with respect to chosen metric. Select best performer
-
     Parameters
     ----------
     scoring :
@@ -95,18 +93,20 @@ class CES(BaseEstimator, ClassifierMixin):
     max_ensemble_size : int
         Maximum number of base models to ensemble.
     random_state : int
-        For determining a rarndom state
+        For determining a random state.
     greater_is_better : bool
-
+        For sorting models by performance with respect to a metric.
     
     Attributes
     ----------
-    classes : array
-        Ordered arrray of unique labels for computing mean.
-    X_ : array of (n_samples, n_features)
-        Base predictor data for computing mean.
-    y_ : array of (n_samples,)
-        True labels of X_.
+    selected_ensemble : list
+        List of models selected for ensemble.
+    train_performance : list
+        Record of model performances.
+    argbest : bool
+        True if metric of interest is to be maximized. Used for model selection.
+    best : bool
+        True if metric of interest is to be maximized. Used for selecting maximum scorers.
     """
 
     def __init__(
