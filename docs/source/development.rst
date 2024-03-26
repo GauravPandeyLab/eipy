@@ -30,13 +30,13 @@ We welcome contributions to the development of ``eipy``. To contribute follow th
 
 .. code-block:: console
 
-   flake8 eipy/ei
+   flake8 eipy/ei.py
 
 For formatting type, for example,
 
 .. code-block:: console
 
-   black eipy/ei
+   black eipy/ei.py
 
 8. **Run tests**. All tests can be found in the tests folder and can be run by typing
 
@@ -49,9 +49,9 @@ Note that new test file names must have the prefix `test_`.
 9. **Submit pull request**. Updates must be made via a pull request. Internal users should note that pushing 
 to the main branch has been disabled.
 
-10. **Publishing new versions to PyPI** (internal only). When you want to publish to PyPI, first 
-iterate the version number in the `pyproject.toml`. Before publishing to PyPI proper, you can publish to 
-test PyPI by running the "Publish to Test PyPI" workflow from the Actions tab. If successful you can publish to 
-PyPI by creating a new `release <https://github.com/GauravPandeyLab/eipy/releases>`__, which will trigger the 
-"Publish to PyPI workflow" automatically. Note: ensure the version number of the release e.g. "v0.1.1" matches
-that in `pyproject.toml` e.g. "0.1.1".
+10. **Publishing new versions to PyPI** (internal only). We now use `poetry-dynamic-versioning <https://github.com/mtkennerly/poetry-dynamic-versioning>` 
+to iterate version numbers in pyproject.toml automatically. You can publish to 
+PyPI by creating a new `release <https://github.com/GauravPandeyLab/eipy/releases>`__, 
+which will run the "Publish to PyPI" workflow. This workflow determines the PyPI version number from the
+GitHub release tag, which you should manually iterate.  
+Note: to test things out first, you can try manually running the "Publish to test PyPI" workflow.

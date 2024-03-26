@@ -8,6 +8,9 @@ on:
       - '**/README.rst'
       - 'docs/**'
       - '.github/workflows/**'
+      - '**/.readthedocs.yml'
+      - '**/COPYING'
+      - '**/.gitignore'
   pull_request:
     branches:
       - main
@@ -15,13 +18,16 @@ on:
       - '**/README.rst'
       - 'docs/**'
       - '.github/workflows/**'
+      - '**/.readthedocs.yml'
+      - '**/COPYING'
+      - '**/.gitignore'
 
 jobs:
   tests:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [ubuntu-latest, windows-latest]
+        os: [ubuntu-latest, windows-latest, macos-latest]
         python-version: ['3.8', '3.9', '3.10', '3.11']
 
     steps:
@@ -42,4 +48,10 @@ jobs:
           pip install tox tox-gh-actions
 
       - name: Test with tox
-        run: tox
+        run: poetry run tox
+
+      - name: Upload coverage reports to Codecov
+        uses: codecov/codecov-action@v4.0.1
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          slug: GauravPandeyLab/eipy

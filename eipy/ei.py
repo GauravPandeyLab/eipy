@@ -3,6 +3,7 @@ Ensemble Integration
 
 @author: Jamie Bennett, Yan Chak (Richard) Li, Aviad Susman
 """
+
 import pandas as pd
 import numpy as np
 import random
@@ -340,8 +341,8 @@ class EnsembleIntegration:
             base_models = copy.deepcopy(self.final_models["base models"][modality_name])
             self.base_predictors = {}
             for base_model_dict in base_models:
-                if base_model_dict['model name'] not in self.base_predictors.keys():
-                    self.base_predictors[base_model_dict['model name']] = 0
+                if base_model_dict["model name"] not in self.base_predictors.keys():
+                    self.base_predictors[base_model_dict["model name"]] = 0
 
                 base_model = pickle.loads(base_model_dict["pickled model"])
                 y_pred = _safe_predict_proba(base_model, X)
@@ -567,7 +568,7 @@ class EnsembleIntegration:
             strategy=self.sampling_strategy,
             random_state=sample_random_state,
         )
-        
+
         model.fit(X_sample, y_sample)
 
         if model_building:
@@ -609,9 +610,9 @@ class EnsembleIntegration:
                         if d["model name"] == model_name and d["sample id"] == sample_id
                     )
                 )
-                combined_predictions[
-                    modality, model_name, sample_id
-                ] = model_predictions
+                combined_predictions[modality, model_name, sample_id] = (
+                    model_predictions
+                )
         labels = np.concatenate(
             list(
                 d["labels"]
