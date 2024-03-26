@@ -1,5 +1,5 @@
 from sklearn.inspection import permutation_importance
-from eipy.utils import X_to_numpy, retrieve_X_y, bar_format, y_to_numpy
+from eipy.utils import _X_to_numpy, _retrieve_X_y, bar_format, _y_to_numpy
 import pandas as pd
 from tqdm import tqdm
 import numpy as np
@@ -102,7 +102,7 @@ class PermutationInterpreter:
             ensemble_predictor_keys = self.ensemble_predictor_keys
 
         if self.LFR is None:
-            self.local_feature_rank(X_dict, y_to_numpy(y))
+            self.local_feature_rank(X_dict, _y_to_numpy(y))
 
         if self.LMR is None:
             self.local_model_rank(ensemble_predictor_keys=ensemble_predictor_keys)
@@ -151,7 +151,7 @@ class PermutationInterpreter:
 
         return self
 
-    def local_feature_rank(self, X_dict, y):
+    def _local_feature_rank(self, X_dict, y):
         """
         Local Feature Ranks (LFRs) for each base predictor
 
@@ -177,7 +177,7 @@ class PermutationInterpreter:
             bar_format=bar_format,
         ):
             X = X_dict[modality_name]
-            X, feature_names = X_to_numpy(X)
+            X, feature_names = _X_to_numpy(X)
 
             # check feature names were seen during training
             if len(self.EI.feature_names[modality_name]) > 1:
@@ -285,7 +285,7 @@ class PermutationInterpreter:
 
         return self
 
-    def local_model_rank(self, ensemble_predictor_keys):
+    def _local_model_rank(self, ensemble_predictor_keys):
         """
         Local Model Ranks (LMRs)
 
@@ -302,7 +302,7 @@ class PermutationInterpreter:
         """
         #  load ensemble training data from EI training
 
-        ensemble_X_train, ensemble_y_train = retrieve_X_y(
+        ensemble_X_train, ensemble_y_train = _retrieve_X_y(
             labelled_data=self.EI.ensemble_training_data_final[0]
         )
 

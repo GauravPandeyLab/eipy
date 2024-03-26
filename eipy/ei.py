@@ -17,21 +17,21 @@ from sklearn.base import clone
 from joblib import Parallel, delayed
 import warnings
 from eipy.utils import (
-    X_is_dict,
-    X_to_numpy,
-    y_to_numpy,
-    set_predictor_seeds,
-    random_integers,
-    sample,
-    retrieve_X_y,
-    append_modality,
-    safe_predict_proba,
+    _X_is_dict,
+    _X_to_numpy,
+    _y_to_numpy,
+    _set_predictor_seeds,
+    _random_integers,
+    _sample,
+    _retrieve_X_y,
+    _append_modality,
+    _safe_predict_proba,
     dummy_cv,
     bar_format,
 )
 from eipy.metrics import (
-    base_summary,
-    ensemble_summary,
+    _base_summary,
+    _ensemble_summary,
 )
 
 warnings.filterwarnings("ignore", category=DeprecationWarning)
@@ -181,7 +181,7 @@ class EnsembleIntegration:
         self.modality_names = []
         self.n_features_per_modality = []
 
-        self.random_numbers_for_samples = random_integers(
+        self.random_numbers_for_samples = _random_integers(
             n_integers=n_samples, seed=self.random_state
         )
         self.feature_names = {}
@@ -210,17 +210,17 @@ class EnsembleIntegration:
         \n... for ensemble performance analysis..."""
         )
         #  convert y to a numpy array
-        y = y_to_numpy(y)
+        y = _y_to_numpy(y)
 
         #  check if base_predictors are passed here
         if base_predictors is not None:
             self.base_predictors = base_predictors  # update base predictors
 
         #  set random_states in base_predictors
-        set_predictor_seeds(self.base_predictors, self.random_state)
+        _set_predictor_seeds(self.base_predictors, self.random_state)
 
         #  check data format and train accordingly
-        if X_is_dict(X):
+        if _X_is_dict(X):
             for modality_name, modality in X.items():
                 self._fit_base(
                     X=modality,
@@ -252,12 +252,12 @@ class EnsembleIntegration:
         if ensemble_predictors is not None:
             self.ensemble_predictors = ensemble_predictors
 
-        set_predictor_seeds(self.ensemble_predictors, self.random_state)
+        _set_predictor_seeds(self.ensemble_predictors, self.random_state)
 
         y_test_combined = []
 
         for fold_id in range(self.k_outer):
-            _, y_test = retrieve_X_y(labelled_data=self.ensemble_test_data[fold_id])
+            _, y_test = _retrieve_X_y(labelled_data=self.ensemble_test_data[fold_id])
             y_test_combined.extend(y_test)
 
         ensemble_predictions = {}
@@ -270,17 +270,17 @@ class EnsembleIntegration:
             y_pred_combined = []
 
             for fold_id in range(self.k_outer):
-                X_train, y_train = retrieve_X_y(
+                X_train, y_train = _retrieve_X_y(
                     labelled_data=self.ensemble_training_data[fold_id]
                 )
-                X_test, _ = retrieve_X_y(labelled_data=self.ensemble_test_data[fold_id])
+                X_test, _ = _retrieve_X_y(labelled_data=self.ensemble_test_data[fold_id])
 
                 if self.sampling_aggregation == "mean":
                     X_train = X_train.T.groupby(level=[0, 1]).mean().T
                     X_test = X_test.T.groupby(level=[0, 1]).mean().T
 
                 model.fit(X_train, y_train)
-                y_pred = safe_predict_proba(model, X_test)
+                y_pred = _safe_predict_proba(model, X_test)
                 y_pred_combined.extend(y_pred)
 
             ensemble_predictions[model_name] = y_pred_combined
@@ -288,7 +288,7 @@ class EnsembleIntegration:
         ensemble_predictions["labels"] = y_test_combined
 
         self.ensemble_predictions = pd.DataFrame.from_dict(ensemble_predictions)
-        self.ensemble_summary = ensemble_summary(
+        self.ensemble_summary = _ensemble_summary(
             self.ensemble_predictions, self.metrics
         )
 
@@ -298,7 +298,7 @@ class EnsembleIntegration:
                 desc="Training final ensemble models",
                 bar_format=bar_format,
             ):
-                X_train, y_train = retrieve_X_y(
+                X_train, y_train = _retrieve_X_y(
                     labelled_data=self.ensemble_training_data_final[0]
                 )
 
@@ -314,7 +314,7 @@ class EnsembleIntegration:
 
     def predict(self, X_dict, ensemble_model_key):
         """
-        Predict class labels for samples in X
+        Predict class labels for samples in X.
 
         Parameters
         ----------
@@ -336,7 +336,7 @@ class EnsembleIntegration:
             modality_name = self.modality_names[i]
             X = X_dict[modality_name]
 
-            X, _ = X_to_numpy(X)
+            X, _ = _X_to_numpy(X)
 
             base_models = copy.deepcopy(self.final_models["base models"][modality_name])
             self.base_predictors = {}
@@ -345,7 +345,7 @@ class EnsembleIntegration:
                     self.base_predictors[base_model_dict["model name"]] = 0
 
                 base_model = pickle.loads(base_model_dict["pickled model"])
-                y_pred = safe_predict_proba(base_model, X)
+                y_pred = _safe_predict_proba(base_model, X)
 
                 base_model_dict["fold id"] = 0
                 base_model_dict["y_pred"] = y_pred
@@ -353,7 +353,7 @@ class EnsembleIntegration:
             combined_predictions = self._combine_predictions_outer(
                 base_models, modality_name, model_building=True
             )
-            ensemble_prediction_data = append_modality(
+            ensemble_prediction_data = _append_modality(
                 ensemble_prediction_data, combined_predictions, model_building=True
             )
         ensemble_prediction_data = ensemble_prediction_data[0]
@@ -367,12 +367,12 @@ class EnsembleIntegration:
             self.final_models["ensemble models"][ensemble_model_key]
         )
 
-        y_pred = safe_predict_proba(ensemble_model, ensemble_prediction_data)
+        y_pred = _safe_predict_proba(ensemble_model, ensemble_prediction_data)
         return y_pred
 
     @ignore_warnings(category=ConvergenceWarning)
     def _fit_base(self, X, y, base_predictors=None, modality_name=None):
-        X, feature_names = X_to_numpy(X)
+        X, feature_names = _X_to_numpy(X)
 
         self.modality_names.append(modality_name)
         self.feature_names[modality_name] = feature_names
@@ -387,7 +387,7 @@ class EnsembleIntegration:
             modality_name=modality_name,
         )
 
-        self.ensemble_training_data = append_modality(
+        self.ensemble_training_data = _append_modality(
             self.ensemble_training_data, ensemble_training_data_modality
         )
 
@@ -399,12 +399,12 @@ class EnsembleIntegration:
             modality_name=modality_name,
         )
 
-        self.ensemble_test_data = append_modality(
+        self.ensemble_test_data = _append_modality(
             self.ensemble_test_data, ensemble_test_data_modality
         )  # append data to dataframe
 
         # create a summary of base predictor performance
-        self.base_summary = base_summary(self.ensemble_test_data, self.metrics)
+        self.base_summary = _base_summary(self.ensemble_test_data, self.metrics)
 
         if self.model_building:
             self._fit_base_final(X=X, y=y, modality_name=modality_name)
@@ -428,7 +428,7 @@ class EnsembleIntegration:
             modality_name=modality_name,
         )
 
-        self.ensemble_training_data_final = append_modality(
+        self.ensemble_training_data_final = _append_modality(
             self.ensemble_training_data_final, ensemble_training_data_modality
         )
 
@@ -562,7 +562,7 @@ class EnsembleIntegration:
 
         X_train, X_test = X[train_index], X[test_index]
         y_train, y_test = y[train_index], y[test_index]
-        X_sample, y_sample = sample(
+        X_sample, y_sample = _sample(
             X_train,
             y_train,
             strategy=self.sampling_strategy,
@@ -581,7 +581,7 @@ class EnsembleIntegration:
             }
 
         else:
-            y_pred = safe_predict_proba(model, X_test)
+            y_pred = _safe_predict_proba(model, X_test)
 
             results_dict = {
                 "model name": model_name,
@@ -677,7 +677,6 @@ class EnsembleIntegration:
 
         Parameters
         ----------
-
         path : optional, default=None
             Path to save the EnsembleIntegration class object.
         """
@@ -695,7 +694,6 @@ class EnsembleIntegration:
 
         Parameters
         ----------
-
         path : str
             Path to load the EnsembleIntegration class object.
         """

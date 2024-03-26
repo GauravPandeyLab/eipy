@@ -15,7 +15,7 @@ warnings.filterwarnings(action="ignore", category=UndefinedMetricWarning)
 bar_format = "{desc}: |{bar}|{percentage:3.0f}%"
 
 
-def minority_class(y_true):
+def _minority_class(y_true):
     if np.bincount(y_true)[0] < np.bincount(y_true)[1]:
         minority_class = 0
     else:
@@ -23,7 +23,7 @@ def minority_class(y_true):
     return minority_class
 
 
-def set_predictor_seeds(base_predictors, random_state):
+def _set_predictor_seeds(base_predictors, random_state):
     for _, v in base_predictors.items():
         if type(v) == Pipeline:
             est_ = list(v.named_steps)[-1]
@@ -33,25 +33,25 @@ def set_predictor_seeds(base_predictors, random_state):
             v.set_params(**{"random_state": random_state})
 
 
-def X_is_dict(X):
+def _X_is_dict(X):
     if isinstance(X, dict):
         return True
     else:
         return False
 
 
-def X_dict_to_numpy(X_dict):
+def _X_dict_to_numpy(X_dict):
     """
     Retrieve feature names and convert arrays to numpy.
     """
     X_dict_numpy = {}
     feature_names = {}
     for key, X in X_dict.items():
-        X_dict_numpy[key], feature_names[key] = X_to_numpy(X)
+        X_dict_numpy[key], feature_names[key] = _X_to_numpy(X)
     return X_dict_numpy, feature_names
 
 
-def X_to_numpy(X):
+def _X_to_numpy(X):
     """
     Return X as a numpy array, with feature names if applicable.
     """
@@ -66,7 +66,7 @@ def X_to_numpy(X):
         )
 
 
-def y_to_numpy(y):
+def _y_to_numpy(y):
     """
     Check y is numpy array and convert if not.
     """
@@ -85,13 +85,13 @@ def y_to_numpy(y):
             or pandas Series."""
         )
 
-    if not is_binary_array(_y):
+    if not _is_binary_array(_y):
         raise ValueError("y must contain binary values.")
 
     return _y
 
 
-def is_binary_array(arr):
+def _is_binary_array(arr):
     if all(x == 0 or x == 1 or x == 0.0 or x == 1.0 for x in arr):
         return True
     else:
@@ -110,7 +110,7 @@ class dummy_cv:
         return self.n_splits
 
 
-def safe_predict_proba(model, X):  # uses predict_proba method where possible
+def _safe_predict_proba(model, X):  # uses predict_proba method where possible
     if hasattr(model, "predict_proba"):
         y_pred = model.predict_proba(X)[:, 1]
     else:
@@ -118,12 +118,12 @@ def safe_predict_proba(model, X):  # uses predict_proba method where possible
     return y_pred
 
 
-def random_integers(n_integers=1, seed=42):
+def _random_integers(n_integers=1, seed=42):
     random.seed(seed)
     return random.sample(range(0, 10000), n_integers)
 
 
-def sample(X, y, strategy, random_state):
+def _sample(X, y, strategy, random_state):
     if strategy is None:
         X_resampled, y_resampled = X, y
     elif strategy == "undersampling":  # define sampler
@@ -161,13 +161,13 @@ def sample(X, y, strategy, random_state):
     return X_resampled, y_resampled
 
 
-def retrieve_X_y(labelled_data):
+def _retrieve_X_y(labelled_data):
     X = labelled_data.drop(columns=["labels"], level=0)
     y = np.ravel(labelled_data["labels"])
     return X, y
 
 
-def append_modality(current_data, modality_data, model_building=False):
+def _append_modality(current_data, modality_data, model_building=False):
     if current_data is None:
         combined_dataframe = modality_data
     else:
