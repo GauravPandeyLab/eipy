@@ -1,4 +1,4 @@
-|Tests| |Coverage| |ReadTheDocs| |PythonVersion| |Black| |License|
+_|Tests|_ |Coverage| _ |ReadTheDocs| _ |PythonVersion| _ |Black| _ |License| _
 
 .. |Tests| image:: https://github.com/GauravPandeyLab/eipy/actions/workflows/tests.yml/badge.svg
 .. _Tests: https://github.com/GauravPandeyLab/eipy/actions/workflows/tests.yml
