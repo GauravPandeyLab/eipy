@@ -1,4 +1,4 @@
-|Tests| |Coverage| |ReadTheDocs| |PythonVersion| |Black| |License|
+|Tests| |Coverage| |ReadTheDocs| |PythonVersion| |PyPI| |Black| |License|
 
 .. |Tests| image:: https://github.com/GauravPandeyLab/eipy/actions/workflows/tests.yml/badge.svg
   :target:  https://github.com/GauravPandeyLab/eipy/actions/workflows/tests.yml
@@ -9,8 +9,10 @@
 .. |ReadTheDocs| image:: https://readthedocs.org/projects/eipy/badge/?version=latest
   :target: https://eipy.readthedocs.io/en/latest/
 
-.. |PythonVersion| image:: https://img.shields.io/badge/python-3.8%20%7C%203.9%20%7C%203.10%20%7C%203.11-blue
+.. |PyPI| image:: https://img.shields.io/pypi/v/ensemble-integration
   :target: https://pypi.org/project/ensemble-integration/
+
+.. |PythonVersion| image:: https://img.shields.io/badge/python-3.8%20%7C%203.9%20%7C%203.10%20%7C%203.11-blue
 
 .. |Black| image:: https://img.shields.io/badge/code%20style-black-000000.svg
   :target: https://github.com/psf/black
