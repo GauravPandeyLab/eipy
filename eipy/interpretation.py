@@ -102,10 +102,10 @@ class PermutationInterpreter:
             ensemble_predictor_keys = self.ensemble_predictor_keys
 
         if self.LFR is None:
-            self.local_feature_rank(X_dict, _y_to_numpy(y))
+            self._local_feature_rank(X_dict, _y_to_numpy(y))
 
         if self.LMR is None:
-            self.local_model_rank(ensemble_predictor_keys=ensemble_predictor_keys)
+            self._local_model_rank(ensemble_predictor_keys=ensemble_predictor_keys)
 
         print("Calculating combined rank product score...")
 

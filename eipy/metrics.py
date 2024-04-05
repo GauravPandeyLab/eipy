@@ -170,7 +170,7 @@ def _base_summary(ensemble_test_dataframes, metrics):
             for df in ensemble_test_dataframes
         ]
     )
-    return create_metric_threshold_dict(ensemble_test_averaged_samples, labels, metrics)
+    return _create_metric_threshold_dict(ensemble_test_averaged_samples, labels, metrics)
 
 
 def _ensemble_summary(ensemble_predictions, metrics):
