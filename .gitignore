@@ -3,3 +3,4 @@ __pycache__
 .tox
 docs/build
 poetry.lock
+coverage.xml
