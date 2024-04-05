@@ -1,7 +1,7 @@
 Development
 ===========
 
-We welcome contributions to the development of ``eipy``. To contribute follow the below instructions to submit a pull request:
+We welcome contributions to the development of ``ensemble-integration``. To contribute follow the below instructions to submit a pull request:
 
 1. **Install Python**. First of all make sure you have a supported version of Python on your local machine (see `GitHub <https://github.com/GauravPandeyLab/eipy>`__ for supported versions).
 2. **Install Poetry**. ``eipy`` uses Poetry to manage dependencies. To install Poetry follow the instructions on their `website <https://python-poetry.org/docs/>`__.
