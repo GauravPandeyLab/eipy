@@ -25,7 +25,7 @@ def load_diabetes():
     """
     zenodo_link = "https://zenodo.org/records/10035422/files/diabetes.zip?download=1"
     # Get data path
-    data_path = get_data_home()
+    data_path = _get_data_home()
     folder_ext = "diabetes"
     data_ext_path = join(data_path, folder_ext)
     # check data downloaded before
@@ -66,7 +66,7 @@ def _load_csv(file_path, fn, suffix):
     return pd.read_csv(join(file_path, f"{fn}_{suffix}.csv"), index_col=0)
 
 
-def get_data_home(data_home=None):
+def _get_data_home(data_home=None):
     """Return the path of the eipy data directory.
 
     This function is referring from scikit-learn.
