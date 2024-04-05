@@ -49,7 +49,7 @@ Note that new test file names must have the prefix `test_`.
 9. **Submit pull request**. Updates must be made via a pull request. Internal users should note that pushing 
 to the main branch has been disabled.
 
-10. **Publishing new versions to PyPI** (internal only). We now use `poetry-dynamic-versioning <https://github.com/mtkennerly/poetry-dynamic-versioning>` 
+10. **Publishing new versions to PyPI** (internal only). We now use `poetry-dynamic-versioning <https://github.com/mtkennerly/poetry-dynamic-versioning>`__ 
 to iterate version numbers in pyproject.toml automatically. You can publish to 
 PyPI by creating a new `release <https://github.com/GauravPandeyLab/eipy/releases>`__, 
 which will run the "Publish to PyPI" workflow. This workflow determines the PyPI version number from the

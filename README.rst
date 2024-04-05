@@ -1,22 +1,24 @@
-|Tests|_ |Coverage|_ |ReadTheDocs|_ |PythonVersion|_ |Black|_ |License|_
+|Tests| |Coverage| |ReadTheDocs| |PythonVersion| |PyPI| |Black| |License|
 
 .. |Tests| image:: https://github.com/GauravPandeyLab/eipy/actions/workflows/tests.yml/badge.svg
-.. _Tests: https://github.com/GauravPandeyLab/eipy/actions/workflows/tests.yml
+  :target:  https://github.com/GauravPandeyLab/eipy/actions/workflows/tests.yml
 
 .. |Coverage| image:: https://codecov.io/gh/GauravPandeyLab/eipy/graph/badge.svg?token=M2AU2XWJB8 
-.. _Coverage: https://codecov.io/gh/GauravPandeyLab/eipy
+  :target: https://codecov.io/gh/GauravPandeyLab/eipy
 
 .. |ReadTheDocs| image:: https://readthedocs.org/projects/eipy/badge/?version=latest
-.. _ReadTheDocs: https://eipy.readthedocs.io/en/latest/
+  :target: https://eipy.readthedocs.io/en/latest/
+
+.. |PyPI| image:: https://img.shields.io/pypi/v/ensemble-integration
+  :target: https://pypi.org/project/ensemble-integration/
 
 .. |PythonVersion| image:: https://img.shields.io/badge/python-3.8%20%7C%203.9%20%7C%203.10%20%7C%203.11-blue
-.. _PythonVersion: https://github.com/GauravPandeyLab/eipy
 
 .. |Black| image:: https://img.shields.io/badge/code%20style-black-000000.svg
-.. _Black: https://github.com/psf/black
+  :target: https://github.com/psf/black
 
 .. |License| image:: https://img.shields.io/badge/License-GPLv3-blue
-.. _License: https://github.com/GauravPandeyLab/eipy/blob/main/COPYING
+  :target: https://github.com/GauravPandeyLab/eipy/blob/main/COPYING
 
 
 ``ensemble-integration``: Integrating multi-modal data for predictive modeling
